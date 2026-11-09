@@ -1,0 +1,221 @@
+[
+  {
+    "Id": "sand-buggy",
+    "Name": "Sand Buggy",
+    "DesignPoints": 40,
+    "Markup": 0.4,
+    "Body": 2,
+    "Armor": 0,
+    "OnRoadHandling": 4,
+    "OffRoadHandling": 4,
+    "StartingCargo": 4,
+    "MaximumCargo": 35,
+    "PowerPlants": [
+      {
+        "Id": "gasoline",
+        "Name": "Gasoline",
+        "DesignPoints": 20,
+        "StartingLoadKg": 40,
+        "MaximumLoadKg": 400,
+        "StartingSpeed": 90,
+        "MaximumSpeed": 120,
+        "StartingAcceleration": 6,
+        "MaximumAcceleration": 9,
+        "Signature": 3,
+        "StartingEconomyKmPerLiter": 8,
+        "MaximumEconomyKmPerLiter": 12,
+        "FuelLiters": 40
+      }
+    ]
+  },
+  {
+    "Id": "sedan",
+    "Name": "Sedan",
+    "DesignPoints": 50,
+    "Markup": 1,
+    "Body": 3,
+    "Armor": 0,
+    "OnRoadHandling": 4,
+    "OffRoadHandling": 8,
+    "StartingCargo": 6,
+    "MaximumCargo": 30,
+    "PowerPlants": [
+      {
+        "Id": "gasoline",
+        "Name": "Gasoline",
+        "DesignPoints": 25,
+        "StartingLoadKg": 60,
+        "MaximumLoadKg": 300,
+        "StartingSpeed": 100,
+        "MaximumSpeed": 160,
+        "StartingAcceleration": 8,
+        "MaximumAcceleration": 14,
+        "Signature": 2,
+        "StartingEconomyKmPerLiter": 8,
+        "MaximumEconomyKmPerLiter": 14,
+        "FuelLiters": 60
+      }
+    ]
+  },
+  {
+    "Id": "sports-car",
+    "Name": "Sports Car",
+    "DesignPoints": 125,
+    "Markup": 1,
+    "Body": 3,
+    "Armor": 0,
+    "OnRoadHandling": 4,
+    "OffRoadHandling": 8,
+    "StartingCargo": 3,
+    "MaximumCargo": 18,
+    "PowerPlants": [
+      {
+        "Id": "gasoline",
+        "Name": "Gasoline",
+        "DesignPoints": 70,
+        "StartingLoadKg": 40,
+        "MaximumLoadKg": 260,
+        "StartingSpeed": 160,
+        "MaximumSpeed": 270,
+        "StartingAcceleration": 10,
+        "MaximumAcceleration": 18,
+        "Signature": 2,
+        "StartingEconomyKmPerLiter": 6,
+        "MaximumEconomyKmPerLiter": 10,
+        "FuelLiters": 60
+      },
+      {
+        "Id": "jet-turbine",
+        "Name": "Jet Turbine",
+        "DesignPoints": 90,
+        "StartingLoadKg": 40,
+        "MaximumLoadKg": 260,
+        "StartingSpeed": 240,
+        "MaximumSpeed": 400,
+        "StartingAcceleration": 18,
+        "MaximumAcceleration": 32,
+        "Signature": 2,
+        "StartingEconomyKmPerLiter": 6,
+        "MaximumEconomyKmPerLiter": 10,
+        "FuelLiters": 60
+      }
+    ]
+  },
+  {
+    "Id": "subcompact",
+    "Name": "Subcompact",
+    "DesignPoints": 30,
+    "Markup": 1,
+    "Body": 3,
+    "Armor": 0,
+    "OnRoadHandling": 4,
+    "OffRoadHandling": 8,
+    "StartingCargo": 1,
+    "MaximumCargo": 16,
+    "PowerPlants": [
+      {
+        "Id": "gasoline",
+        "Name": "Gasoline",
+        "DesignPoints": 20,
+        "StartingLoadKg": 50,
+        "MaximumLoadKg": 500,
+        "StartingSpeed": 90,
+        "MaximumSpeed": 120,
+        "StartingAcceleration": 6,
+        "MaximumAcceleration": 10,
+        "Signature": 2,
+        "StartingEconomyKmPerLiter": 8,
+        "MaximumEconomyKmPerLiter": 12,
+        "FuelLiters": 40
+      }
+    ]
+  },
+  {
+    "Id": "suv",
+    "Name": "SUV",
+    "DesignPoints": 70,
+    "Markup": 1,
+    "Body": 4,
+    "Armor": 0,
+    "OnRoadHandling": 4,
+    "OffRoadHandling": 6,
+    "StartingCargo": 18,
+    "MaximumCargo": 54,
+    "PowerPlants": [
+      {
+        "Id": "gasoline",
+        "Name": "Gasoline",
+        "DesignPoints": 30,
+        "StartingLoadKg": 250,
+        "MaximumLoadKg": 1600,
+        "StartingSpeed": 100,
+        "MaximumSpeed": 140,
+        "StartingAcceleration": 7,
+        "MaximumAcceleration": 12,
+        "Signature": 2,
+        "StartingEconomyKmPerLiter": 6,
+        "MaximumEconomyKmPerLiter": 10,
+        "FuelLiters": 80
+      },
+      {
+        "Id": "diesel",
+        "Name": "Diesel",
+        "DesignPoints": 35,
+        "StartingLoadKg": 1000,
+        "MaximumLoadKg": 2000,
+        "StartingSpeed": 100,
+        "MaximumSpeed": 200,
+        "StartingAcceleration": 7,
+        "MaximumAcceleration": 12,
+        "Signature": 2,
+        "StartingEconomyKmPerLiter": 6,
+        "MaximumEconomyKmPerLiter": 9,
+        "FuelLiters": 80
+      }
+    ]
+  },
+  {
+    "Id": "van",
+    "Name": "Van",
+    "DesignPoints": 60,
+    "Markup": 1,
+    "Body": 4,
+    "Armor": 0,
+    "OnRoadHandling": 4,
+    "OffRoadHandling": 10,
+    "StartingCargo": 48,
+    "MaximumCargo": 250,
+    "PowerPlants": [
+      {
+        "Id": "gasoline",
+        "Name": "Gasoline",
+        "DesignPoints": 40,
+        "StartingLoadKg": 350,
+        "MaximumLoadKg": 2500,
+        "StartingSpeed": 80,
+        "MaximumSpeed": 120,
+        "StartingAcceleration": 5,
+        "MaximumAcceleration": 8,
+        "Signature": 2,
+        "StartingEconomyKmPerLiter": 5,
+        "MaximumEconomyKmPerLiter": 9,
+        "FuelLiters": 95
+      },
+      {
+        "Id": "diesel",
+        "Name": "Diesel",
+        "DesignPoints": 35,
+        "StartingLoadKg": 1000,
+        "MaximumLoadKg": 3000,
+        "StartingSpeed": 80,
+        "MaximumSpeed": 175,
+        "StartingAcceleration": 4,
+        "MaximumAcceleration": 9,
+        "Signature": 2,
+        "StartingEconomyKmPerLiter": 4,
+        "MaximumEconomyKmPerLiter": 8,
+        "FuelLiters": 95
+      }
+    ]
+  }
+]

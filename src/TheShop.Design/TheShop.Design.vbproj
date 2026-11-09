@@ -7,4 +7,7 @@
     <OptionStrict>On</OptionStrict>
     <OptionExplicit>On</OptionExplicit>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="StockCatalog.json" LogicalName="TheShop.Design.StockCatalog.json" />
+  </ItemGroup>
 </Project>

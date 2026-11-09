@@ -2,7 +2,7 @@
 
 The Shop is a vehicle builder for Shadowrun. This project updates James Ojaste’s original Rigger 2 program for Shadowrun Third Edition using **Rigger 3 Revised** and modern Visual Basic .NET.
 
-The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The chassis and power plant catalog, vehicle editor, and Windows installer are still in development.
+The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. A starter component catalog supplies chassis and power plant values for six ground vehicle chassis. The full catalog, vehicle editor, and Windows installer are still in development.
 
 ## Import a legacy vehicle
 
@@ -14,7 +14,28 @@ dotnet run --project src/TheShop.Import -- path/to/vehicle.shp
 
 The importer accepts the `Shop v1.40` save header emitted by the original source archive. It writes JSON containing the vehicle name, chassis, engine, seating, entry points, markups, and modifications. Chassis, engine, and modification entries retain their source book names. The JSON identifies the input as Rigger 2 data for later conversion. Older save headers are reported as unsupported.
 
-## Calculate a stock vehicle design
+## Select catalog components
+
+```sh
+dotnet run --project src/TheShop.Design -- --catalog
+dotnet run --project src/TheShop.Design -- --stock path/to/stock.json
+```
+
+A minimal stock design file looks like this:
+
+```json
+{
+  "ChassisId": "suv",
+  "PowerPlantId": "diesel",
+  "StreetIndex": 1
+}
+```
+
+The catalog lists compatible power plants under each chassis along with their starting values and limits. The calculator looks up component Design Points, chassis markup, and starting cargo and load. You can supply `CargoCapacity` and `LoadCapacityKg` within the catalog limits. Enter the costs of any capacity upgrades in `Additions`. Use the manual design format below for designs that change those limits or use components outside the starter catalog.
+
+The starter catalog uses the printed component tables in *Rigger 3 Revised*, pp. 194, 198–199 and 202. The gasoline sports car has 60 L in the table, while the worked race-car example lists 40 L.
+
+## Calculate a stock vehicle design from manual inputs
 
 ```sh
 dotnet run --project src/TheShop.Design -- path/to/design.json

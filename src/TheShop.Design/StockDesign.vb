@@ -64,6 +64,7 @@ End Module
 Friend NotInheritable Class StockChassis
     Public Property Id As String
     Public Property Name As String
+    Public Property Category As String
     Public Property DesignPoints As Decimal
     Public Property Markup As Decimal
     Public Property Body As Integer
@@ -86,7 +87,16 @@ Friend NotInheritable Class StockPowerPlant
     Public Property StartingAcceleration As Integer
     Public Property MaximumAcceleration As Integer
     Public Property Signature As Integer
-    Public Property StartingEconomyKmPerLiter As Decimal
-    Public Property MaximumEconomyKmPerLiter As Decimal
-    Public Property FuelLiters As Decimal
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property StartingEconomyKmPerLiter As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property MaximumEconomyKmPerLiter As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property FuelLiters As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property StartingEconomyKmPerPowerFactor As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property MaximumEconomyKmPerPowerFactor As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property BatteryPowerFactors As Decimal?
 End Class

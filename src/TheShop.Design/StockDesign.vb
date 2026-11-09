@@ -79,8 +79,20 @@ Public NotInheritable Class StockChassis
     Public Property SetupMinutes As Integer?
     Public Property DesignPoints As Decimal
     Public Property Markup As Decimal
-    Public Property Body As Integer
-    Public Property Armor As Integer
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Body As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Armor As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Hull As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Bulwark As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Sonar As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property StartingDepth As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property MaximumDepth As Integer?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property OnRoadHandling As Integer?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
@@ -109,6 +121,12 @@ Public NotInheritable Class StockPowerPlant
     Public Property StartingAcceleration As Integer
     Public Property MaximumAcceleration As Integer
     Public Property Signature As Integer
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property SonarSignature As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property StartingSecondarySpeed As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property MaximumSecondarySpeed As Integer?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property StartingEconomyKmPerLiter As Decimal?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>

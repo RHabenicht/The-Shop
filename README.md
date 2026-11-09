@@ -2,7 +2,7 @@
 
 The Shop is a vehicle builder for Shadowrun. This project updates James Ojaste’s original Rigger 2 program for Shadowrun Third Edition using **Rigger 3 Revised** and modern Visual Basic .NET.
 
-The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The component catalog covers 58 chassis and 194 chassis and power plant combinations. Coverage includes ground vehicles, boats, hovercraft, crewed aircraft, and aerial drones. The Windows desktop preview can edit and price catalog-based designs. The full catalog and installer are still in development.
+The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The component catalog covers 85 chassis and 269 chassis and power plant combinations. Coverage includes ground vehicles, boats, hovercraft, crewed aircraft, aerial drones, ships, submarines, and sea sleds. The Windows desktop preview can edit and price catalog-based designs. The full catalog and installer are still in development.
 
 ## Windows desktop preview
 
@@ -45,7 +45,7 @@ A minimal stock design file looks like this:
 
 The catalog lists compatible power plants under each chassis along with their starting values and limits. The calculator looks up component Design Points, chassis markup, and starting cargo and load. You can supply `CargoCapacity` and `LoadCapacityKg` within the catalog limits. Enter the costs of any capacity upgrades in `Additions`. Use the manual design format below for designs that change those limits or use components outside the starter catalog.
 
-The catalog uses the printed component tables in *Rigger 3 Revised*, pp. 194–204. Aircraft with paired speed ratings retain their stall and flight speeds separately. Battery entries use Power Factors, methane uses bars, and liquid fuel uses liters. The aircraft and hovercraft fuel-cell table on p. 197 labels capacity in Power Factors. Earlier fuel-cell entries follow the p. 196 table, which labels capacity in liters. Sail entries omit fuel and economy. Dedicated People Space is listed separately where specified. The gasoline sports car has 60 L in the table, while the worked race-car example lists 40 L.
+The catalog uses the printed component tables in *Rigger 3 Revised*, pp. 194–205. Ship and submarine entries preserve Hull and Bulwark where the book uses those ratings, along with paired speeds and sonar data. Naval jet-turbine pairings on p. 200 remain pending because that page labels fuel in bars while the jet-turbine section starts with liters. Aircraft with paired speed ratings retain their stall and flight speeds separately. Battery entries use Power Factors, methane uses bars, and liquid fuel uses liters. The aircraft, hovercraft, and submarine fuel-cell table on p. 197 labels capacity in Power Factors. Earlier fuel-cell entries follow the p. 196 table, which labels capacity in liters. Sail entries omit fuel and economy. Dedicated People Space is listed separately where specified. The gasoline sports car has 60 L in the table, while the worked race-car example lists 40 L.
 
 ## Calculate a stock vehicle design from manual inputs
 

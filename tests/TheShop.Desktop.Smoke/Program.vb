@@ -59,7 +59,14 @@ Module Program
                 Dim aircraft = DirectCast(powerPlant.SelectedItem, StockPowerPlant)
                 Require(aircraft.StartingStallSpeed.GetValueOrDefault() = 135 AndAlso aircraft.StartingSpeed = 320 AndAlso
                         totals.Text.Contains("Base ¥625,000.00"), "The airliner did not retain both speed ratings or its price.")
-                Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, and aircraft designs.")
+                File.WriteAllText(destination, "{""ChassisId"":""attack-submarine"",""PowerPlantId"":""nuclear"",""StreetIndex"":1}")
+                editor.LoadDesignFile(destination)
+                Dim submarine = DirectCast(chassis.SelectedItem, StockChassis)
+                Dim reactor = DirectCast(powerPlant.SelectedItem, StockPowerPlant)
+                Require(submarine.Hull.GetValueOrDefault() = 5 AndAlso Not submarine.Body.HasValue AndAlso
+                        reactor.StartingSecondarySpeed.GetValueOrDefault() = 35 AndAlso
+                        totals.Text.Contains("Base ¥300,000,000.00"), "The submarine did not retain Hull, secondary speed, or price.")
+                Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, and submarine designs.")
             End Using
         Finally
             folder.Delete(recursive:=True)

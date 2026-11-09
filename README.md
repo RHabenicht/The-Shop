@@ -2,7 +2,19 @@
 
 The Shop is a vehicle builder for Shadowrun. This project updates James Ojaste’s original Rigger 2 program for Shadowrun Third Edition using **Rigger 3 Revised** and modern Visual Basic .NET.
 
-The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The component catalog covers 15 ground vehicle chassis and 46 chassis and power plant combinations, including bikes, passenger vehicles, APCs, and transports. The full catalog, vehicle editor, and Windows installer are still in development.
+The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The component catalog covers 15 ground vehicle chassis and 46 chassis and power plant combinations, including bikes, passenger vehicles, APCs, and transports. The Windows desktop preview can edit and price catalog-based designs. The full catalog and installer are still in development.
+
+## Windows desktop preview
+
+The editor lets you select a chassis and compatible power plant, enter options or modifications, and calculate the design cost and remaining capacity. Open and save use the same stock design JSON format as the command-line calculator. Legacy `.shp` import still runs separately.
+
+On Windows, use the .NET 10 SDK to run the editor from source:
+
+```sh
+dotnet run --project src/TheShop.Desktop
+```
+
+The [Windows desktop workflow](../../actions/workflows/windows.yml) builds a portable x64 preview and checks that its main window opens. Extract the full preview folder and run `TheShop.Desktop.exe` with the .NET 10 Desktop Runtime installed.
 
 ## Import a legacy vehicle
 

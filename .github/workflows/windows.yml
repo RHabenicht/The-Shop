@@ -1,0 +1,44 @@
+name: Windows desktop
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', '.github/workflows/windows.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Publish Windows x64 preview
+        run: dotnet publish src/TheShop.Desktop -c Release -r win-x64 --self-contained false -o publish
+      - name: Check desktop startup
+        shell: pwsh
+        run: |
+          $process = Start-Process (Resolve-Path 'publish/TheShop.Desktop.exe').Path -PassThru
+          try {
+            $deadline = (Get-Date).AddSeconds(20)
+            do {
+              $process.Refresh()
+              if ($process.HasExited) { throw "The Shop exited with code $($process.ExitCode) before opening." }
+              if ($process.MainWindowTitle -eq 'The Shop | Rigger 3 Revised') { break }
+              Start-Sleep -Milliseconds 250
+            } while ((Get-Date) -lt $deadline)
+            if ($process.MainWindowTitle -ne 'The Shop | Rigger 3 Revised') {
+              throw 'The Shop main window did not open.'
+            }
+          } finally {
+            if (-not $process.HasExited) { Stop-Process -Id $process.Id }
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: The-Shop-Windows-x64-preview
+          path: publish/
+          if-no-files-found: error

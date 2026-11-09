@@ -1,7 +1,7 @@
 Imports System.Text.Json
 Imports System.Text.Json.Serialization
 
-Friend NotInheritable Class StockDesign
+Public NotInheritable Class StockDesign
     <JsonRequired>
     Public Property ChassisId As String
     <JsonRequired>
@@ -13,7 +13,7 @@ Friend NotInheritable Class StockDesign
     Public Property LoadCapacityKg As Decimal?
     Public Property Additions As New List(Of DesignAddition)
 
-    Public Function Calculate(catalog As IReadOnlyList(Of StockChassis)) As Object
+    Public Function Calculate(catalog As IReadOnlyList(Of StockChassis)) As StockDesignResult
         Dim chassis = StockCatalog.FindById(catalog, ChassisId)
         Dim powerPlant = chassis.PowerPlants.SingleOrDefault(
             Function(candidate) String.Equals(candidate.Id, PowerPlantId, StringComparison.OrdinalIgnoreCase))
@@ -40,11 +40,11 @@ Friend NotInheritable Class StockDesign
             .MarkupAdjustment = MarkupAdjustment,
             .Additions = Additions
         }
-        Return New With {.ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = design.Calculate()}
+        Return New StockDesignResult With {.ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = design.Calculate()}
     End Function
 End Class
 
-Friend Module StockCatalog
+Public Module StockCatalog
     Public Function Read(options As JsonSerializerOptions) As IReadOnlyList(Of StockChassis)
         Using data = GetType(StockChassis).Assembly.GetManifestResourceStream("TheShop.Design.StockCatalog.json")
             Return JsonSerializer.Deserialize(Of StockChassis())(data, options)
@@ -61,7 +61,7 @@ Friend Module StockCatalog
     End Function
 End Module
 
-Friend NotInheritable Class StockChassis
+Public NotInheritable Class StockChassis
     Public Property Id As String
     Public Property Name As String
     Public Property Category As String
@@ -76,7 +76,7 @@ Friend NotInheritable Class StockChassis
     Public Property PowerPlants As StockPowerPlant()
 End Class
 
-Friend NotInheritable Class StockPowerPlant
+Public NotInheritable Class StockPowerPlant
     Public Property Id As String
     Public Property Name As String
     Public Property DesignPoints As Decimal
@@ -99,4 +99,10 @@ Friend NotInheritable Class StockPowerPlant
     Public Property MaximumEconomyKmPerPowerFactor As Decimal?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property BatteryPowerFactors As Decimal?
+End Class
+
+Public NotInheritable Class StockDesignResult
+    Public Property ChassisId As String
+    Public Property PowerPlantId As String
+    Public Property Totals As DesignTotals
 End Class

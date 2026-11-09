@@ -3,7 +3,7 @@ name: Windows desktop
 on:
   push:
     branches: [main]
-    paths: ['src/**', '.github/workflows/windows.yml']
+    paths: ['src/**', 'tests/**', '.github/workflows/windows.yml']
   workflow_dispatch:
 
 permissions:
@@ -12,6 +12,7 @@ permissions:
 jobs:
   build:
     runs-on: windows-2025
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-dotnet@v4
@@ -37,6 +38,8 @@ jobs:
           } finally {
             if (-not $process.HasExited) { Stop-Process -Id $process.Id }
           }
+      - name: Test editor calculation and file round trip
+        run: dotnet run --project tests/TheShop.Desktop.Smoke -c Release
       - uses: actions/upload-artifact@v4
         with:
           name: The-Shop-Windows-x64-preview

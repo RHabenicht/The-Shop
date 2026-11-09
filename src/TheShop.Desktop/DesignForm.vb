@@ -1,3 +1,4 @@
+Imports System.Runtime.CompilerServices
 Imports System.Drawing
 Imports System.Globalization
 Imports System.IO
@@ -5,6 +6,8 @@ Imports System.Text.Json
 Imports System.Text.Json.Serialization
 Imports System.Windows.Forms
 Imports TheShop.Design
+
+<Assembly: InternalsVisibleTo("TheShop.Desktop.Smoke")>
 
 Public NotInheritable Class DesignForm
     Inherits Form
@@ -14,15 +17,16 @@ Public NotInheritable Class DesignForm
         .UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
     }
     Private ReadOnly catalog As IReadOnlyList(Of StockChassis) = StockCatalog.Read(jsonOptions)
-    Private ReadOnly chassisBox As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
-    Private ReadOnly powerPlantBox As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
-    Private ReadOnly streetIndex As New TextBox With {.Text = "1", .Dock = DockStyle.Fill}
+    Private ReadOnly chassisBox As New ComboBox With {.Name = "chassisBox", .DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
+    Private ReadOnly powerPlantBox As New ComboBox With {.Name = "powerPlantBox", .DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
+    Private ReadOnly streetIndex As New TextBox With {.Name = "streetIndex", .Text = "1", .Dock = DockStyle.Fill}
     Private ReadOnly markup As New TextBox With {.Text = "0", .Dock = DockStyle.Fill}
     Private ReadOnly cargo As New TextBox With {.Dock = DockStyle.Fill}
     Private ReadOnly loadOverride As New TextBox With {.Dock = DockStyle.Fill}
     Private ReadOnly startingValues As New Label With {.AutoSize = True, .Dock = DockStyle.Fill, .Padding = New Padding(0, 4, 0, 4)}
-    Private ReadOnly totals As New Label With {.AutoSize = True, .Dock = DockStyle.Fill, .Padding = New Padding(0, 4, 0, 4)}
+    Private ReadOnly totals As New Label With {.Name = "totals", .AutoSize = True, .Dock = DockStyle.Fill, .Padding = New Padding(0, 4, 0, 4)}
     Private ReadOnly additions As New DataGridView With {
+        .Name = "additions",
         .Dock = DockStyle.Fill,
         .AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
         .RowHeadersVisible = False,
@@ -125,7 +129,7 @@ Public NotInheritable Class DesignForm
         totals.Text = "Calculate to update design totals."
     End Sub
 
-    Private Function ReadDesign() As StockDesign
+    Friend Function ReadDesign() As StockDesign
         additions.EndEdit()
         Dim design As New StockDesign With {
             .ChassisId = DirectCast(chassisBox.SelectedItem, StockChassis).Id,
@@ -182,22 +186,7 @@ Public NotInheritable Class DesignForm
         Using dialog As New OpenFileDialog With {.Filter = "The Shop design (*.json)|*.json"}
             If dialog.ShowDialog(Me) <> DialogResult.OK Then Return
             Try
-                Dim design = JsonSerializer.Deserialize(Of StockDesign)(File.ReadAllText(dialog.FileName), jsonOptions)
-                If design Is Nothing Then Throw New JsonException("Expected a stock vehicle design object.")
-                Dim result = design.Calculate(catalog)
-
-                chassisBox.SelectedItem = StockCatalog.FindById(catalog, result.ChassisId)
-                Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
-                powerPlantBox.SelectedItem = chassis.PowerPlants.Single(Function(plant) plant.Id = result.PowerPlantId)
-                streetIndex.Text = design.StreetIndex.ToString(CultureInfo.CurrentCulture)
-                markup.Text = design.MarkupAdjustment.ToString(CultureInfo.CurrentCulture)
-                cargo.Text = design.CargoCapacity?.ToString(CultureInfo.CurrentCulture)
-                loadOverride.Text = design.LoadCapacityKg?.ToString(CultureInfo.CurrentCulture)
-                additions.Rows.Clear()
-                For Each item In design.Additions
-                    additions.Rows.Add(item.Name, item.DesignPoints, item.DirectCostNuyen, item.CargoConsumed, item.LoadConsumedKg)
-                Next
-                ShowTotals(result.Totals)
+                LoadDesignFile(dialog.FileName)
             Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse
                                        TypeOf ex Is JsonException OrElse TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
                 ShowError(ex)
@@ -211,19 +200,41 @@ Public NotInheritable Class DesignForm
             Dim result = design.Calculate(catalog)
             Using dialog As New SaveFileDialog With {.Filter = "The Shop design (*.json)|*.json", .DefaultExt = "json"}
                 If dialog.ShowDialog(Me) <> DialogResult.OK Then Return
-                Dim destination = dialog.FileName
-                Dim tempPath = Path.Combine(Path.GetDirectoryName(destination), $".the-shop-{Guid.NewGuid():N}.tmp")
-                Try
-                    File.WriteAllText(tempPath, JsonSerializer.Serialize(design, jsonOptions))
-                    File.Move(tempPath, destination, overwrite:=True)
-                Finally
-                    File.Delete(tempPath)
-                End Try
+                WriteDesignFile(dialog.FileName, design)
                 ShowTotals(result.Totals)
             End Using
         Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse
                                    TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
             ShowError(ex)
+        End Try
+    End Sub
+
+    Friend Sub LoadDesignFile(source As String)
+        Dim design = JsonSerializer.Deserialize(Of StockDesign)(File.ReadAllText(source), jsonOptions)
+        If design Is Nothing Then Throw New JsonException("Expected a stock vehicle design object.")
+        Dim result = design.Calculate(catalog)
+
+        chassisBox.SelectedItem = StockCatalog.FindById(catalog, result.ChassisId)
+        Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
+        powerPlantBox.SelectedItem = chassis.PowerPlants.Single(Function(plant) plant.Id = result.PowerPlantId)
+        streetIndex.Text = design.StreetIndex.ToString(CultureInfo.CurrentCulture)
+        markup.Text = design.MarkupAdjustment.ToString(CultureInfo.CurrentCulture)
+        cargo.Text = design.CargoCapacity?.ToString(CultureInfo.CurrentCulture)
+        loadOverride.Text = design.LoadCapacityKg?.ToString(CultureInfo.CurrentCulture)
+        additions.Rows.Clear()
+        For Each item In design.Additions
+            additions.Rows.Add(item.Name, item.DesignPoints, item.DirectCostNuyen, item.CargoConsumed, item.LoadConsumedKg)
+        Next
+        ShowTotals(result.Totals)
+    End Sub
+
+    Friend Sub WriteDesignFile(destination As String, design As StockDesign)
+        Dim tempPath = Path.Combine(Path.GetDirectoryName(destination), $".the-shop-{Guid.NewGuid():N}.tmp")
+        Try
+            File.WriteAllText(tempPath, JsonSerializer.Serialize(design, jsonOptions))
+            File.Move(tempPath, destination, overwrite:=True)
+        Finally
+            File.Delete(tempPath)
         End Try
     End Sub
 

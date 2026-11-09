@@ -2,7 +2,7 @@
 
 The Shop is a vehicle builder for Shadowrun. This project updates James Ojaste’s original Rigger 2 program for Shadowrun Third Edition using **Rigger 3 Revised** and modern Visual Basic .NET.
 
-The repository is at the planning stage. There is no build or installer yet.
+The repository is at the planning stage. The legacy installer is included for reference. The revised build and installer are pending.
 
 ## Port plan
 
@@ -13,4 +13,9 @@ The repository is at the planning stage. There is no build or installer yet.
 
 ## Original program
 
-James Ojaste created The Shop. His site hosts the original Visual Basic source and credits David Taylor for entering most of the chassis and engine data and Nullsheen for arranging the later VB6 migration. The original archive was inspected locally. It contained no license file, so this repository starts with project documentation and a link to the original download.
+James Ojaste created The Shop. His site hosts the original Visual Basic source and credits David Taylor for entering most of the chassis and engine data and Nullsheen for arranging the later VB6 migration. 
+
+- [ShopWindows10.zip](legacy/ShopWindows10.zip) contains the Windows installer for the VB6 build. Its setup manifest identifies `Shop6.exe`, the VB6 runtime, and the Rigger 2 data files.
+- [Shop142s.zip](legacy/Shop142s.zip) is the original source download. Use `Shop.vbp` for the project structure, `Evaluate.bas` for calculations, and `FileOps.bas` for file formats and HTML output.
+
+The archives are preserved as supplied. The source archive contains no license file.

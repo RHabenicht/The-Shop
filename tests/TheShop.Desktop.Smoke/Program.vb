@@ -54,7 +54,12 @@ Module Program
                 editor.LoadDesignFile(destination)
                 Require(editor.ReadDesign().PowerPlantId = "sail" AndAlso totals.Text.Contains("Base ¥9,375.00") AndAlso
                         totals.Text.Contains("150 kg"), "The sail-powered skiff did not load and calculate.")
-                Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground and marine designs.")
+                File.WriteAllText(destination, "{""ChassisId"":""airliner"",""PowerPlantId"":""jet-propeller"",""StreetIndex"":1}")
+                editor.LoadDesignFile(destination)
+                Dim aircraft = DirectCast(powerPlant.SelectedItem, StockPowerPlant)
+                Require(aircraft.StartingStallSpeed.GetValueOrDefault() = 135 AndAlso aircraft.StartingSpeed = 320 AndAlso
+                        totals.Text.Contains("Base ¥625,000.00"), "The airliner did not retain both speed ratings or its price.")
+                Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, and aircraft designs.")
             End Using
         Finally
             folder.Delete(recursive:=True)

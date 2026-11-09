@@ -65,6 +65,18 @@ Public NotInheritable Class StockChassis
     Public Property Id As String
     Public Property Name As String
     Public Property Category As String
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingDefault)>
+    Public Property IsDrone As Boolean
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Pilot As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Autonav As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Sensor As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property TakeoffLandingProfile As String
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property SetupMinutes As Integer?
     Public Property DesignPoints As Decimal
     Public Property Markup As Decimal
     Public Property Body As Integer
@@ -90,6 +102,10 @@ Public NotInheritable Class StockPowerPlant
     Public Property MaximumLoadKg As Decimal
     Public Property StartingSpeed As Integer
     Public Property MaximumSpeed As Integer
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property StartingStallSpeed As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property MaximumStallSpeed As Integer?
     Public Property StartingAcceleration As Integer
     Public Property MaximumAcceleration As Integer
     Public Property Signature As Integer
@@ -105,6 +121,8 @@ Public NotInheritable Class StockPowerPlant
     Public Property MaximumEconomyKmPerPowerFactor As Decimal?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property BatteryPowerFactors As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property FuelCellPowerFactors As Decimal?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property FuelBars As Decimal?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>

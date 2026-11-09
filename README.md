@@ -2,7 +2,7 @@
 
 The Shop is a vehicle builder for Shadowrun. This project updates James Ojaste’s original Rigger 2 program for Shadowrun Third Edition using **Rigger 3 Revised** and modern Visual Basic .NET.
 
-The first port component reads legacy `.shp` vehicle saves. The Rigger 3 Revised vehicle editor, calculations, and Windows installer are still in development.
+The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The chassis and power plant catalog, vehicle editor, and Windows installer are still in development.
 
 ## Import a legacy vehicle
 
@@ -13,6 +13,32 @@ dotnet run --project src/TheShop.Import -- path/to/vehicle.shp
 ```
 
 The importer accepts the `Shop v1.40` save header emitted by the original source archive. It writes JSON containing the vehicle name, chassis, engine, seating, entry points, markups, and modifications. Chassis, engine, and modification entries retain their source book names. The JSON identifies the input as Rigger 2 data for later conversion. Older save headers are reported as unsupported.
+
+## Calculate a stock vehicle design
+
+```sh
+dotnet run --project src/TheShop.Design -- path/to/design.json
+```
+
+The calculator takes Rigger 3 Revised values entered in a JSON file. Enter cargo and load capacity after any capacity upgrades and before subtracting the space and weight used by additions. Include the Design Point costs of those upgrades in the additions. The Street Index is the final value assigned by the gamemaster.
+
+```json
+{
+  "ChassisDesignPoints": 40,
+  "PowerPlantDesignPoints": 20,
+  "ChassisMarkup": 0.4,
+  "CargoCapacity": 6,
+  "LoadCapacityKg": 70,
+  "StreetIndex": 2,
+  "Additions": [
+    { "Name": "Example mount", "DesignPoints": 10, "CargoConsumed": 1, "LoadConsumedKg": 25 }
+  ]
+}
+```
+
+`MarkupAdjustment` is optional and is added to the chassis markup. Use `DirectCostNuyen` on an addition only where the rules specify a separate nuyen charge. The calculator multiplies total Design Points by the effective markup and 100, adds any separate nuyen costs, and applies Street Index to produce the street price. The tool checks remaining cargo and load. Component compatibility, upgrade limits, and Availability still require manual review. Legacy importer output uses a separate format.
+
+The Lockheed-Chenowth Light Strike Vehicle example reproduces the book's 169 Design Points, ¥6,760 base price, ¥13,520 street price, 5 CF and 45 kg remaining. For the Brickyard Beauty, the book gives ¥210,300 before tires and ¥900 for tires. The calculator gives ¥211,200 base and ¥633,600 at Street Index 3 from those inputs. The printed totals on p. 114 differ. See *Rigger 3 Revised*, pp. 111–114.
 
 ## Port plan
 

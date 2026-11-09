@@ -2,7 +2,17 @@
 
 The Shop is a vehicle builder for Shadowrun. This project updates James Ojaste’s original Rigger 2 program for Shadowrun Third Edition using **Rigger 3 Revised** and modern Visual Basic .NET.
 
-The repository is at the planning stage. The legacy installer is included for reference. The revised build and installer are pending.
+The first port component reads legacy `.shp` vehicle saves. The Rigger 3 Revised vehicle editor, calculations, and Windows installer are still in development.
+
+## Import a legacy vehicle
+
+With the .NET 10 SDK installed, run:
+
+```sh
+dotnet run --project src/TheShop.Import -- path/to/vehicle.shp
+```
+
+The importer accepts the `Shop v1.40` save header emitted by the original source archive. It writes JSON containing the vehicle name, chassis, engine, seating, entry points, markups, and modifications. Chassis, engine, and modification entries retain their source book names. The JSON identifies the input as Rigger 2 data for later conversion. Older save headers are reported as unsupported.
 
 ## Port plan
 

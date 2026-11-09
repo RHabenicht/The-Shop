@@ -23,7 +23,7 @@ Module Program
                 Dim powerPlant = FindControl(Of ComboBox)(editor, "powerPlantBox")
                 chassis.SelectedIndex = chassis.Items.Cast(Of StockChassis)().ToList().
                     FindIndex(Function(item) item.Id = "sand-buggy")
-                Require(powerPlant.Items.Count = 3, "Expected the three catalog power plants for the sand buggy.")
+                Require(powerPlant.Items.Count = 4, "Expected the four catalog power plants for the sand buggy.")
                 powerPlant.SelectedIndex = powerPlant.Items.Cast(Of StockPowerPlant)().ToList().
                     FindIndex(Function(item) item.Id = "gasoline")
                 FindControl(Of TextBox)(editor, "streetIndex").Text = "2"
@@ -50,7 +50,11 @@ Module Program
                 Require(reopened.ChassisId = "sand-buggy" AndAlso reopened.PowerPlantId = "gasoline" AndAlso
                         reopened.StreetIndex = 2D AndAlso reopened.Additions.Single().LoadConsumedKg = 25D AndAlso
                         totals.Text.Contains("Street ¥5,600.00"), "Reopening the file did not restore the editor and its totals.")
-                Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen.")
+                File.WriteAllText(destination, "{""ChassisId"":""skiff"",""PowerPlantId"":""sail"",""StreetIndex"":1}")
+                editor.LoadDesignFile(destination)
+                Require(editor.ReadDesign().PowerPlantId = "sail" AndAlso totals.Text.Contains("Base ¥9,375.00") AndAlso
+                        totals.Text.Contains("150 kg"), "The sail-powered skiff did not load and calculate.")
+                Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground and marine designs.")
             End Using
         Finally
             folder.Delete(recursive:=True)

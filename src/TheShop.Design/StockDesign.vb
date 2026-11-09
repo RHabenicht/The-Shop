@@ -69,8 +69,14 @@ Public NotInheritable Class StockChassis
     Public Property Markup As Decimal
     Public Property Body As Integer
     Public Property Armor As Integer
-    Public Property OnRoadHandling As Integer
-    Public Property OffRoadHandling As Integer
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property OnRoadHandling As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property OffRoadHandling As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Handling As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property PeopleSpaceCf As Decimal?
     Public Property StartingCargo As Decimal
     Public Property MaximumCargo As Decimal
     Public Property PowerPlants As StockPowerPlant()
@@ -99,6 +105,14 @@ Public NotInheritable Class StockPowerPlant
     Public Property MaximumEconomyKmPerPowerFactor As Decimal?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property BatteryPowerFactors As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property FuelBars As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property StartingEconomyKmPerBar As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property MaximumEconomyKmPerBar As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property PeopleSpaceKg As Decimal?
 End Class
 
 Public NotInheritable Class StockDesignResult

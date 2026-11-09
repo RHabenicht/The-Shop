@@ -2,7 +2,7 @@
 
 The Shop is a vehicle builder for Shadowrun. This project updates James Ojaste’s original Rigger 2 program for Shadowrun Third Edition using **Rigger 3 Revised** and modern Visual Basic .NET.
 
-The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The component catalog covers 15 ground vehicle chassis and 46 chassis and power plant combinations, including bikes, passenger vehicles, APCs, and transports. The Windows desktop preview can edit and price catalog-based designs. The full catalog and installer are still in development.
+The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The component catalog covers 30 chassis and 117 chassis and power plant combinations, including bikes, passenger vehicles, industrial vehicles, APCs, transports, and boats. The Windows desktop preview can edit and price catalog-based designs. The full catalog and installer are still in development.
 
 ## Windows desktop preview
 
@@ -45,7 +45,7 @@ A minimal stock design file looks like this:
 
 The catalog lists compatible power plants under each chassis along with their starting values and limits. The calculator looks up component Design Points, chassis markup, and starting cargo and load. You can supply `CargoCapacity` and `LoadCapacityKg` within the catalog limits. Enter the costs of any capacity upgrades in `Additions`. Use the manual design format below for designs that change those limits or use components outside the starter catalog.
 
-The catalog uses the printed component tables in *Rigger 3 Revised*, pp. 194–196, 198–199 and 202. Battery entries report capacity in Power Factors and economy in km per Power Factor. The listed liquid-fuel entries use liters and km per liter. The gasoline sports car has 60 L in the table, while the worked race-car example lists 40 L.
+The catalog uses the printed component tables in *Rigger 3 Revised*, pp. 194–196 and 198–202. Battery entries use Power Factors, methane uses bars, and liquid fuel uses liters. Sail entries omit fuel and economy. Dedicated People Space is listed separately where specified. The gasoline sports car has 60 L in the table, while the worked race-car example lists 40 L.
 
 ## Calculate a stock vehicle design from manual inputs
 

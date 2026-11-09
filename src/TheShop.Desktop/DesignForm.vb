@@ -119,7 +119,8 @@ Public NotInheritable Class DesignForm
         Dim chassis = TryCast(chassisBox.SelectedItem, StockChassis)
         Dim plant = TryCast(powerPlantBox.SelectedItem, StockPowerPlant)
         If chassis IsNot Nothing AndAlso plant IsNot Nothing Then
-            startingValues.Text = $"Handling {chassis.OnRoadHandling}/{chassis.OffRoadHandling}   Body {chassis.Body}   Armor {chassis.Armor}   Speed {plant.StartingSpeed}   Accel {plant.StartingAcceleration}" &
+            Dim handling = If(chassis.Handling.HasValue, chassis.Handling.ToString(), $"{chassis.OnRoadHandling}/{chassis.OffRoadHandling}")
+            startingValues.Text = $"Handling {handling}   Body {chassis.Body}   Armor {chassis.Armor}   Speed {plant.StartingSpeed}   Accel {plant.StartingAcceleration}" &
                 Environment.NewLine & $"Starting cargo {chassis.StartingCargo} CF   Starting load {plant.StartingLoadKg} kg   Chassis markup {chassis.Markup}   Blank overrides use starting values."
         End If
         ClearTotals(sender, e)

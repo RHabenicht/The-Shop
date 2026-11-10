@@ -507,6 +507,25 @@ Module Program
                     mountLimitRejected = True
                 End Try
                 Require(mountLimitRejected, "Weapon mounts should share the vehicle's Body-based mounting budget.")
+                Dim engineVan As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "engine-customization-speed", .Quantity = 2},
+                        New ModificationSelection With {.Id = "engine-customization-acceleration", .Quantity = 1},
+                        New ModificationSelection With {.Id = "engine-customization-load", .Quantity = 1},
+                        New ModificationSelection With {.Id = "drive-by-wire", .Quantity = 2},
+                        New ModificationSelection With {.Id = "drive-by-wire-speed-allocation", .Quantity = 10}
+                    }
+                }
+                editor.WriteDesignFile(destination, engineVan)
+                editor.LoadDesignFile(destination)
+                Dim engineResult = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(engineResult.ModifiedRatings.Speed.GetValueOrDefault() = 154 AndAlso
+                        engineResult.ModifiedRatings.Acceleration.GetValueOrDefault() = 6 AndAlso
+                        engineResult.ModifiedRatings.OnRoadHandling.GetValueOrDefault() = 2 AndAlso
+                        engineResult.ModifiedRatings.OffRoadHandling.GetValueOrDefault() = 8 AndAlso
+                        engineResult.Totals.LoadRemainingKg = 1200D AndAlso engineResult.Totals.BaseCostNuyen = 22875D,
+                        "Engine customization and drive-by-wire should apply limits, tiered costs, and the allocated bonus.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

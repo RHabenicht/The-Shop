@@ -64,6 +64,8 @@ Improved suspension, off-road suspension, and improved control surfaces use thei
 
 Body-rated vehicles can select fixed mounts, pintles, rings, crewed and remote turrets, and launch controls. These entries share the vehicle’s hardpoint and firmpoint budget. Enter carried weapon and ammunition weight separately. Turret gun capacity, firing arcs, and crew space require review against the book. Aircraft door guns and Hull-rated mounts use manual entries. Autosoft interpretation, BattleTac FDDM and IVIS receivers, ship CCSS integration, dipping sonar, and mount smartlink integration are also available (*Rigger 3 Revised*, pp. 136–143).
 
+Engine customization has separate Speed, Acceleration, and Load entries with the first-level and subsequent-level prices. Resolve the book’s engine Stress test with the gamemaster. Drive-by-wire requires a total ten-percent bonus allocation across Speed, Acceleration, and Load. It applies after other design changes and rounds whole-number ratings down. For suspension effects, a vehicle with improved suspension or drive-by-wire and no selected tire type uses the book’s assumed dual-purpose tires. Tire purchase prices still require the actual count (*Rigger 3 Revised*, pp. 125, 129, 155).
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

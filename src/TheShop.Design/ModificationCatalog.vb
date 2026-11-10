@@ -47,7 +47,7 @@ Public Module ModificationCatalog
     Private ReadOnly sonarCargo As Integer() = {0, 4, 6, 10, 16, 50, 75, 100, 200, 300, 500}
     Private ReadOnly sonarLoad As Integer() = {0, 120, 250, 350, 500, 750, 1000, 1250, 1500, 2000, 2500}
 
-    Private ReadOnly craneCapacityKg As Integer() = {0, 25, 200, 750, 2000, 5000, 20000, 30000, 45000, 60000}
+    Private ReadOnly liftingCapacityKg As Integer() = {0, 25, 200, 750, 2000, 5000, 20000, 30000, 45000, 60000}
 
     Public ReadOnly Property Rules As IReadOnlyList(Of ModificationRule) = Array.AsReadOnly({
         New ModificationRule("airlock", "Airlock", "people per lock", Integer.MaxValue),
@@ -91,14 +91,26 @@ Public Module ModificationCatalog
         New ModificationRule("anti-theft-electric-system", "Anti-theft electric system", "", 1),
         New ModificationRule("proximity-alert", "Proximity alert", "", 1),
         New ModificationRule("crane", "Crane", "kg lifting capacity", Integer.MaxValue),
+        New ModificationRule("winch", "Winch", "kg pulling capacity", Integer.MaxValue),
+        New ModificationRule("generator", "Generator", "", 1),
+        New ModificationRule("medical-clinic", "Medical clinic", "rating", 6),
+        New ModificationRule("valkyrie-module", "Valkyrie module", "units", Integer.MaxValue),
+        New ModificationRule("bucket-seat", "Bucket seat", "seats", Integer.MaxValue, 6D),
+        New ModificationRule("bench-seat", "Bench seat", "seats", Integer.MaxValue, 6D),
+        New ModificationRule("folding-bench-seat", "Folding bench seat", "seats", Integer.MaxValue, 6D),
+        New ModificationRule("reinforced-bucket-seat", "Reinforced bucket seat", "seats", Integer.MaxValue, 8D),
+        New ModificationRule("reinforced-bench-seat", "Reinforced bench seat", "seats", Integer.MaxValue, 8D),
+        New ModificationRule("ejection-bucket-seat", "Ejection bucket seat", "seats", Integer.MaxValue, 6D),
+        New ModificationRule("reinforced-ejection-bucket-seat", "Reinforced ejection bucket seat", "seats", Integer.MaxValue, 6D),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
 
     Public Function MaximumQuantity(rule As ModificationRule, chassis As StockChassis) As Integer
-        If rule.Id <> "crane" Then Return rule.Maximum
+        If rule.Id <> "crane" AndAlso rule.Id <> "winch" Then Return rule.Maximum
         Dim body = chassis.Body.GetValueOrDefault()
-        If body < craneCapacityKg.Length Then Return craneCapacityKg(body)
+        If rule.Id = "winch" AndAlso body = 0 Then Return 5
+        If body < liftingCapacityKg.Length Then Return liftingCapacityKg(body)
         Return CInt(Math.Min(Integer.MaxValue, 750D * body * body))
     End Function
 
@@ -128,6 +140,15 @@ Public Module ModificationCatalog
                     chassis.Sonar.GetValueOrDefault() < rule.Maximum
             Case "towed-array-sonar"
                 Return chassis.Category = "Ship" OrElse chassis.Category = "Submarine"
+            Case "winch"
+                Return chassis.Body.HasValue AndAlso (chassis.Category = "Bike" OrElse chassis.Category = "Car")
+            Case "generator"
+                Return chassis.Id = "barge" OrElse chassis.Id.EndsWith("-trailer", StringComparison.Ordinal) OrElse
+                    chassis.Id.EndsWith("-rail-car", StringComparison.Ordinal)
+            Case "bench-seat", "folding-bench-seat", "reinforced-bench-seat"
+                Return Not chassis.IsDrone AndAlso chassis.Category <> "Bike"
+            Case "bucket-seat", "reinforced-bucket-seat", "ejection-bucket-seat", "reinforced-ejection-bucket-seat"
+                Return Not chassis.IsDrone
             Case "crane"
                 Return chassis.Body.GetValueOrDefault() > 0
             Case "amphibious-operation"
@@ -202,7 +223,7 @@ Public Module ModificationCatalog
             Throw New ArgumentException("A retransmission power amplifier requires a retransmission unit.")
         End If
         Dim sensorRating = If(finalRatings?.Sensor, chassis.Sensor.GetValueOrDefault())
-        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, sensorRating, retransmissionUnits)).ToList()
+        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits)).ToList()
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
     End Function
@@ -238,7 +259,7 @@ Public Module ModificationCatalog
         ratings.OffRoadHandling = If(upgrades?.OffRoadHandling, chassis.OffRoadHandling) + penalty
     End Sub
 
-    Private Function Price(rule As ModificationRule, quantity As Integer, chassis As StockChassis,
+    Private Function Price(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant,
                            sensorRating As Integer, retransmissionUnits As Integer) As DesignAddition
         Dim body = CDec(chassis.Body.GetValueOrDefault())
         Dim item As New DesignAddition With {.Name = rule.Name, .CargoConsumed = rule.CargoPerUnit * quantity}
@@ -319,6 +340,38 @@ Public Module ModificationCatalog
             Case "proximity-alert"
                 If sensorRating = 0 Then Throw New ArgumentException("A proximity alert requires a sensor system.")
                 item.DesignPoints = 2D
+            Case "winch"
+                item.DesignPoints = quantity / 100D
+                item.LoadConsumedKg = body * 2.5D
+            Case "generator"
+                item.DesignPoints = chassis.DesignPoints / 4D
+                item.CargoConsumed = chassis.StartingCargo / 3D
+                item.LoadConsumedKg = plant.StartingLoadKg / 2D
+            Case "medical-clinic"
+                Dim factor = quantity + 4D
+                item.DesignPoints = factor * factor * factor * 3D
+                item.CargoConsumed = 52D
+                item.LoadConsumedKg = 250D
+            Case "valkyrie-module"
+                item.DesignPoints = 3000D * quantity
+                item.CargoConsumed = 10D * quantity
+                item.LoadConsumedKg = 400D * quantity
+            Case "bucket-seat"
+                item.LoadConsumedKg = 100D * quantity
+            Case "bench-seat", "folding-bench-seat"
+                item.LoadConsumedKg = 150D * quantity
+            Case "reinforced-bucket-seat"
+                item.DesignPoints = 5D * quantity
+                item.LoadConsumedKg = 250D * quantity
+            Case "reinforced-bench-seat"
+                item.DesignPoints = 5D * quantity
+                item.LoadConsumedKg = 300D * quantity
+            Case "ejection-bucket-seat"
+                item.DesignPoints = 35D * quantity
+                item.LoadConsumedKg = 100D * quantity
+            Case "reinforced-ejection-bucket-seat"
+                item.DesignPoints = 70D * quantity
+                item.LoadConsumedKg = 250D * quantity
             Case "crane"
                 item.DesignPoints = quantity / 50D
                 item.CargoConsumed = 15D

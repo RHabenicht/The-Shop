@@ -44,6 +44,8 @@ The anti-theft catalog includes improved security at ratings 3–10, the electri
 
 For a crane, enter its lifting capacity in kilograms. The catalog limits the rating by chassis Body, charges the rating divided by 50 in Design Points, and deducts 15 CF and 80 kg per point of Body (*Rigger 3 Revised*, pp. 150–151). Hull-only chassis have no Body-based crane rating in the catalog.
 
+The equipment catalog includes winches, generators for trailers, barges and rail cars, medical clinics, Valkyrie modules, and added standard, reinforced, folding, and ejection seats (*Rigger 3 Revised*, pp. 151–155). Enter winch pulling capacity in kilograms and seat counts as additional seats. Existing seating and clinic People Space are determined separately.
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

@@ -270,6 +270,38 @@ Module Program
                 Dim craneRule = ModificationCatalog.Rules.Single(Function(rule) rule.Id = "crane")
                 Require(ModificationCatalog.MaximumQuantity(craneRule, StockCatalog.FindById(sheetCatalog, "heavy-caterpillar")) = 75000,
                         "The crane should use the quadratic limit at Body 10.")
+                Dim equipmentDesign As New StockDesign With {
+                    .ChassisId = "airliner", .PowerPlantId = "jet-propeller", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "medical-clinic", .Quantity = 2},
+                        New ModificationSelection With {.Id = "valkyrie-module", .Quantity = 1},
+                        New ModificationSelection With {.Id = "reinforced-ejection-bucket-seat", .Quantity = 1}
+                    }
+                }
+                editor.WriteDesignFile(destination, equipmentDesign)
+                editor.LoadDesignFile(destination)
+                Require(editor.ReadDesign().CatalogModifications.Count = 3 AndAlso
+                        totals.Text.Contains("432 CF") AndAlso totals.Text.Contains("4100 kg") AndAlso
+                        totals.Text.Contains("Base ¥1,554,500.00"),
+                        "Medical equipment and reinforced ejection seating should price and reopen together.")
+                Dim winchDesign As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "winch", .Quantity = 1250}
+                    }
+                }
+                Dim winch = winchDesign.Calculate(sheetCatalog).AppliedModifications.Single()
+                Require(winch.DesignPoints = 12.5D AndAlso winch.LoadConsumedKg = 10D AndAlso winch.CargoConsumed = 0D,
+                        "The winch should use the design-time cost and capacity rules.")
+                Dim trailerDesign As New StockDesign With {
+                    .ChassisId = "heavy-axle-trailer", .PowerPlantId = "unpowered", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "generator", .Quantity = 1}
+                    }
+                }
+                Dim generator = trailerDesign.Calculate(sheetCatalog).AppliedModifications.Single()
+                Require(generator.DesignPoints = 18.75D AndAlso generator.CargoConsumed = 4D AndAlso generator.LoadConsumedKg = 400D,
+                        "A generator should use the trailer's starting chassis cost and capacities.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

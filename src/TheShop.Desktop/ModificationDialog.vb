@@ -44,7 +44,7 @@ Friend NotInheritable Class ModificationDialog
             If Not compatible Then label &= " · unavailable"
             Dim row = table.RowCount
             table.RowCount += 1
-            Dim input As New NumericUpDown With {.Maximum = If(compatible, rule.Maximum, value), .Value = value,
+            Dim input As New NumericUpDown With {.Maximum = If(compatible, Math.Max(ModificationCatalog.MaximumQuantity(rule, chassis), value), value), .Value = value,
                 .Enabled = compatible OrElse value > 0}
             quantities.Add((rule, input))
             table.Controls.Add(New Label With {.Text = label, .AutoSize = True, .Anchor = AnchorStyles.Left}, 0, row)

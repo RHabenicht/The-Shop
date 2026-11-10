@@ -42,6 +42,8 @@ Amphibious operation packages add surface-water operation to bike and car chassi
 
 The anti-theft catalog includes improved security at ratings 3–10, the electric system, and proximity alerts (*Rigger 3 Revised*, pp. 149–150). Enter the final security rating. Proximity alerts require either factory sensors or a sensor system selected in the current design.
 
+For a crane, enter its lifting capacity in kilograms. The catalog limits the rating by chassis Body, charges the rating divided by 50 in Design Points, and deducts 15 CF and 80 kg per point of Body (*Rigger 3 Revised*, pp. 150–151). Hull-only chassis have no Body-based crane rating in the catalog.
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

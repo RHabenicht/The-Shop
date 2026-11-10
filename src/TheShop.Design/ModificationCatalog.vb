@@ -47,6 +47,8 @@ Public Module ModificationCatalog
     Private ReadOnly sonarCargo As Integer() = {0, 4, 6, 10, 16, 50, 75, 100, 200, 300, 500}
     Private ReadOnly sonarLoad As Integer() = {0, 120, 250, 350, 500, 750, 1000, 1250, 1500, 2000, 2500}
 
+    Private ReadOnly craneCapacityKg As Integer() = {0, 25, 200, 750, 2000, 5000, 20000, 30000, 45000, 60000}
+
     Public ReadOnly Property Rules As IReadOnlyList(Of ModificationRule) = Array.AsReadOnly({
         New ModificationRule("airlock", "Airlock", "people per lock", Integer.MaxValue),
         New ModificationRule("crash-cage", "Crash cage", "", 1),
@@ -88,9 +90,17 @@ Public Module ModificationCatalog
         New ModificationRule("improved-anti-theft-security", "Improved anti-theft security", "rating (3–10)", 10),
         New ModificationRule("anti-theft-electric-system", "Anti-theft electric system", "", 1),
         New ModificationRule("proximity-alert", "Proximity alert", "", 1),
+        New ModificationRule("crane", "Crane", "kg lifting capacity", Integer.MaxValue),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
+
+    Public Function MaximumQuantity(rule As ModificationRule, chassis As StockChassis) As Integer
+        If rule.Id <> "crane" Then Return rule.Maximum
+        Dim body = chassis.Body.GetValueOrDefault()
+        If body < craneCapacityKg.Length Then Return craneCapacityKg(body)
+        Return CInt(Math.Min(Integer.MaxValue, 750D * body * body))
+    End Function
 
     Public Function IsCompatible(rule As ModificationRule, chassis As StockChassis, plant As StockPowerPlant) As Boolean
         Select Case rule.Id
@@ -118,6 +128,8 @@ Public Module ModificationCatalog
                     chassis.Sonar.GetValueOrDefault() < rule.Maximum
             Case "towed-array-sonar"
                 Return chassis.Category = "Ship" OrElse chassis.Category = "Submarine"
+            Case "crane"
+                Return chassis.Body.GetValueOrDefault() > 0
             Case "amphibious-operation"
                 Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
             Case "hovercraft-water-seal"
@@ -146,11 +158,12 @@ Public Module ModificationCatalog
             Dim rule = Rules.SingleOrDefault(Function(item) String.Equals(item.Id, choice.Id, StringComparison.OrdinalIgnoreCase))
             If rule Is Nothing Then Throw New ArgumentException($"Unknown catalog modification '{choice.Id}'.")
             If Not seen.Add(rule.Id) Then Throw New ArgumentException($"'{rule.Name}' was selected more than once.")
-            If choice.Quantity < 1 OrElse choice.Quantity > rule.Maximum Then
-                Throw New ArgumentException($"'{rule.Name}' requires a quantity from 1 to {rule.Maximum}.")
-            End If
             If Not IsCompatible(rule, chassis, plant) Then
                 Throw New ArgumentException($"'{rule.Name}' is unavailable for this chassis or power plant.")
+            End If
+            Dim maximum = MaximumQuantity(rule, chassis)
+            If choice.Quantity < 1 OrElse choice.Quantity > maximum Then
+                Throw New ArgumentException($"'{rule.Name}' requires a quantity from 1 to {maximum}.")
             End If
             If rule.Id = "sensors" AndAlso choice.Quantity <= chassis.Sensor.GetValueOrDefault() Then
                 Throw New ArgumentException($"Choose a sensor rating above the factory rating of {chassis.Sensor}.")
@@ -306,6 +319,10 @@ Public Module ModificationCatalog
             Case "proximity-alert"
                 If sensorRating = 0 Then Throw New ArgumentException("A proximity alert requires a sensor system.")
                 item.DesignPoints = 2D
+            Case "crane"
+                item.DesignPoints = quantity / 50D
+                item.CargoConsumed = 15D
+                item.LoadConsumedKg = body * 80D
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

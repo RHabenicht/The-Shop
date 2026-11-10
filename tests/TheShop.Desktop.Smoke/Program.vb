@@ -244,6 +244,32 @@ Module Program
                             editor.ReadDesign().CatalogModifications.Count = 4,
                             $"Anti-theft rating {test.Rating} did not apply the expected design cost.")
                 Next
+                Dim craneDesign As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "crane", .Quantity = 1275}
+                    }
+                }
+                editor.WriteDesignFile(destination, craneDesign)
+                editor.LoadDesignFile(destination)
+                Require(editor.ReadDesign().CatalogModifications.Single().Quantity = 1275 AndAlso
+                        totals.Text.Contains("Base ¥12,050.00") AndAlso
+                        totals.Text.Contains("33 CF") AndAlso totals.Text.Contains("680 kg"),
+                        "The crane did not apply fractional design points or the listed cargo and load.")
+                VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
+                Require(File.ReadAllText(sheetPath).Contains("1275 kg lifting capacity"),
+                        "The vehicle sheet should report the crane's lifting capacity.")
+                craneDesign.CatalogModifications(0).Quantity = 2001
+                Dim craneRejected = False
+                Try
+                    craneDesign.Calculate(sheetCatalog)
+                Catch ex As ArgumentException When ex.Message.Contains("from 1 to 2000")
+                    craneRejected = True
+                End Try
+                Require(craneRejected, "The van should reject a crane above its Body-based limit.")
+                Dim craneRule = ModificationCatalog.Rules.Single(Function(rule) rule.Id = "crane")
+                Require(ModificationCatalog.MaximumQuantity(craneRule, StockCatalog.FindById(sheetCatalog, "heavy-caterpillar")) = 75000,
+                        "The crane should use the quadratic limit at Body 10.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

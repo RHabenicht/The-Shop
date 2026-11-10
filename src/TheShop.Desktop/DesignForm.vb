@@ -20,6 +20,7 @@ Public NotInheritable Class DesignForm
     Private ReadOnly catalog As IReadOnlyList(Of StockChassis) = StockCatalog.Read(jsonOptions)
     Private ReadOnly chassisBox As New ComboBox With {.Name = "chassisBox", .DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
     Private ReadOnly powerPlantBox As New ComboBox With {.Name = "powerPlantBox", .DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
+    Private ReadOnly vehicleName As New TextBox With {.Dock = DockStyle.Fill}
     Private ReadOnly streetIndex As New TextBox With {.Name = "streetIndex", .Text = "1", .Dock = DockStyle.Fill}
     Private ReadOnly markup As New TextBox With {.Text = "0", .Dock = DockStyle.Fill}
     Private ReadOnly cargo As New TextBox With {.Dock = DockStyle.Fill}
@@ -70,6 +71,7 @@ Public NotInheritable Class DesignForm
         availabilityBox.SelectedIndex = 0
         AddHandler availabilityBox.SelectedIndexChanged, AddressOf ClearTotals
         AddField(fields, "Availability class", availabilityBox, 0, 3)
+        AddField(fields, "Vehicle name", vehicleName, 2, 3)
         layout.Controls.Add(fields, 0, 0)
         layout.Controls.Add(startingValues, 0, 1)
 
@@ -88,6 +90,7 @@ Public NotInheritable Class DesignForm
         AddAction(actions, "Catalog mods…", AddressOf EditModifications)
         AddAction(actions, "Open design…", AddressOf OpenDesign)
         AddAction(actions, "Save design…", AddressOf SaveDesign)
+        AddAction(actions, "Export HTML…", AddressOf ExportHtml)
         AddAction(actions, "Import .shp…", AddressOf ImportLegacy)
         AddAction(actions, "Legacy reference…", AddressOf ViewLegacyReference)
         layout.Controls.Add(actions, 0, 4)
@@ -158,6 +161,7 @@ Public NotInheritable Class DesignForm
             .ChassisId = DirectCast(chassisBox.SelectedItem, StockChassis).Id,
             .PowerPlantId = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant).Id,
             .StreetIndex = ReadNumber(streetIndex.Text, "Street Index"),
+            .Name = If(String.IsNullOrWhiteSpace(vehicleName.Text), Nothing, vehicleName.Text),
             .MarkupAdjustment = ReadNumber(markup.Text, "Markup adjustment"),
             .CargoCapacity = ReadOptional(cargo.Text, "Cargo override"),
             .LoadCapacityKg = ReadOptional(loadOverride.Text, "Load override"),
@@ -269,6 +273,21 @@ Public NotInheritable Class DesignForm
         End Try
     End Sub
 
+    Private Sub ExportHtml(sender As Object, e As EventArgs)
+        Try
+            Dim design = ReadDesign()
+            design.Calculate(catalog)
+            Using dialog As New SaveFileDialog With {.Filter = "HTML vehicle sheet (*.html)|*.html", .DefaultExt = "html"}
+                If dialog.ShowDialog(Me) <> DialogResult.OK Then Return
+                VehicleSheet.Write(dialog.FileName, design, catalog)
+                MessageBox.Show(Me, "The HTML vehicle sheet is ready to open and print.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information)
+            End Using
+        Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse
+                                   TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
+            ShowError(ex)
+        End Try
+    End Sub
+
     Private Sub OpenDesign(sender As Object, e As EventArgs)
         Using dialog As New OpenFileDialog With {.Filter = "The Shop design (*.json)|*.json"}
             If dialog.ShowDialog(Me) <> DialogResult.OK Then Return
@@ -309,6 +328,7 @@ Public NotInheritable Class DesignForm
         Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
         powerPlantBox.SelectedItem = chassis.PowerPlants.Single(Function(plant) plant.Id = result.PowerPlantId)
         streetIndex.Text = design.StreetIndex.ToString(CultureInfo.CurrentCulture)
+        vehicleName.Text = design.Name
         markup.Text = design.MarkupAdjustment.ToString(CultureInfo.CurrentCulture)
         cargo.Text = design.CargoCapacity?.ToString(CultureInfo.CurrentCulture)
         loadOverride.Text = design.LoadCapacityKg?.ToString(CultureInfo.CurrentCulture)
@@ -347,6 +367,7 @@ Public NotInheritable Class DesignForm
             .ChassisId = DirectCast(chassisBox.SelectedItem, StockChassis).Id,
             .PowerPlantId = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant).Id,
             .StreetIndex = 1D,
+            .Name = reference.GetProperty("Name").GetString(),
             .LegacyReference = reference
         })
     End Sub

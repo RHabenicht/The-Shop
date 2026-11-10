@@ -8,6 +8,8 @@ Public NotInheritable Class StockDesign
     Public Property PowerPlantId As String
     <JsonRequired>
     Public Property StreetIndex As Decimal
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Name As String
     Public Property MarkupAdjustment As Decimal
     Public Property CargoCapacity As Decimal?
     Public Property LoadCapacityKg As Decimal?

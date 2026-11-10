@@ -133,6 +133,19 @@ Module Program
                         totals.Text.Contains("Final Handling 4/11") AndAlso totals.Text.Contains("Sensor 2") AndAlso
                         totals.Text.Contains("500 kg") AndAlso totals.Text.Contains("Base ¥49,500.00"),
                         "Armor, Handling, sensors, and their costs should combine and round trip.")
+                Dim named = editor.ReadDesign()
+                named.Name = "Courier <One> & Co."
+                editor.WriteDesignFile(destination, named)
+                editor.LoadDesignFile(destination)
+                Require(editor.ReadDesign().Name = named.Name, "The vehicle name did not round trip.")
+                Dim sheetPath = Path.Combine(folder.FullName, "vehicle.html")
+                Dim sheetCatalog = StockCatalog.Read(New JsonSerializerOptions())
+                VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
+                VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
+                Dim sheet = File.ReadAllText(sheetPath)
+                Require(sheet.Contains("Courier &lt;One&gt; &amp; Co.") AndAlso sheet.Contains("49,500") AndAlso
+                        sheet.Contains("Vehicle armor") AndAlso sheet.Contains("Sensor system") AndAlso
+                        Not sheet.Contains("<One>"), "The HTML sheet did not retain and escape the vehicle values.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

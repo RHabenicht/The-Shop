@@ -105,3 +105,7 @@ James Ojaste created The Shop. His site hosts the original Visual Basic source a
 - [Shop142s.zip](legacy/Shop142s.zip) is the original source download. Use `Shop.vbp` for the project structure, `Evaluate.bas` for calculations, and `FileOps.bas` for file formats and HTML output.
 
 The archives are preserved as supplied. The source archive contains no license file.
+
+## Export a vehicle sheet
+
+Enter a vehicle name and choose **Export HTML…**. Open the exported file in a browser to print it or use the browser’s Save as PDF option. The sheet includes calculated ratings, capacity, price, Availability when selected, manual entries, catalog modifications, and any imported legacy reference.

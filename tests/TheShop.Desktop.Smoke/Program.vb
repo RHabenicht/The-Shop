@@ -556,6 +556,21 @@ Module Program
                         torpedoResult.Totals.LoadRemainingKg = 699500D AndAlso
                         torpedoResult.Totals.DesignPoints = 370500D,
                         "Autoloaded torpedo tubes should include their loading machinery and design capacity.")
+                Dim auxiliaryVan As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .AuxiliaryPowerPlantId = "electric-battery", .StreetIndex = 1
+                }
+                editor.WriteDesignFile(destination, auxiliaryVan)
+                editor.LoadDesignFile(destination)
+                editor.WriteDesignFile(destination, editor.ReadDesign())
+                editor.LoadDesignFile(destination)
+                Dim auxiliaryResult = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(editor.ReadDesign().AuxiliaryPowerPlantId = "electric-battery" AndAlso
+                        auxiliaryResult.AuxiliaryEngine.Speed.GetValueOrDefault() = 30 AndAlso
+                        auxiliaryResult.Totals.CargoRemaining = 38D AndAlso auxiliaryResult.Totals.LoadRemainingKg = 20D AndAlso
+                        auxiliaryResult.Totals.BaseCostNuyen = 12000D,
+                        "Auxiliary engines should use their listed cost, half-speed ratings, and the lower engine Load limit.")
+                VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
+                Require(File.ReadAllText(sheetPath).Contains("Auxiliary engine"), "The vehicle sheet should include the alternate engine.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

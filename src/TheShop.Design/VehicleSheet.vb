@@ -62,6 +62,16 @@ Public Module VehicleSheet
         If modified?.RadarSignature.HasValue Then Row(page, "Radar Signature", Number(modified.RadarSignature))
         If modified?.InfraredSignature.HasValue Then Row(page, "Infrared Signature", Number(modified.InfraredSignature))
         Row(page, "Sensor / Sonar", Pair(If(modified?.Sensor, chassis.Sensor), If(modified?.Sonar, chassis.Sonar)))
+        If result.AuxiliaryEngine IsNot Nothing Then
+            Dim engine = result.AuxiliaryEngine
+            Row(page, "Auxiliary engine", engine.Name)
+            Row(page, "Auxiliary Speed / Acceleration", Pair(engine.Speed, engine.Acceleration))
+            If engine.SecondarySpeed.HasValue Then Row(page, "Auxiliary secondary Speed", Number(engine.SecondarySpeed))
+            Row(page, "Auxiliary maximum Speed / Acceleration", Pair(engine.MaximumSpeed, engine.MaximumAcceleration))
+            If engine.Signature.HasValue Then Row(page, "Auxiliary Signature", Number(engine.Signature))
+            If engine.Economy.HasValue Then Row(page, "Auxiliary Economy", Number(engine.Economy) & " " & engine.EconomyUnit)
+            If engine.FuelCapacity.HasValue Then Row(page, "Auxiliary fuel", Number(engine.FuelCapacity) & " " & engine.FuelUnit)
+        End If
         Row(page, "Autonav / Pilot", Pair(If(modified?.Autonav, chassis.Autonav), If(modified?.Pilot, chassis.Pilot)))
         Row(page, "Available cargo (CF)", Number(totals.CargoRemaining))
         Row(page, "Available load (kg)", Number(totals.LoadRemainingKg))

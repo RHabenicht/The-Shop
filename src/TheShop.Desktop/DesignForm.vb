@@ -31,6 +31,7 @@ Public NotInheritable Class DesignForm
     Private upgrades As DesignUpgrades
     Private catalogModifications As List(Of ModificationSelection)
     Private installedRetrofits As List(Of ModificationSelection)
+    Private auxiliaryPowerPlantId As String
     Private legacyReference As JsonElement?
     Private ReadOnly additions As New DataGridView With {
         .Name = "additions",
@@ -89,6 +90,7 @@ Public NotInheritable Class DesignForm
         AddAction(actions, "Calculate", AddressOf Calculate)
         AddAction(actions, "Design upgrades…", AddressOf EditUpgrades)
         AddAction(actions, "Catalog mods…", AddressOf EditModifications)
+        AddAction(actions, "Auxiliary engine…", AddressOf EditAuxiliaryEngine)
         AddAction(actions, "Retrofit quote…", AddressOf ShowRetrofitQuote)
         AddAction(actions, "Installed retrofits…", AddressOf EditInstalledRetrofits)
         AddAction(actions, "Open design…", AddressOf OpenDesign)
@@ -171,6 +173,7 @@ Public NotInheritable Class DesignForm
             .Upgrades = upgrades,
             .CatalogModifications = catalogModifications,
             .InstalledRetrofits = installedRetrofits,
+            .AuxiliaryPowerPlantId = auxiliaryPowerPlantId,
             .LegacyReference = legacyReference,
             .AvailabilityClass = If(TypeOf availabilityBox.SelectedItem Is VehicleAvailabilityClass,
                                     CType(availabilityBox.SelectedItem, VehicleAvailabilityClass), CType(Nothing, VehicleAvailabilityClass?))
@@ -244,6 +247,10 @@ Public NotInheritable Class DesignForm
         If catalogModifications IsNot Nothing AndAlso catalogModifications.Any(Function(item) item.Id.StartsWith("engine-customization-", StringComparison.OrdinalIgnoreCase)) Then
             totals.Text &= Environment.NewLine & "Engine customization requires the gamemaster's Stress test."
         End If
+        If result.AuxiliaryEngine IsNot Nothing Then
+            Dim engine = result.AuxiliaryEngine
+            totals.Text &= Environment.NewLine & $"Auxiliary {engine.Name}   Speed {engine.Speed}   Acceleration {engine.Acceleration}"
+        End If
         Dim modified = result.ModifiedRatings
         If modified IsNot Nothing Then
             Dim values As New List(Of String)
@@ -296,6 +303,20 @@ Public NotInheritable Class DesignForm
     Private Sub Calculate(sender As Object, e As EventArgs)
         Try
             ShowTotals(ReadDesign().Calculate(catalog))
+        Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
+            ShowError(ex)
+        End Try
+    End Sub
+
+    Private Sub EditAuxiliaryEngine(sender As Object, e As EventArgs)
+        Try
+            Using dialog As New AuxiliaryEngineDialog(auxiliaryPowerPlantId, DirectCast(chassisBox.SelectedItem, StockChassis))
+                If dialog.ShowDialog(Me) = DialogResult.OK Then
+                    Dim design = ReadDesign()
+                    design.AuxiliaryPowerPlantId = dialog.SelectedEngineId
+                    DisplayDesign(design)
+                End If
+            End Using
         Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
             ShowError(ex)
         End Try
@@ -398,6 +419,7 @@ Public NotInheritable Class DesignForm
         upgrades = design.Upgrades
         catalogModifications = design.CatalogModifications
         installedRetrofits = design.InstalledRetrofits
+        auxiliaryPowerPlantId = design.AuxiliaryPowerPlantId
         legacyReference = design.LegacyReference
         availabilityBox.SelectedItem = If(design.AvailabilityClass.HasValue, CObj(design.AvailabilityClass.GetValueOrDefault()), "Unspecified")
         additions.Rows.Clear()

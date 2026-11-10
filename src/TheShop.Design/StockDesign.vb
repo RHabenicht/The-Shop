@@ -6,6 +6,8 @@ Public NotInheritable Class StockDesign
     Public Property ChassisId As String
     <JsonRequired>
     Public Property PowerPlantId As String
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property AuxiliaryPowerPlantId As String
     <JsonRequired>
     Public Property StreetIndex As Decimal
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
@@ -33,8 +35,11 @@ Public NotInheritable Class StockDesign
             Throw New ArgumentException($"Power plant '{PowerPlantId}' is unavailable for '{chassis.Id}' in this catalog.")
         End If
 
+        Dim auxiliary = AuxiliaryEngine.Resolve(AuxiliaryPowerPlantId, chassis)
+        Dim maximumLoad = If(auxiliary Is Nothing, powerPlant.MaximumLoadKg, Math.Min(powerPlant.MaximumLoadKg, auxiliary.MaximumLoadKg))
+        Dim startingLoad = If(auxiliary Is Nothing, powerPlant.StartingLoadKg, Math.Min(powerPlant.StartingLoadKg, auxiliary.StartingLoadKg))
         Dim cargo = If(CargoCapacity, chassis.StartingCargo)
-        Dim load = If(LoadCapacityKg, powerPlant.StartingLoadKg)
+        Dim load = If(LoadCapacityKg, startingLoad)
         Dim design As New VehicleDesign With {
             .ChassisDesignPoints = chassis.DesignPoints,
             .PowerPlantDesignPoints = powerPlant.DesignPoints,
@@ -45,12 +50,21 @@ Public NotInheritable Class StockDesign
             .MarkupAdjustment = MarkupAdjustment,
             .Additions = Additions
         }
+        If auxiliary IsNot Nothing Then
+            Dim size = CDec(If(chassis.Hull, chassis.Body).GetValueOrDefault())
+            Dim factor = If(chassis.Hull.HasValue, 100D * size * size, 1D)
+            design.Additions = New List(Of DesignAddition)(design.Additions) From {
+                New DesignAddition With {.Name = "Auxiliary engine — " & auxiliary.Name,
+                    .DesignPoints = auxiliary.DesignPoints, .CargoConsumed = (size + factor) * 2D,
+                    .LoadConsumedKg = maximumLoad * 0.1D}
+            }
+        End If
         Dim ratings = Upgrades?.Apply(chassis, powerPlant, design, CargoCapacity, LoadCapacityKg)
         If design.CargoCapacity > chassis.MaximumCargo Then
             Throw New ArgumentException($"Cargo capacity exceeds the catalog maximum of {chassis.MaximumCargo} CF.")
         End If
-        If design.LoadCapacityKg > powerPlant.MaximumLoadKg Then
-            Throw New ArgumentException($"Load capacity exceeds the catalog maximum of {powerPlant.MaximumLoadKg} kg.")
+        If design.LoadCapacityKg > maximumLoad Then
+            Throw New ArgumentException($"Load capacity exceeds the catalog maximum of {maximumLoad} kg.")
         End If
 
         Dim validationCargo = design.CargoCapacity
@@ -61,7 +75,7 @@ Public NotInheritable Class StockDesign
         Dim retrofits = RetrofitCatalog.Apply(InstalledRetrofits, CatalogModifications, chassis, powerPlant, ratings, totals, validationCargo, validationLoad, modifiedRatings)
         Return New StockDesignResult With {
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
-            .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits,
+            .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits, .AuxiliaryEngine = AuxiliaryEngine.Ratings(auxiliary),
             .Availability = If(AvailabilityClass.HasValue, VehicleAvailability.Calculate(AvailabilityClass.Value, totals.BaseCostNuyen), Nothing)
         }
     End Function
@@ -205,6 +219,8 @@ Public NotInheritable Class StockDesignResult
     Public Property AppliedModifications As IReadOnlyList(Of DesignAddition)
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property ModifiedRatings As ModifiedRatings
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property AuxiliaryEngine As AuxiliaryEngineRatings
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property InstalledRetrofits As IReadOnlyList(Of InstalledRetrofit)
     Public ReadOnly Property RetrofitPartsCostNuyen As Decimal

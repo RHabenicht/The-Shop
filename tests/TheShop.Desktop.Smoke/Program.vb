@@ -673,6 +673,20 @@ Module Program
                 Application.DoEvents()
                 Require(grid.Height > 30 AndAlso totals.Parent.ClientRectangle.Height >= 100,
                         "The editor should retain an editable grid and scrollable results at its minimum size.")
+                File.WriteAllLines(legacyPath, {"Shop v1.40", "Converted Buggy", "Rigger2,Sand Buggy", "Rigger2,Gasoline",
+                                   "Bench", "Open", "0,0,0,0,0", "Rigger2,1,Crash cage", "Rigger2,2,Nitrous oxide injectors",
+                                   "Rigger2,1,Unknown option"})
+                editor.StartLegacyDesign(LegacyVehicleReader.Read(legacyPath))
+                editor.WriteDesignFile(destination, editor.ReadDesign())
+                editor.LoadDesignFile(destination)
+                Dim converted = editor.ReadDesign()
+                Require(converted.CatalogModifications.Count = 2 AndAlso converted.LegacyImportNotes.Count = 3 AndAlso
+                        converted.Calculate(sheetCatalog).Totals.BaseCostNuyen = 8400D AndAlso
+                        converted.LegacyReference.Value.GetProperty("Modifications").GetArrayLength() = 3,
+                        "Recognized legacy options should be repriced while unsupported source entries remain available for review.")
+                VehicleSheet.Write(sheetPath, converted, sheetCatalog)
+                Require(File.ReadAllText(sheetPath).Contains("Review manually: Unknown option"),
+                        "Legacy conversion review notes should appear on the vehicle sheet.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

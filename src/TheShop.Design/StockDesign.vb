@@ -21,6 +21,8 @@ Public NotInheritable Class StockDesign
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property LegacyReference As JsonElement?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property LegacyImportNotes As List(Of String)
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property AvailabilityClass As VehicleAvailabilityClass?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property CatalogModifications As List(Of ModificationSelection)

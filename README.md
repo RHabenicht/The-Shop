@@ -88,7 +88,7 @@ Choose **Retrofit quote…** to calculate list and street parts cost, Availabili
 
 ## Import a legacy vehicle
 
-To bring a `Shop v1.40` save into the editor, select **Import .shp…**. The editor suggests the revised chassis and compatible power plant when both names match uniquely. For other saves it uses the editor’s current selection. Review the source record before starting the new design. Original options and markups stay in **Legacy reference** and are saved with the new design. Reapply them using Rigger 3 Revised values where appropriate.
+To bring a `Shop v1.40` save into the editor, select **Import .shp…**. The editor suggests the revised chassis and compatible power plant when both names match uniquely. For other saves it uses the editor’s current selection. Review the source record before starting the new design. Original options and markups stay in **Legacy reference** and are saved with the new design. Recognized crash cages, rigger adaptation, datajack ports, electronics ports, spotlights, nitrous injectors, and roll bars are repriced when their source names match and the revised design validates. Other entries remain in the source reference and import review notes. The notes are saved and included on the exported sheet.
 
 For command-line extraction:
 

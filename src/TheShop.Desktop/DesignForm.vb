@@ -33,6 +33,7 @@ Public NotInheritable Class DesignForm
     Private installedRetrofits As List(Of ModificationSelection)
     Private auxiliaryPowerPlantId As String
     Private legacyReference As JsonElement?
+    Private legacyImportNotes As List(Of String)
     Private ReadOnly additions As New DataGridView With {
         .Name = "additions",
         .Dock = DockStyle.Fill,
@@ -177,6 +178,7 @@ Public NotInheritable Class DesignForm
             .InstalledRetrofits = installedRetrofits,
             .AuxiliaryPowerPlantId = auxiliaryPowerPlantId,
             .LegacyReference = legacyReference,
+            .LegacyImportNotes = legacyImportNotes,
             .AvailabilityClass = If(TypeOf availabilityBox.SelectedItem Is VehicleAvailabilityClass,
                                     CType(availabilityBox.SelectedItem, VehicleAvailabilityClass), CType(Nothing, VehicleAvailabilityClass?))
         }
@@ -258,6 +260,9 @@ Public NotInheritable Class DesignForm
                 totals.Text &= Environment.NewLine & $"{mode.Name}   Speed {mode.Speed}   Accel {mode.Acceleration}   Handling {mode.Handling}   Signature {mode.Signature}   Sonar Signature {mode.SonarSignature}"
                 If mode.Notes IsNot Nothing Then totals.Text &= Environment.NewLine & mode.Notes
             Next
+        End If
+        If legacyImportNotes IsNot Nothing Then
+            totals.Text &= Environment.NewLine & $"Legacy import: {legacyImportNotes.Count(Function(note) note.StartsWith("Repriced", StringComparison.Ordinal))} repriced, {legacyImportNotes.Count(Function(note) note.StartsWith("Review", StringComparison.Ordinal))} require review."
         End If
         Dim modified = result.ModifiedRatings
         If modified IsNot Nothing Then
@@ -435,6 +440,7 @@ Public NotInheritable Class DesignForm
         installedRetrofits = design.InstalledRetrofits
         auxiliaryPowerPlantId = design.AuxiliaryPowerPlantId
         legacyReference = design.LegacyReference
+        legacyImportNotes = design.LegacyImportNotes
         availabilityBox.SelectedItem = If(design.AvailabilityClass.HasValue, CObj(design.AvailabilityClass.GetValueOrDefault()), "Unspecified")
         additions.Rows.Clear()
         For Each item In design.Additions
@@ -452,7 +458,7 @@ Public NotInheritable Class DesignForm
                 Dim source = If(components.Matched, "Matched legacy components.", "Using the components currently selected in the editor.")
                 Dim message = $"Start a new Rigger 3 Revised design using {components.Chassis.Name} / {components.Plant.Name}." &
                     Environment.NewLine & source &
-                    Environment.NewLine & "The original values are kept for reference. Review and reapply modifications under the revised rules."
+                    Environment.NewLine & "The original values are kept for reference. Recognized modifications are repriced under the revised rules; review the import notes."
                 If ShowLegacyReference(reference, message) = DialogResult.OK Then
                     StartLegacyDesign(reference)
                 End If
@@ -477,13 +483,7 @@ Public NotInheritable Class DesignForm
 
     Friend Sub StartLegacyDesign(reference As JsonElement)
         Dim components = LegacyComponents(reference)
-        DisplayDesign(New StockDesign With {
-            .ChassisId = components.Chassis.Id,
-            .PowerPlantId = components.Plant.Id,
-            .StreetIndex = 1D,
-            .Name = reference.GetProperty("Name").GetString(),
-            .LegacyReference = reference
-        })
+        DisplayDesign(LegacyDesignConversion.CreateDesign(reference, components.Chassis.Id, components.Plant.Id, catalog))
     End Sub
 
     Private Sub ViewLegacyReference(sender As Object, e As EventArgs)

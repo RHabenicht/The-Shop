@@ -135,6 +135,13 @@ Public Module VehicleSheet
             Row(page, item.Name, $"{Number(item.DesignPoints)} DP; ¥{Number(item.DirectCostNuyen)} direct; {Number(item.CargoConsumed)} CF; {Number(item.LoadConsumedKg)} kg")
         Next
         page.Append("</tbody></table>")
+        If design.LegacyImportNotes IsNot Nothing Then
+            page.Append("<h2>Legacy import notes</h2><ul>")
+            For Each note In design.LegacyImportNotes
+                page.Append("<li>").Append(E(note)).Append("</li>")
+            Next
+            page.Append("</ul>")
+        End If
         If design.LegacyReference.HasValue Then
             page.Append("<h2>Imported legacy reference</h2><pre style='white-space:pre-wrap;overflow-wrap:anywhere'>")
             page.Append(E(System.Text.Json.JsonSerializer.Serialize(design.LegacyReference.Value, New System.Text.Json.JsonSerializerOptions With {.WriteIndented = True})))

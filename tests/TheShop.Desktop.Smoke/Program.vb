@@ -101,6 +101,11 @@ Module Program
                         original.GetProperty("Name").GetString() = "Test, Buggy" AndAlso
                         original.GetProperty("Modifications")(0).GetProperty("Level").GetInt32() = 2,
                         "Legacy reference and the new-design reset did not survive saving and reopening.")
+                File.WriteAllText(destination, "{""ChassisId"":""light-minisub"",""PowerPlantId"":""gasoline"",""StreetIndex"":1," &
+                                  """Upgrades"":{""DepthSteps"":2}}")
+                editor.LoadDesignFile(destination)
+                Require(totals.Text.Contains("Depth 70 m") AndAlso totals.Text.Contains("184 kg"),
+                        "Depth did not apply its rating and load costs.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

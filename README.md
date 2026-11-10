@@ -18,11 +18,11 @@ The [Windows desktop workflow](../../actions/workflows/windows.yml) builds a sel
 
 ## Apply design upgrades
 
-In the Windows editor, use **Design upgrades** to enter the number of steps. The calculator applies costs and limits from *Rigger 3 Revised*, pp. 115–116. Supported upgrades cover speed, acceleration, single or split Handling, cargo, load, Signature, and Economy. Economy steps add five percent of the starting rating each, up to the power plant maximum. Signature has a gamemaster-set limit.
+In the Windows editor, use **Design upgrades** to enter the number of steps. The calculator applies costs and limits from *Rigger 3 Revised*, pp. 115–116. Supported upgrades cover speed, acceleration, single or split Handling, cargo, load, Signature, and Economy. Economy steps add five percent of the starting rating each, up to the power plant maximum. Signature has a gamemaster-set limit. The dialog also supports p. 115 fuel expansion for compatible fuel units and depth enhancement on Body-rated chassis with a depth rating.
 
 Stock design JSON can contain the same selections. For example, `"Upgrades": {"OffRoadHandling": 1, "Acceleration": 2, "CargoSteps": 10, "LoadSteps": 3}` applies the functional upgrades from the Light Strike Vehicle example. Cargo steps add 0.2 CF each. Load steps add 10 kg, or 1 kg on Body 0 vehicles. Clear the corresponding manual capacity override before using automatic cargo or load steps. Existing designs without `Upgrades` still use their original entries.
 
-Use manual entries for Hull-rated options, speed upgrades on vehicles with two operating speeds, and options outside this set. Fixed-wing speed upgrades apply to flight speed and preserve stall speed.
+Use manual entries for Hull-rated options, speed upgrades on vehicles with two operating speeds, and options outside this set. Fuel expansion uses the table’s electrical load costs. Jet entries measured in bars and fuel cells measured in liters require manual entries. Fixed-wing speed upgrades apply to flight speed and preserve stall speed.
 
 ## Availability
 

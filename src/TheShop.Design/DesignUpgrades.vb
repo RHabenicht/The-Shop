@@ -8,10 +8,12 @@ Public NotInheritable Class DesignUpgrades
     Public Property LoadSteps As Integer
     Public Property Signature As Integer
     Public Property EconomySteps As Integer
+    Public Property FuelSteps As Integer
+    Public Property DepthSteps As Integer
 
     Friend Function Apply(chassis As StockChassis, plant As StockPowerPlant, design As VehicleDesign,
                           cargoOverride As Decimal?, loadOverride As Decimal?) As UpgradedRatings
-        Dim steps = {Speed, Acceleration, Handling, OnRoadHandling, OffRoadHandling, CargoSteps, LoadSteps, Signature, EconomySteps}
+        Dim steps = {Speed, Acceleration, Handling, OnRoadHandling, OffRoadHandling, CargoSteps, LoadSteps, Signature, EconomySteps, FuelSteps, DepthSteps}
         If steps.Any(Function(value) value < 0) Then Throw New ArgumentException("Upgrade steps cannot be negative.")
         If steps.All(Function(value) value = 0) Then Return Nothing
         If chassis.Hull.HasValue Then Throw New ArgumentException("Use manual entries for Hull-rated vehicle options.")
@@ -48,8 +50,29 @@ Public NotInheritable Class DesignUpgrades
         Dim squared = signatureLevels * signatureLevels
         Dim points = 2D * Speed + 25D * (CDec(Acceleration) + Handling + OnRoadHandling + OffRoadHandling) +
                      CargoSteps + LoadSteps + 5D * EconomySteps + 200D * squared * squared
+        Dim cargoUsed As Decimal
+        Dim loadUsed As Decimal
+        If DepthSteps > 0 Then
+            ratings.Depth = Increase(chassis.StartingDepth, chassis.MaximumDepth, 10 * DepthSteps, "Depth")
+            points += 2D * DepthSteps
+            loadUsed += 2D * chassis.Body.GetValueOrDefault() * DepthSteps
+        End If
+
+        If FuelSteps > 0 Then
+            Dim fuel = FuelExpansionRule.ForPlant(chassis, plant)
+            If fuel Is Nothing Then Throw New ArgumentException("Fuel expansion is unavailable for this power plant and unit.")
+            ratings.FuelCapacity = fuel.StartingCapacity + fuel.Amount * FuelSteps
+            ratings.FuelUnit = fuel.Unit
+            points += fuel.Points * FuelSteps
+            cargoUsed += fuel.Cargo * FuelSteps
+            loadUsed += fuel.Load * FuelSteps
+            If fuel.Unit <> "PF" AndAlso chassis.TakeoffLandingProfile IsNot Nothing Then
+                ratings.TakeoffLandingDistanceMultiplier = 1.1D
+            End If
+        End If
+
         design.Additions = New List(Of DesignAddition)(design.Additions) From {
-            New DesignAddition With {.Name = "Catalog design upgrades", .DesignPoints = points}
+            New DesignAddition With {.Name = "Catalog design upgrades", .DesignPoints = points, .CargoConsumed = cargoUsed, .LoadConsumedKg = loadUsed}
         }
         Return ratings
     End Function
@@ -84,4 +107,8 @@ Public NotInheritable Class UpgradedRatings
     Public Property Signature As Integer?
     Public Property Economy As Decimal?
     Public Property EconomyUnit As String
+    Public Property Depth As Integer?
+    Public Property FuelCapacity As Decimal?
+    Public Property FuelUnit As String
+    Public Property TakeoffLandingDistanceMultiplier As Decimal?
 End Class

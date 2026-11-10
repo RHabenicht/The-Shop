@@ -35,6 +35,12 @@ Friend NotInheritable Class UpgradeDialog
         AddSteps(table, "Economy +5% of starting rating (5 DP)", current.EconomySteps, Sub(n) Selection.EconomySteps = n,
                  supported AndAlso plant.EconomyUnit IsNot Nothing)
 
+        Dim fuel = FuelExpansionRule.ForPlant(chassis, plant)
+        Dim fuelLabel = If(fuel Is Nothing, "Fuel capacity", $"Fuel +{fuel?.Amount} {fuel?.Unit} ({fuel?.Points} DP)")
+        AddSteps(table, fuelLabel, current.FuelSteps, Sub(n) Selection.FuelSteps = n, supported AndAlso fuel IsNot Nothing)
+        AddSteps(table, "Depth +10 m (2 DP plus load)", current.DepthSteps, Sub(n) Selection.DepthSteps = n,
+                 supported AndAlso chassis.StartingDepth.HasValue)
+
         Dim buttons As New FlowLayoutPanel With {.AutoSize = True, .Dock = DockStyle.Fill}
         Dim apply As New Button With {.Text = "Apply", .DialogResult = DialogResult.OK}
         Dim cancel As New Button With {.Text = "Cancel", .DialogResult = DialogResult.Cancel}

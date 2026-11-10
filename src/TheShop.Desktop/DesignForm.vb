@@ -224,6 +224,12 @@ Public NotInheritable Class DesignForm
             totals.Text &= Environment.NewLine &
                 $"Upgraded handling {handling}   Speed {If(ratings.Speed?.ToString(), "—")}   Accel {If(ratings.Acceleration?.ToString(), "—")}   Signature {If(ratings.Signature?.ToString(), "—")}"
             If ratings.Economy.HasValue Then totals.Text &= $"   Economy {ratings.Economy} {ratings.EconomyUnit}"
+            If ratings.Depth.HasValue OrElse ratings.FuelCapacity.HasValue Then
+                totals.Text &= Environment.NewLine
+                If ratings.Depth.HasValue Then totals.Text &= $"Depth {ratings.Depth} m   "
+                If ratings.FuelCapacity.HasValue Then totals.Text &= $"Fuel {ratings.FuelCapacity} {ratings.FuelUnit}"
+                If ratings.TakeoffLandingDistanceMultiplier.HasValue Then totals.Text &= "   Takeoff and landing distances +10%"
+            End If
         End If
     End Sub
 

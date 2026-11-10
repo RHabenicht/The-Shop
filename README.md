@@ -50,6 +50,8 @@ Aircraft floats apply their speed and economy adjustments after design upgrades.
 
 Cabin and engine seals, cabin over-pressurization, and life support are available as separate options. Enter life support in blocks of ten person-hours. Check that the design has a suitable sealed cabin and that its entry points, engine air supply, and depth limits suit the intended operation. Roll bars and SunCell solar power are also available (*Rigger 3 Revised*, pp. 126, 132–133).
 
+Control options include GridLink, adjusted and secondary controls, contingency maneuver controls, advanced passenger protection, motorbike gyro-stabilization, Autonav, remote-control interfaces, and advanced Pilot ratings (*Rigger 3 Revised*, pp. 126–131). Autonav and Pilot selections set final ratings. Remote-control interfaces require sensors and give a base Pilot of 1. Motorbikes require gyro-stabilization for remote control or Autonav 2 and above.
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

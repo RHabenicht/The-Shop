@@ -243,6 +243,8 @@ Public NotInheritable Class DesignForm
             If modified.OnRoadHandling.HasValue Then values.Add($"Final Handling {modified.OnRoadHandling}/{modified.OffRoadHandling}")
             If modified.Sensor.HasValue Then values.Add($"Sensor {modified.Sensor}")
             If modified.Sonar.HasValue Then values.Add($"Sonar {modified.Sonar}")
+            If modified.Autonav.HasValue Then values.Add($"Autonav {modified.Autonav}")
+            If modified.Pilot.HasValue Then values.Add($"Pilot {modified.Pilot}")
             If modified.Speed.HasValue Then values.Add($"Final Speed {modified.Speed}")
             If modified.Economy.HasValue Then values.Add($"Final Economy {modified.Economy}")
             If modified.WaterSpeed.HasValue Then values.Add($"Water Speed rating {modified.WaterSpeed}")

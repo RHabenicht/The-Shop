@@ -35,6 +35,8 @@ Public NotInheritable Class ModifiedRatings
     Public Property TowedArraySonar As Integer?
     Public Property Speed As Integer?
     Public Property Economy As Decimal?
+    Public Property Pilot As Integer?
+    Public Property Autonav As Integer?
     Public Property WaterSpeed As Integer?
     Public Property WaterSpeedMetersPerTurn As Integer?
     Public Property WaterHandlingModifier As Integer?
@@ -48,6 +50,9 @@ Public Module ModificationCatalog
     Private ReadOnly sonarPoints As Integer() = {0, 50, 500, 2500, 5000, 10000, 25000, 50000, 75000, 125000, 250000}
     Private ReadOnly sonarCargo As Integer() = {0, 4, 6, 10, 16, 50, 75, 100, 200, 300, 500}
     Private ReadOnly sonarLoad As Integer() = {0, 120, 250, 350, 500, 750, 1000, 1250, 1500, 2000, 2500}
+
+    Private ReadOnly pilotPoints As Integer() = {0, 0, 50, 250, 1250, 5000}
+    Private ReadOnly autonavPoints As Integer() = {0, 5, 10, 50, 150}
 
     Private ReadOnly liftingCapacityKg As Integer() = {0, 25, 200, 750, 2000, 5000, 20000, 30000, 45000, 60000}
 
@@ -118,6 +123,15 @@ Public Module ModificationCatalog
         New ModificationRule("life-support", "Life support", "10 person-hour blocks", Integer.MaxValue),
         New ModificationRule("roll-bar", "Roll bar", "", 1),
         New ModificationRule("suncell", "SunCell", "", 1),
+        New ModificationRule("gridlink", "GridLink", "", 1),
+        New ModificationRule("adjusted-controls", "Adjusted controls", "1 dwarf, 2 troll, 3 other", 3),
+        New ModificationRule("secondary-controls", "Secondary controls", "", 1, 1D),
+        New ModificationRule("contingency-maneuver-controls", "Contingency maneuver controls", "rating", 9),
+        New ModificationRule("passenger-protection", "Advanced passenger protection", "sets", Integer.MaxValue),
+        New ModificationRule("motorbike-gyro", "Motorbike gyro-stabilization", "", 1),
+        New ModificationRule("autonav", "Autonav", "rating", 4),
+        New ModificationRule("remote-control-interface", "Remote-control interface", "", 1),
+        New ModificationRule("advanced-drone-pilot", "Advanced drone pilot", "rating (2–5)", 5),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -188,6 +202,20 @@ Public Module ModificationCatalog
                 Return Not chassis.IsDrone AndAlso chassis.Category = "Car"
             Case "suncell"
                 Return chassis.Category <> "Bike" AndAlso plant.Id.StartsWith("electric-", StringComparison.Ordinal)
+            Case "gridlink"
+                Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
+            Case "adjusted-controls"
+                Return Not chassis.IsDrone AndAlso plant.Id <> "unpowered"
+            Case "secondary-controls", "passenger-protection"
+                Return Not chassis.IsDrone AndAlso chassis.Category <> "Bike" AndAlso plant.Id <> "unpowered"
+            Case "motorbike-gyro"
+                Return chassis.Category = "Bike"
+            Case "autonav"
+                Return chassis.Autonav.GetValueOrDefault() < rule.Maximum AndAlso plant.Id <> "unpowered"
+            Case "remote-control-interface"
+                Return Not chassis.IsDrone AndAlso chassis.Body.HasValue AndAlso plant.Id <> "unpowered"
+            Case "advanced-drone-pilot"
+                Return chassis.Pilot.GetValueOrDefault() < rule.Maximum AndAlso plant.Id <> "unpowered"
             Case "amphibious-operation"
                 Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
             Case "hovercraft-water-seal"
@@ -238,9 +266,15 @@ Public Module ModificationCatalog
             If rule.Id = "improved-anti-theft-security" AndAlso choice.Quantity < 3 Then
                 Throw New ArgumentException("Improved anti-theft security requires a rating from 3 to 10.")
             End If
+            If rule.Id = "autonav" AndAlso choice.Quantity <= chassis.Autonav.GetValueOrDefault() Then
+                Throw New ArgumentException("Choose an Autonav rating above the factory rating.")
+            End If
+            If rule.Id = "advanced-drone-pilot" AndAlso choice.Quantity <= Math.Max(1, chassis.Pilot.GetValueOrDefault()) Then
+                Throw New ArgumentException("Choose a Pilot rating above the starting rating.")
+            End If
             validated.Add((rule, choice.Quantity))
             Select Case rule.Id
-                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation"
+                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation", "autonav", "advanced-drone-pilot"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
                     ApplyRating(finalRatings, rule.Id, choice.Quantity, chassis, plant, upgrades)
             End Select
@@ -266,6 +300,17 @@ Public Module ModificationCatalog
         If seen.Contains("cabin-overpressure") AndAlso Not (seen.Contains("cabin-gas-seal") OrElse seen.Contains("cabin-water-seal")) Then
             Throw New ArgumentException("Cabin over-pressurization requires a cabin seal.")
         End If
+        If seen.Contains("remote-control-interface") Then
+            If sensorRating = 0 Then Throw New ArgumentException("A remote-control interface requires sensors.")
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            If Not finalRatings.Pilot.HasValue Then finalRatings.Pilot = Math.Max(1, chassis.Pilot.GetValueOrDefault())
+        ElseIf seen.Contains("advanced-drone-pilot") AndAlso Not chassis.IsDrone AndAlso chassis.Pilot.GetValueOrDefault() = 0 Then
+            Throw New ArgumentException("An advanced drone pilot requires a remote-control interface.")
+        End If
+        If chassis.Category = "Bike" AndAlso Not seen.Contains("motorbike-gyro") AndAlso
+            (seen.Contains("remote-control-interface") OrElse If(finalRatings?.Autonav, 0) >= 2) Then
+            Throw New ArgumentException("This motorcycle control option requires gyro-stabilization.")
+        End If
         Dim armCount = validated.Where(Function(choice) choice.Rule.Id = "mechanical-arm").
             Select(Function(choice) choice.Quantity).SingleOrDefault()
         If seen.Contains("mechanical-arm-strength") AndAlso armCount = 0 Then
@@ -287,6 +332,12 @@ Public Module ModificationCatalog
                 Return
             Case "towed-array-sonar"
                 ratings.TowedArraySonar = quantity
+                Return
+            Case "autonav"
+                ratings.Autonav = quantity
+                Return
+            Case "advanced-drone-pilot"
+                ratings.Pilot = quantity
                 Return
             Case "aircraft-flotation"
                 Dim isRotorCraft = chassis.Category = "Rotor Craft"
@@ -461,6 +512,26 @@ Public Module ModificationCatalog
                 item.LoadConsumedKg = 25D * quantity
             Case "suncell"
                 item.DesignPoints = 5D
+            Case "gridlink"
+                item.DesignPoints = 2D
+            Case "adjusted-controls"
+                item.DesignPoints = If(quantity = 1, 25D, If(quantity = 2, 35D, 30D))
+            Case "secondary-controls"
+                item.DesignPoints = 5D
+            Case "contingency-maneuver-controls"
+                item.DesignPoints = If(quantity <= 3, 35D, If(quantity <= 6, 75D, 150D)) * quantity
+                item.LoadConsumedKg = 25D
+            Case "passenger-protection"
+                item.DesignPoints = 30D * quantity
+            Case "motorbike-gyro"
+                item.DesignPoints = chassis.DesignPoints * 0.25D
+                item.LoadConsumedKg = 5D
+            Case "autonav"
+                item.DesignPoints = autonavPoints(quantity)
+            Case "remote-control-interface"
+                item.DesignPoints = 25D * body
+            Case "advanced-drone-pilot"
+                item.DesignPoints = pilotPoints(quantity)
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

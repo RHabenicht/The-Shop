@@ -311,7 +311,7 @@ Module Program
                 }
                 editor.WriteDesignFile(destination, flotationDesign)
                 editor.LoadDesignFile(destination)
-                Require(totals.Text.Contains("Final Speed 160") AndAlso flotationDesign.Calculate(sheetCatalog).ModifiedRatings.Economy = 0.9D AndAlso
+                Require(totals.Text.Contains("Final Speed 160") AndAlso flotationDesign.Calculate(sheetCatalog).ModifiedRatings.Economy.GetValueOrDefault() = 0.9D AndAlso
                         totals.Text.Contains("493 CF") AndAlso totals.Text.Contains("4955 kg") AndAlso
                         totals.Text.Contains("Base ¥752,000.00"),
                         "Aircraft floats and drone racks should apply their design costs, capacity, and ratings.")
@@ -340,6 +340,21 @@ Module Program
                 editor.LoadDesignFile(destination)
                 Require(totals.Text.Contains("Base ¥52,000.00") AndAlso totals.Text.Contains("45 CF") AndAlso
                         totals.Text.Contains("940 kg"), "Cabin equipment did not apply the listed costs and capacities.")
+                Dim remoteVan As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "advanced-drone-pilot", .Quantity = 3},
+                        New ModificationSelection With {.Id = "remote-control-interface", .Quantity = 1},
+                        New ModificationSelection With {.Id = "autonav", .Quantity = 2},
+                        New ModificationSelection With {.Id = "contingency-maneuver-controls", .Quantity = 3},
+                        New ModificationSelection With {.Id = "sensors", .Quantity = 1}
+                    }
+                }
+                editor.WriteDesignFile(destination, remoteVan)
+                editor.LoadDesignFile(destination)
+                Require(totals.Text.Contains("Pilot 3") AndAlso totals.Text.Contains("Autonav 2") AndAlso
+                        totals.Text.Contains("Base ¥61,000.00") AndAlso totals.Text.Contains("963 kg"),
+                        "Remote control, Autonav, and Pilot should use final ratings regardless of selection order.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

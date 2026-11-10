@@ -55,7 +55,7 @@ Public Module VehicleSheet
         Row(page, "Acceleration", Number(If(up?.Acceleration, plant.StartingAcceleration)))
         Row(page, "Signature / Sonar Signature", Pair(If(up?.Signature, plant.Signature), plant.SonarSignature))
         Row(page, "Sensor / Sonar", Pair(If(modified?.Sensor, chassis.Sensor), If(modified?.Sonar, chassis.Sonar)))
-        Row(page, "Autonav / Pilot", Pair(chassis.Autonav, chassis.Pilot))
+        Row(page, "Autonav / Pilot", Pair(If(modified?.Autonav, chassis.Autonav), If(modified?.Pilot, chassis.Pilot)))
         Row(page, "Available cargo (CF)", Number(totals.CargoRemaining))
         Row(page, "Available load (kg)", Number(totals.LoadRemainingKg))
         If chassis.StartingDepth.HasValue Then Row(page, "Depth (m)", Number(If(up?.Depth, chassis.StartingDepth)))

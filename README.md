@@ -60,6 +60,10 @@ Motorcycle sidecars add cargo and apply the size’s Handling penalty, a 15-poin
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.
 
+## Quote a retrofit
+
+Choose **Retrofit quote…** to calculate list and street parts cost, Availability, and remaining capacity for one item on the current design. The first retrofit entries cover cranes, winches, clinics, Valkyrie modules, roll bars, electronics ports, spotlights, crash cages, and retransmission units. A quote is for parts only and does not install the item or change the saved vehicle.
+
 ## Import a legacy vehicle
 
 To bring a `Shop v1.40` save into the editor, select **Import .shp…**. The editor suggests the revised chassis and compatible power plant when both names match uniquely. For other saves it uses the editor’s current selection. Review the source record before starting the new design. Original options and markups stay in **Legacy reference** and are saved with the new design. Reapply them using Rigger 3 Revised values where appropriate.

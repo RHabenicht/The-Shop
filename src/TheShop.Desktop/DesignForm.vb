@@ -88,6 +88,7 @@ Public NotInheritable Class DesignForm
         AddAction(actions, "Calculate", AddressOf Calculate)
         AddAction(actions, "Design upgrades…", AddressOf EditUpgrades)
         AddAction(actions, "Catalog mods…", AddressOf EditModifications)
+        AddAction(actions, "Retrofit quote…", AddressOf ShowRetrofitQuote)
         AddAction(actions, "Open design…", AddressOf OpenDesign)
         AddAction(actions, "Save design…", AddressOf SaveDesign)
         AddAction(actions, "Export HTML…", AddressOf ExportHtml)
@@ -277,6 +278,18 @@ Public NotInheritable Class DesignForm
     Private Sub Calculate(sender As Object, e As EventArgs)
         Try
             ShowTotals(ReadDesign().Calculate(catalog))
+        Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
+            ShowError(ex)
+        End Try
+    End Sub
+
+    Private Sub ShowRetrofitQuote(sender As Object, e As EventArgs)
+        Try
+            Dim totals = ReadDesign().Calculate(catalog).Totals
+            Using dialog As New RetrofitQuoteDialog(DirectCast(chassisBox.SelectedItem, StockChassis),
+                                                     DirectCast(powerPlantBox.SelectedItem, StockPowerPlant), totals)
+                dialog.ShowDialog(Me)
+            End Using
         Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
             ShowError(ex)
         End Try

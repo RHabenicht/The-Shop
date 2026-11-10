@@ -217,7 +217,8 @@ Public Module ModificationCatalog
             Case "suncell"
                 Return chassis.Category <> "Bike" AndAlso plant.Id.StartsWith("electric-", StringComparison.Ordinal)
             Case "gridlink"
-                Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
+                Return plant.Id.StartsWith("electric-", StringComparison.Ordinal) AndAlso
+                    (chassis.Category = "Bike" OrElse chassis.Category = "Car")
             Case "adjusted-controls"
                 Return Not chassis.IsDrone AndAlso plant.Id <> "unpowered"
             Case "secondary-controls", "passenger-protection"

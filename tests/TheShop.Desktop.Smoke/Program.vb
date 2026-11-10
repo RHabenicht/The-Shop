@@ -390,6 +390,21 @@ Module Program
                 editor.StartLegacyDesign(LegacyVehicleReader.Read(legacyPath))
                 Require(editor.ReadDesign().ChassisId = "sand-buggy" AndAlso editor.ReadDesign().PowerPlantId = "gasoline",
                         "A uniquely named legacy chassis and compatible engine should replace the current components.")
+                Dim quoteChassis = StockCatalog.FindById(sheetCatalog, "van")
+                Dim quotePlant = quoteChassis.PowerPlants.Single(Function(candidate) candidate.Id = "diesel")
+                Using quoteDialog As New RetrofitQuoteDialog(quoteChassis, quotePlant, New DesignTotals With {
+                    .CargoRemaining = 48D, .LoadRemainingKg = 1000D
+                })
+                    Dim quoteOptions = FindControl(Of ComboBox)(quoteDialog, "retrofitOptions")
+                    quoteDialog.BindingContext = New BindingContext()
+                    quoteOptions.SelectedIndex = quoteOptions.Items.Cast(Of ModificationRule)().ToList().
+                        FindIndex(Function(rule) rule.Id = "crane")
+                    FindControl(Of NumericUpDown)(quoteDialog, "retrofitQuantity").Value = 1000D
+                    Dim quoteText = FindControl(Of Label)(quoteDialog, "retrofitOutput").Text
+                    Require(quoteText.Contains("Street parts cost ¥4,000.00") AndAlso quoteText.Contains("6 / 14 days") AndAlso
+                            quoteText.Contains("13 CF") AndAlso quoteText.Contains("680 kg"),
+                            "The retrofit dialog should use customization costs and remaining capacity.")
+                End Using
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

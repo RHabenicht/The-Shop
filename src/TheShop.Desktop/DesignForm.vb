@@ -5,6 +5,7 @@ Imports System.IO
 Imports System.Text.Json
 Imports System.Text.Json.Serialization
 Imports System.Windows.Forms
+Imports Microsoft.VisualBasic.FileIO
 Imports TheShop.Design
 
 <Assembly: InternalsVisibleTo("TheShop.Desktop.Smoke")>
@@ -25,7 +26,9 @@ Public NotInheritable Class DesignForm
     Private ReadOnly loadOverride As New TextBox With {.Dock = DockStyle.Fill}
     Private ReadOnly startingValues As New Label With {.AutoSize = True, .Dock = DockStyle.Fill, .Padding = New Padding(0, 4, 0, 4)}
     Private ReadOnly totals As New Label With {.Name = "totals", .AutoSize = True, .Dock = DockStyle.Fill, .Padding = New Padding(0, 4, 0, 4)}
+    Private ReadOnly availabilityBox As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
     Private upgrades As DesignUpgrades
+    Private legacyReference As JsonElement?
     Private ReadOnly additions As New DataGridView With {
         .Name = "additions",
         .Dock = DockStyle.Fill,
@@ -50,7 +53,7 @@ Public NotInheritable Class DesignForm
         layout.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         Controls.Add(layout)
 
-        Dim fields As New TableLayoutPanel With {.Dock = DockStyle.Top, .AutoSize = True, .ColumnCount = 4, .RowCount = 3}
+        Dim fields As New TableLayoutPanel With {.Dock = DockStyle.Top, .AutoSize = True, .ColumnCount = 4, .RowCount = 4}
         fields.ColumnStyles.Add(New ColumnStyle(SizeType.AutoSize))
         fields.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 50))
         fields.ColumnStyles.Add(New ColumnStyle(SizeType.AutoSize))
@@ -61,6 +64,11 @@ Public NotInheritable Class DesignForm
         AddField(fields, "Markup adjustment", markup, 2, 1)
         AddField(fields, "Cargo override (CF)", cargo, 0, 2)
         AddField(fields, "Load override (kg)", loadOverride, 2, 2)
+        availabilityBox.Items.Add("Unspecified")
+        availabilityBox.Items.AddRange([Enum].GetValues(Of VehicleAvailabilityClass)().Cast(Of Object)().ToArray())
+        availabilityBox.SelectedIndex = 0
+        AddHandler availabilityBox.SelectedIndexChanged, AddressOf ClearTotals
+        AddField(fields, "Availability class", availabilityBox, 0, 3)
         layout.Controls.Add(fields, 0, 0)
         layout.Controls.Add(startingValues, 0, 1)
 
@@ -78,6 +86,8 @@ Public NotInheritable Class DesignForm
         AddAction(actions, "Design upgrades…", AddressOf EditUpgrades)
         AddAction(actions, "Open design…", AddressOf OpenDesign)
         AddAction(actions, "Save design…", AddressOf SaveDesign)
+        AddAction(actions, "Import .shp…", AddressOf ImportLegacy)
+        AddAction(actions, "Legacy reference…", AddressOf ViewLegacyReference)
         layout.Controls.Add(actions, 0, 4)
 
         chassisBox.DisplayMember = NameOf(StockChassis.Name)
@@ -149,7 +159,10 @@ Public NotInheritable Class DesignForm
             .MarkupAdjustment = ReadNumber(markup.Text, "Markup adjustment"),
             .CargoCapacity = ReadOptional(cargo.Text, "Cargo override"),
             .LoadCapacityKg = ReadOptional(loadOverride.Text, "Load override"),
-            .Upgrades = upgrades
+            .Upgrades = upgrades,
+            .LegacyReference = legacyReference,
+            .AvailabilityClass = If(TypeOf availabilityBox.SelectedItem Is VehicleAvailabilityClass,
+                                    CType(availabilityBox.SelectedItem, VehicleAvailabilityClass), CType(Nothing, VehicleAvailabilityClass?))
         }
         For Each row As DataGridViewRow In additions.Rows
             If row.IsNewRow Then Continue For
@@ -200,12 +213,17 @@ Public NotInheritable Class DesignForm
         Dim totalsValue = result.Totals
         totals.Text = $"{totalsValue.DesignPoints:N} Design Points    Base ¥{totalsValue.BaseCostNuyen:N}    Street ¥{totalsValue.StreetCostNuyen:N}" &
             Environment.NewLine & $"Remaining cargo {totalsValue.CargoRemaining} CF    Remaining load {totalsValue.LoadRemainingKg} kg"
+        If result.Availability IsNot Nothing Then
+            totals.Text &= Environment.NewLine & $"Availability {result.Availability.Rating} / {result.Availability.BaseDays} days" &
+                If(result.Availability.PlayerAccessible, "", " (outside player reach)")
+        End If
         Dim ratings = result.UpgradedRatings
         If ratings IsNot Nothing Then
             Dim handling = If(ratings.Handling?.ToString(),
                               If(ratings.OnRoadHandling.HasValue, $"{ratings.OnRoadHandling}/{ratings.OffRoadHandling}", "—"))
             totals.Text &= Environment.NewLine &
                 $"Upgraded handling {handling}   Speed {If(ratings.Speed?.ToString(), "—")}   Accel {If(ratings.Acceleration?.ToString(), "—")}   Signature {If(ratings.Signature?.ToString(), "—")}"
+            If ratings.Economy.HasValue Then totals.Text &= $"   Economy {ratings.Economy} {ratings.EconomyUnit}"
         End If
     End Sub
 
@@ -247,6 +265,10 @@ Public NotInheritable Class DesignForm
     Friend Sub LoadDesignFile(source As String)
         Dim design = JsonSerializer.Deserialize(Of StockDesign)(File.ReadAllText(source), jsonOptions)
         If design Is Nothing Then Throw New JsonException("Expected a stock vehicle design object.")
+        DisplayDesign(design)
+    End Sub
+
+    Private Sub DisplayDesign(design As StockDesign)
         Dim result = design.Calculate(catalog)
 
         chassisBox.SelectedItem = StockCatalog.FindById(catalog, result.ChassisId)
@@ -257,12 +279,73 @@ Public NotInheritable Class DesignForm
         cargo.Text = design.CargoCapacity?.ToString(CultureInfo.CurrentCulture)
         loadOverride.Text = design.LoadCapacityKg?.ToString(CultureInfo.CurrentCulture)
         upgrades = design.Upgrades
+        legacyReference = design.LegacyReference
+        availabilityBox.SelectedItem = If(design.AvailabilityClass.HasValue, CObj(design.AvailabilityClass.GetValueOrDefault()), "Unspecified")
         additions.Rows.Clear()
         For Each item In design.Additions
             additions.Rows.Add(item.Name, item.DesignPoints, item.DirectCostNuyen, item.CargoConsumed, item.LoadConsumedKg)
         Next
         ShowTotals(result)
     End Sub
+
+    Private Sub ImportLegacy(sender As Object, e As EventArgs)
+        Using picker As New OpenFileDialog With {.Filter = "Legacy Shop vehicle (*.shp)|*.shp"}
+            If picker.ShowDialog(Me) <> DialogResult.OK Then Return
+            Try
+                Dim reference = LegacyVehicleReader.Read(picker.FileName)
+                Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
+                Dim plant = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant)
+                Dim message = $"Start a new Rigger 3 Revised design using {chassis.Name} / {plant.Name}." &
+                    Environment.NewLine & "The original values are kept for reference. Review and reapply modifications under the revised rules."
+                If ShowLegacyReference(reference, message) = DialogResult.OK Then
+                    StartLegacyDesign(reference)
+                End If
+            Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse
+                                       TypeOf ex Is FormatException OrElse TypeOf ex Is MalformedLineException
+                ShowError(ex)
+            End Try
+        End Using
+    End Sub
+
+    Friend Sub StartLegacyDesign(reference As JsonElement)
+        DisplayDesign(New StockDesign With {
+            .ChassisId = DirectCast(chassisBox.SelectedItem, StockChassis).Id,
+            .PowerPlantId = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant).Id,
+            .StreetIndex = 1D,
+            .LegacyReference = reference
+        })
+    End Sub
+
+    Private Sub ViewLegacyReference(sender As Object, e As EventArgs)
+        If legacyReference.HasValue Then
+            ShowLegacyReference(legacyReference.Value, Nothing)
+        Else
+            MessageBox.Show(Me, "This design has no imported legacy reference.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information)
+        End If
+    End Sub
+
+    Private Function ShowLegacyReference(reference As JsonElement, confirmation As String) As DialogResult
+        Using dialog As New Form With {.Text = "Legacy Shop vehicle", .StartPosition = FormStartPosition.CenterParent,
+                                       .ClientSize = New Size(640, 455), .MinimizeBox = False, .MaximizeBox = False}
+            Dim layout As New TableLayoutPanel With {.Dock = DockStyle.Fill, .ColumnCount = 1, .RowCount = 3, .Padding = New Padding(12)}
+            layout.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+            layout.RowStyles.Add(New RowStyle(SizeType.Percent, 100))
+            layout.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+            dialog.Controls.Add(layout)
+            layout.Controls.Add(New Label With {.Text = confirmation, .AutoSize = True, .MaximumSize = New Size(610, 0)}, 0, 0)
+            layout.Controls.Add(New TextBox With {.Text = JsonSerializer.Serialize(reference, jsonOptions),
+                .Multiline = True, .ReadOnly = True, .ScrollBars = ScrollBars.Both, .Dock = DockStyle.Fill}, 0, 1)
+            Dim actions As New FlowLayoutPanel With {.AutoSize = True, .Dock = DockStyle.Fill}
+            Dim closeButton As New Button With {.Text = If(confirmation Is Nothing, "Close", "Cancel"), .DialogResult = DialogResult.Cancel}
+            actions.Controls.Add(closeButton)
+            If confirmation IsNot Nothing Then
+                actions.Controls.Add(New Button With {.Text = "Start new design", .AutoSize = True, .DialogResult = DialogResult.OK})
+            End If
+            dialog.CancelButton = closeButton
+            layout.Controls.Add(actions, 0, 2)
+            Return dialog.ShowDialog(Me)
+        End Using
+    End Function
 
     Friend Sub WriteDesignFile(destination As String, design As StockDesign)
         Dim tempPath = Path.Combine(Path.GetDirectoryName(destination), $".the-shop-{Guid.NewGuid():N}.tmp")

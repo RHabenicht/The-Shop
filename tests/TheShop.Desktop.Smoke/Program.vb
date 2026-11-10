@@ -81,6 +81,26 @@ Module Program
                 Require(upgraded.Upgrades.OffRoadHandling = 1 AndAlso totals.Text.Contains("Upgraded handling 4/3") AndAlso
                         totals.Text.Contains("Accel 8") AndAlso totals.Text.Contains("Street ¥11,840.00"),
                         "Catalog upgrades should calculate and survive saving and reopening.")
+                File.WriteAllText(destination, "{""ChassisId"":""sand-buggy"",""PowerPlantId"":""gasoline"",""StreetIndex"":1," &
+                                  """AvailabilityClass"":""Security"",""Upgrades"":{""EconomySteps"":2}}")
+                editor.LoadDesignFile(destination)
+                Require(totals.Text.Contains("Availability 8 / 8 days") AndAlso totals.Text.Contains("Economy 8.80 km/L"),
+                        "Availability and Economy did not display the calculated ratings.")
+
+                Dim legacyPath = Path.Combine(folder.FullName, "legacy.shp")
+                File.WriteAllLines(legacyPath, {"Shop v1.40", """Test, Buggy""", "Rigger2,Sand Buggy", "Rigger2,Gasoline",
+                                   "Bench", "Open", "0,0,0,0,0", "Rigger2,2,Test modification"})
+                editor.StartLegacyDesign(LegacyVehicleReader.Read(legacyPath))
+                Dim migrated = editor.ReadDesign()
+                editor.WriteDesignFile(destination, migrated)
+                editor.LoadDesignFile(destination)
+                migrated = editor.ReadDesign()
+                Dim original = migrated.LegacyReference.Value
+                Require(migrated.ChassisId = "sand-buggy" AndAlso migrated.Upgrades Is Nothing AndAlso
+                        Not migrated.AvailabilityClass.HasValue AndAlso migrated.Additions.Count = 0 AndAlso
+                        original.GetProperty("Name").GetString() = "Test, Buggy" AndAlso
+                        original.GetProperty("Modifications")(0).GetProperty("Level").GetInt32() = 2,
+                        "Legacy reference and the new-design reset did not survive saving and reopening.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

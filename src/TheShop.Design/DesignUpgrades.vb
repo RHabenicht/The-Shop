@@ -7,10 +7,11 @@ Public NotInheritable Class DesignUpgrades
     Public Property CargoSteps As Integer
     Public Property LoadSteps As Integer
     Public Property Signature As Integer
+    Public Property EconomySteps As Integer
 
     Friend Function Apply(chassis As StockChassis, plant As StockPowerPlant, design As VehicleDesign,
                           cargoOverride As Decimal?, loadOverride As Decimal?) As UpgradedRatings
-        Dim steps = {Speed, Acceleration, Handling, OnRoadHandling, OffRoadHandling, CargoSteps, LoadSteps, Signature}
+        Dim steps = {Speed, Acceleration, Handling, OnRoadHandling, OffRoadHandling, CargoSteps, LoadSteps, Signature, EconomySteps}
         If steps.Any(Function(value) value < 0) Then Throw New ArgumentException("Upgrade steps cannot be negative.")
         If steps.All(Function(value) value = 0) Then Return Nothing
         If chassis.Hull.HasValue Then Throw New ArgumentException("Use manual entries for Hull-rated vehicle options.")
@@ -31,12 +32,22 @@ Public NotInheritable Class DesignUpgrades
             .Signature = Increase(plant.Signature, Nothing, Signature, "Signature")
         }
 
+        If EconomySteps > 0 Then
+            Dim starting = If(plant.StartingEconomyKmPerLiter, If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar))
+            Dim maximum = If(plant.MaximumEconomyKmPerLiter, If(plant.MaximumEconomyKmPerPowerFactor, plant.MaximumEconomyKmPerBar))
+            If Not starting.HasValue OrElse Not maximum.HasValue Then Throw New ArgumentException("Economy is unavailable for this power plant.")
+            Dim economy = starting.Value * (1D + 0.05D * EconomySteps)
+            If economy > maximum.Value Then Throw New ArgumentException($"Economy exceeds the power plant maximum of {maximum.Value} {plant.EconomyUnit}.")
+            ratings.Economy = economy
+            ratings.EconomyUnit = plant.EconomyUnit
+        End If
+
         design.CargoCapacity += CargoSteps * 0.2D
         design.LoadCapacityKg += LoadSteps * If(chassis.Body.GetValueOrDefault() = 0, 1D, 10D)
         Dim signatureLevels = CDec(Signature)
         Dim squared = signatureLevels * signatureLevels
         Dim points = 2D * Speed + 25D * (CDec(Acceleration) + Handling + OnRoadHandling + OffRoadHandling) +
-                     CargoSteps + LoadSteps + 200D * squared * squared
+                     CargoSteps + LoadSteps + 5D * EconomySteps + 200D * squared * squared
         design.Additions = New List(Of DesignAddition)(design.Additions) From {
             New DesignAddition With {.Name = "Catalog design upgrades", .DesignPoints = points}
         }
@@ -71,4 +82,6 @@ Public NotInheritable Class UpgradedRatings
     Public Property OnRoadHandling As Integer?
     Public Property OffRoadHandling As Integer?
     Public Property Signature As Integer?
+    Public Property Economy As Decimal?
+    Public Property EconomyUnit As String
 End Class

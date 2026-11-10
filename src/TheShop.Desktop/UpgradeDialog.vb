@@ -32,6 +32,9 @@ Friend NotInheritable Class UpgradeDialog
         AddSteps(table, $"Load +{kg} kg (1 DP)", current.LoadSteps, Sub(n) Selection.LoadSteps = n, supported AndAlso plant.MaximumLoadKg > plant.StartingLoadKg)
         AddSteps(table, "Signature +1 (200 × levels⁴ DP, GM limit)", current.Signature, Sub(n) Selection.Signature = n, supported AndAlso plant.Signature.HasValue)
 
+        AddSteps(table, "Economy +5% of starting rating (5 DP)", current.EconomySteps, Sub(n) Selection.EconomySteps = n,
+                 supported AndAlso plant.EconomyUnit IsNot Nothing)
+
         Dim buttons As New FlowLayoutPanel With {.AutoSize = True, .Dock = DockStyle.Fill}
         Dim apply As New Button With {.Text = "Apply", .DialogResult = DialogResult.OK}
         Dim cancel As New Button With {.Text = "Cancel", .DialogResult = DialogResult.Cancel}

@@ -14,6 +14,10 @@ Public NotInheritable Class StockDesign
     Public Property Additions As New List(Of DesignAddition)
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property Upgrades As DesignUpgrades
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property LegacyReference As JsonElement?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property AvailabilityClass As VehicleAvailabilityClass?
 
     Public Function Calculate(catalog As IReadOnlyList(Of StockChassis)) As StockDesignResult
         Dim chassis = StockCatalog.FindById(catalog, ChassisId)
@@ -43,8 +47,10 @@ Public NotInheritable Class StockDesign
             Throw New ArgumentException($"Load capacity exceeds the catalog maximum of {powerPlant.MaximumLoadKg} kg.")
         End If
 
+        Dim totals = design.Calculate()
         Return New StockDesignResult With {
-            .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = design.Calculate(), .UpgradedRatings = ratings
+            .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
+            .Availability = If(AvailabilityClass.HasValue, VehicleAvailability.Calculate(AvailabilityClass.Value, totals.BaseCostNuyen), Nothing)
         }
     End Function
 End Class
@@ -114,6 +120,16 @@ Public NotInheritable Class StockChassis
 End Class
 
 Public NotInheritable Class StockPowerPlant
+    <JsonIgnore>
+    Public ReadOnly Property EconomyUnit As String
+        Get
+            If StartingEconomyKmPerLiter.HasValue Then Return "km/L"
+            If StartingEconomyKmPerPowerFactor.HasValue Then Return "km/PF"
+            If StartingEconomyKmPerBar.HasValue Then Return "km/bar"
+            Return Nothing
+        End Get
+    End Property
+
     Public Property Id As String
     Public Property Name As String
     Public Property DesignPoints As Decimal
@@ -171,4 +187,6 @@ Public NotInheritable Class StockDesignResult
     Public Property Totals As DesignTotals
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property UpgradedRatings As UpgradedRatings
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Availability As VehicleAvailability
 End Class

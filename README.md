@@ -2,7 +2,7 @@
 
 The Shop is a vehicle builder for Shadowrun. This project updates James Ojaste’s original Rigger 2 program for Shadowrun Third Edition using **Rigger 3 Revised** and modern Visual Basic .NET.
 
-The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The component catalog covers 117 chassis and 370 chassis and power plant combinations. Coverage includes ground vehicles, boats, hovercraft, crewed aircraft, aerial drones, ships, submarines, sea sleds, ground drones, rail vehicles, trailers, and rocket craft. The Windows desktop preview can edit and price catalog-based designs. The full catalog and installer are still in development.
+The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The component catalog covers 117 chassis and 370 chassis and power plant combinations. Coverage includes ground vehicles, boats, hovercraft, crewed aircraft, aerial drones, ships, submarines, sea sleds, ground drones, rail vehicles, trailers, and rocket craft. The Windows desktop preview can edit and price catalog-based designs. The Windows workflow builds a self-contained x64 installer.
 
 ## Windows desktop preview
 
@@ -14,17 +14,25 @@ On Windows, use the .NET 10 SDK to run the editor from source:
 dotnet run --project src/TheShop.Desktop
 ```
 
-The [Windows desktop workflow](../../actions/workflows/windows.yml) builds a portable x64 preview and checks that its main window opens. Extract the full preview folder and run `TheShop.Desktop.exe` with the .NET 10 Desktop Runtime installed.
+The [Windows desktop workflow](../../actions/workflows/windows.yml) builds a self-contained x64 installer, runs the editor tests, and checks installation, startup, and uninstall. Download the `The-Shop-Windows-x64` artifact from a passing run and extract `The-Shop-Setup-x64.exe`.
 
 ## Apply design upgrades
 
-In the Windows editor, use **Design upgrades** to enter the number of steps. The calculator applies costs and limits from *Rigger 3 Revised*, pp. 115–116. Supported upgrades cover speed, acceleration, single or split Handling, cargo, load, and Signature. Signature has a gamemaster-set limit.
+In the Windows editor, use **Design upgrades** to enter the number of steps. The calculator applies costs and limits from *Rigger 3 Revised*, pp. 115–116. Supported upgrades cover speed, acceleration, single or split Handling, cargo, load, Signature, and Economy. Economy steps add five percent of the starting rating each, up to the power plant maximum. Signature has a gamemaster-set limit.
 
 Stock design JSON can contain the same selections. For example, `"Upgrades": {"OffRoadHandling": 1, "Acceleration": 2, "CargoSteps": 10, "LoadSteps": 3}` applies the functional upgrades from the Light Strike Vehicle example. Cargo steps add 0.2 CF each. Load steps add 10 kg, or 1 kg on Body 0 vehicles. Clear the corresponding manual capacity override before using automatic cargo or load steps. Existing designs without `Upgrades` still use their original entries.
 
 Use manual entries for Hull-rated options, speed upgrades on vehicles with two operating speeds, and options outside this set. Fixed-wing speed upgrades apply to flight speed and preserve stall speed.
 
+## Availability
+
+Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.
+
 ## Import a legacy vehicle
+
+To bring a `Shop v1.40` save into the editor, choose the revised chassis and power plant and select **Import .shp…**. Review the source record before starting the new design. Original options and markups stay in **Legacy reference** and are saved with the new design. Reapply them using Rigger 3 Revised values where appropriate.
+
+For command-line extraction:
 
 With the .NET 10 SDK installed, run:
 

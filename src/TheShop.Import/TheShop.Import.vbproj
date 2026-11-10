@@ -7,4 +7,7 @@
     <OptionStrict>On</OptionStrict>
     <OptionExplicit>On</OptionExplicit>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TheShop.Design/TheShop.Design.vbproj" />
+  </ItemGroup>
 </Project>

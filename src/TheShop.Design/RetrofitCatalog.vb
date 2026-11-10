@@ -14,7 +14,10 @@ End Class
 Public Module RetrofitCatalog
     Private ReadOnly supported As New HashSet(Of String)(StringComparer.Ordinal) From {
         "crane", "winch", "medical-clinic", "valkyrie-module", "roll-bar",
-        "electronics-port", "spotlight", "crash-cage", "retransmission-unit"
+        "electronics-port", "spotlight", "crash-cage", "retransmission-unit", "datajack-port",
+        "bucket-seat", "bench-seat", "folding-bench-seat", "reinforced-bucket-seat",
+        "ejection-bucket-seat", "reinforced-ejection-bucket-seat", "cabin-gas-seal", "cabin-water-seal",
+        "engine-water-seal", "life-support", "hovercraft-water-seal", "gridlink"
     }
 
     Public Function AvailableRules(chassis As StockChassis, plant As StockPowerPlant) As IReadOnlyList(Of ModificationRule)
@@ -51,6 +54,30 @@ Public Module RetrofitCatalog
                 Return BuildQuote(3500D, 2D, "4 / 96 hours", 2D, 25D)
             Case "retransmission-unit"
                 Return BuildQuote(25000D * quantity, 3D, "8 / 14 days", 1.5D * quantity, 5D * quantity)
+            Case "datajack-port"
+                Return BuildQuote(If(chassis.Category = "Bike", 5000D, 2500D), 1.5D, "3 / 72 hours", 1D, 15D)
+            Case "bucket-seat"
+                Return BuildQuote(700D * quantity, 1D, "3 / 48 hours", 6D * quantity, 100D * quantity)
+            Case "bench-seat", "folding-bench-seat"
+                Return BuildQuote(750D * quantity, 1D, "3 / 48 hours", 6D * quantity, 150D * quantity)
+            Case "reinforced-bucket-seat"
+                Return BuildQuote(1500D * quantity, 1D, "3 / 48 hours", 8D * quantity, 250D * quantity)
+            Case "ejection-bucket-seat"
+                Return BuildQuote(3000D * quantity, 2D, "5 / 10 days", 7D * quantity, 110D * quantity)
+            Case "reinforced-ejection-bucket-seat"
+                Return BuildQuote(6000D * quantity, 2D, "5 / 10 days", 7D * quantity, 250D * quantity)
+            Case "cabin-gas-seal"
+                Return BuildQuote(250D * body, 2.5D, "8 / 14 days", 1D, 0D)
+            Case "cabin-water-seal"
+                Return BuildQuote(750D * body, 2.5D, "8 / 14 days", 1D, 0D)
+            Case "engine-water-seal"
+                Return BuildQuote(1000D * body, 2.5D, "8 / 14 days", 1D, 0D)
+            Case "life-support"
+                Return BuildQuote(500D + 1000D * quantity, 2.5D, "8 / 14 days", quantity, 25D * quantity)
+            Case "hovercraft-water-seal"
+                Return BuildQuote(500D * body, 1D, "4 / 96 hours", 0D, 0D)
+            Case "gridlink"
+                Return BuildQuote(600D, 1D, "3 / 96 hours", 1D, 0D)
             Case Else
                 Throw New ArgumentException("This retrofit has no catalog pricing.")
         End Select

@@ -62,7 +62,7 @@ Select an Availability class in the editor to apply the p. 113 formula. The calc
 
 ## Quote a retrofit
 
-Choose **Retrofit quote…** to calculate list and street parts cost, Availability, and remaining capacity for one item on the current design. The first retrofit entries cover cranes, winches, clinics, Valkyrie modules, roll bars, electronics ports, spotlights, crash cages, and retransmission units. A quote is for parts only and does not install the item or change the saved vehicle.
+Choose **Retrofit quote…** to calculate list and street parts cost, Availability, and remaining capacity for one item on the current design. Retrofit entries cover cranes, winches, clinics, Valkyrie modules, seating, seals, life support, roll bars, GridLink, datajack and electronics ports, spotlights, crash cages, and retransmission units. A quote is for parts only and does not install the item or change the saved vehicle.
 
 ## Import a legacy vehicle
 

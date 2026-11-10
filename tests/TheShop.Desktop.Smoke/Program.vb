@@ -472,6 +472,21 @@ Module Program
                 Require(signatureResult.ModifiedRatings.RadarSignature.GetValueOrDefault() = 5 AndAlso
                         signatureResult.ModifiedRatings.InfraredSignature.GetValueOrDefault() = 4,
                         "Radar and infrared improvements should retain their separate final signatures.")
+                Dim suspensionDesign As New StockDesign With {
+                    .ChassisId = "sand-buggy", .PowerPlantId = "gasoline", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "improved-suspension", .Quantity = 1},
+                        New ModificationSelection With {.Id = "off-road-suspension", .Quantity = 1},
+                        New ModificationSelection With {.Id = "dual-purpose-tires", .Quantity = 4}
+                    }
+                }
+                Dim suspensionResult = suspensionDesign.Calculate(sheetCatalog)
+                Dim suspensionChassis = StockCatalog.FindById(sheetCatalog, "sand-buggy")
+                Require(suspensionResult.ModifiedRatings.OnRoadHandling.GetValueOrDefault() = suspensionChassis.OnRoadHandling.GetValueOrDefault() AndAlso
+                        suspensionResult.ModifiedRatings.OffRoadHandling.GetValueOrDefault() = suspensionChassis.OffRoadHandling.GetValueOrDefault() - 1 AndAlso
+                        suspensionResult.AppliedModifications(0).DesignPoints = 10D AndAlso
+                        suspensionResult.AppliedModifications(1).DesignPoints = 20D,
+                        "Both suspension types should compose with dual-purpose tires and charge their listed chassis costs.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

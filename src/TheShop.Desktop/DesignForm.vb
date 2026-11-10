@@ -306,12 +306,8 @@ Public NotInheritable Class DesignForm
                     Dim design = ReadDesign()
                     design.InstalledRetrofits = New List(Of ModificationSelection)(If(installedRetrofits, New List(Of ModificationSelection)))
                     Dim current = design.InstalledRetrofits.SingleOrDefault(Function(item) String.Equals(item.Id, dialog.Selection.Id, StringComparison.OrdinalIgnoreCase))
-                    If current Is Nothing Then
-                        design.InstalledRetrofits.Add(dialog.Selection)
-                    Else
-                        current = New ModificationSelection With {.Id = current.Id, .Quantity = current.Quantity + dialog.Selection.Quantity}
-                        design.InstalledRetrofits(design.InstalledRetrofits.FindIndex(Function(item) String.Equals(item.Id, current.Id, StringComparison.OrdinalIgnoreCase))) = current
-                    End If
+                    If current IsNot Nothing Then Throw New ArgumentException("This retrofit is already installed. Change its quantity in Installed retrofits.")
+                    design.InstalledRetrofits.Add(dialog.Selection)
                     DisplayDesign(design)
                 End If
             End Using
@@ -324,7 +320,7 @@ Public NotInheritable Class DesignForm
         Try
             Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
             Dim plant = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant)
-            Using dialog As New ModificationDialog(installedRetrofits, chassis, plant, RetrofitCatalog.AvailableRules(chassis, plant), "Installed retrofits")
+            Using dialog As New ModificationDialog(installedRetrofits, chassis, plant, RetrofitCatalog.Rules, "Installed retrofits")
                 If dialog.ShowDialog(Me) = DialogResult.OK Then
                     Dim design = ReadDesign()
                     design.InstalledRetrofits = dialog.ReadSelection()?.ToList()

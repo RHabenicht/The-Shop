@@ -164,6 +164,9 @@ Public Module ModificationCatalog
         New ModificationRule("noisemaker-dispenser", "Noisemaker dispenser", "noisemakers", Integer.MaxValue),
         New ModificationRule("smart-armor", "Smart armor system", "", 1),
         New ModificationRule("chameleon-paint", "Photovoltaic chameleon paint", "", 1),
+        New ModificationRule("improved-suspension", "Improved suspension", "levels", 2),
+        New ModificationRule("off-road-suspension", "Off-road suspension", "levels", 2),
+        New ModificationRule("improved-control-surfaces", "Improved control surfaces", "levels", 2),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -281,7 +284,9 @@ Public Module ModificationCatalog
                 Return plant.Id = "gasoline" OrElse plant.Id = "diesel"
             Case "sidecar"
                 Return chassis.Category = "Bike" AndAlso chassis.Id <> "atv"
-            Case "performance-tires", "off-road-tires", "dual-purpose-tires", "runflat-upgrade"
+            Case "improved-control-surfaces"
+                Return chassis.Category = "Boat" AndAlso chassis.Handling.HasValue
+            Case "performance-tires", "off-road-tires", "dual-purpose-tires", "runflat-upgrade", "improved-suspension", "off-road-suspension"
                 Return chassis.Body.GetValueOrDefault() > 0 AndAlso Not chassis.IsDrone AndAlso
                     (chassis.Category = "Bike" OrElse
                     (chassis.Category = "Car" AndAlso chassis.Id <> "tracked-apc" AndAlso Not chassis.Id.EndsWith("-caterpillar", StringComparison.Ordinal)))
@@ -395,6 +400,34 @@ Public Module ModificationCatalog
             finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) + handlingPenalty
             design.CargoCapacity += If(size = 1, 6D, If(size = 2, 8D, 12D))
         End If
+        For Each choice In validated.Where(Function(item) item.Rule.Id = "improved-suspension" OrElse
+                                           item.Rule.Id = "off-road-suspension" OrElse item.Rule.Id = "improved-control-surfaces")
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            Dim levels = choice.Quantity
+            If choice.Rule.Id = "improved-control-surfaces" Then
+                finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) - levels
+            Else
+                Dim roadBenefit = levels
+                Dim offRoadBenefit = levels
+                If choice.Rule.Id = "improved-suspension" Then
+                    If seen.Contains("off-road-tires") Then roadBenefit = 0
+                    If Not (seen.Contains("performance-tires") OrElse seen.Contains("dual-purpose-tires") OrElse seen.Contains("off-road-tires")) Then roadBenefit = levels \ 2
+                    finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) - roadBenefit
+                    If chassis.Category = "Bike" Then finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - roadBenefit
+                Else
+                    If seen.Contains("performance-tires") Then offRoadBenefit = 0
+                    If Not (seen.Contains("performance-tires") OrElse seen.Contains("dual-purpose-tires") OrElse seen.Contains("off-road-tires")) Then offRoadBenefit = levels \ 2
+                    finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) + offRoadBenefit
+                    finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - offRoadBenefit
+                    Dim transport = chassis.Id.Contains("transport") OrElse chassis.Id.Contains("tractor")
+                    Dim multiplier = If(chassis.Category = "Bike", 0.7D, If(transport, 0.6D, 0.85D))
+                    finalRatings.Speed = CInt(Math.Floor(If(finalRatings.Speed, If(upgrades?.Speed, plant.StartingSpeed)).GetValueOrDefault() * multiplier))
+                    Dim economy = If(finalRatings.Economy, If(upgrades?.Economy, If(plant.StartingEconomyKmPerLiter,
+                        If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar))))
+                    finalRatings.Economy = economy * multiplier
+                End If
+            End If
+        Next
         If seen.Contains("turbocharging") Then
             Dim levels = validated.Single(Function(choice) choice.Rule.Id = "turbocharging").Quantity
             If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
@@ -697,6 +730,12 @@ Public Module ModificationCatalog
                 item.LoadConsumedKg = body * 50D
             Case "chameleon-paint"
                 item.DesignPoints = 50D
+            Case "improved-suspension"
+                item.DesignPoints = chassis.DesignPoints * 0.25D * quantity
+            Case "off-road-suspension"
+                item.DesignPoints = chassis.DesignPoints * 0.5D * quantity
+            Case "improved-control-surfaces"
+                item.DesignPoints = chassis.DesignPoints * 0.4D * quantity
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

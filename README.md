@@ -60,6 +60,8 @@ Turbocharging and superconductive drive increase Speed and Acceleration, reduce 
 
 The electronics catalog also covers ECM and ECCM ratings 1–10 and ED and ECD ratings 1–6. Radar-absorbent materials and thermal baffles report separate radar and infrared Signatures. Noisemaker dispensers, smart armor, and chameleon paint use the printed design specifications and compatibility rules (*Rigger 3 Revised*, pp. 134–135, 144–145, 153). Smart armor and radar-absorbent materials require the appropriate vehicle Availability class.
 
+Improved suspension, off-road suspension, and improved control surfaces use their chassis-based design costs. Ground suspension benefits account for the selected tire type. Off-road suspension applies the printed Speed and Economy multiplier (*Rigger 3 Revised*, pp. 129–130).
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

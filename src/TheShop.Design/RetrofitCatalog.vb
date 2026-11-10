@@ -42,8 +42,14 @@ Public Module RetrofitCatalog
                 .Quote = Quote(rule, selection.Quantity, chassis, plant)})
             combined.Add(New ModificationSelection With {.Id = rule.Id, .Quantity = selection.Quantity})
         Next
-        Dim merged = combined.GroupBy(Function(item) item.Id, StringComparer.OrdinalIgnoreCase).
-            Select(Function(group) New ModificationSelection With {
+        Dim groups = combined.GroupBy(Function(item) item.Id, StringComparer.OrdinalIgnoreCase).ToArray()
+        For Each group In groups.Where(Function(items) items.Count() > 1)
+            Dim rule = ModificationCatalog.Rules.Single(Function(candidate) String.Equals(candidate.Id, group.Key, StringComparison.OrdinalIgnoreCase))
+            If Not {"units", "seats", "ports", "sets", "racks", "10 person-hour blocks"}.Contains(rule.QuantityLabel) Then
+                Throw New ArgumentException($"'{rule.Name}' is already present in the design.")
+            End If
+        Next
+        Dim merged = groups.Select(Function(group) New ModificationSelection With {
                 .Id = group.Key, .Quantity = CInt(group.Sum(Function(item) CLng(item.Quantity)))
             }).ToList()
         Dim validationRatings As ModifiedRatings = Nothing
@@ -56,6 +62,12 @@ Public Module RetrofitCatalog
         totals.LoadRemainingKg = load
         Return entries
     End Function
+
+    Public ReadOnly Property Rules As IReadOnlyList(Of ModificationRule)
+        Get
+            Return ModificationCatalog.Rules.Where(Function(rule) supported.Contains(rule.Id)).ToArray()
+        End Get
+    End Property
 
     Public Function AvailableRules(chassis As StockChassis, plant As StockPowerPlant) As IReadOnlyList(Of ModificationRule)
         Return ModificationCatalog.Rules.Where(Function(rule) supported.Contains(rule.Id) AndAlso

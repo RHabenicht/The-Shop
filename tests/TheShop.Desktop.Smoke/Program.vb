@@ -164,6 +164,18 @@ Module Program
                         totals.Text.Contains("69 CF") AndAlso totals.Text.Contains("8250 kg") AndAlso
                         totals.Text.Contains("Base ¥825,000.00"),
                         "Standard sonar and towed-array sonar should price and round trip independently.")
+                File.WriteAllText(destination, "{""ChassisId"":""airliner"",""PowerPlantId"":""jet-propeller"",""StreetIndex"":1," &
+                                  """CatalogModifications"":[{""Id"":""electronics-port"",""Quantity"":1}," &
+                                  "{""Id"":""remote-control-encryption"",""Quantity"":3},{""Id"":""retransmission-unit"",""Quantity"":1}," &
+                                  "{""Id"":""trideo-display"",""Quantity"":2},{""Id"":""radio"",""Quantity"":4}," &
+                                  "{""Id"":""remote-control-deck"",""Quantity"":1}]}")
+                editor.LoadDesignFile(destination)
+                editor.WriteDesignFile(destination, editor.ReadDesign())
+                editor.LoadDesignFile(destination)
+                Require(editor.ReadDesign().CatalogModifications.Count = 6 AndAlso
+                        totals.Text.Contains("497.25 CF") AndAlso totals.Text.Contains("4995 kg") AndAlso
+                        totals.Text.Contains("Base ¥727,500.00"),
+                        "Electronics should round trip with their design points, cargo and load.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

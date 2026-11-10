@@ -26,11 +26,13 @@ Use manual entries for Hull-rated options, speed upgrades on vehicles with two o
 
 ## Add catalog modifications
 
-Choose **Catalog mods…** in the editor. The catalog prices airlocks for submarines, crash cages, datajack ports, electronics ports, nitrous oxide injectors, rigger adaptation, spotlights, and three types of special tires. It uses the design costs and design capacity requirements from *Rigger 3 Revised*, pp. 116, 126, 128, 130, 132, 145–146, and 154–155. Attached electronics, special installations outside this catalog, and in-play effects still require manual handling. Use one tire type and enter the number of tires. Rigger adaptation already includes a datajack port.
+Choose **Catalog mods…** in the editor. The catalog prices airlocks for submarines, crash cages, datajack ports, electronics ports, nitrous oxide injectors, rigger adaptation, spotlights, and three types of special tires. It uses the design costs and design capacity requirements from *Rigger 3 Revised*, pp. 116, 126, 128, 130, 132, 145–146, and 154–155. Special installations outside this catalog and in-play effects still require manual handling. Use one tire type and enter the number of tires. Rigger adaptation already includes a datajack port.
 
 In stock design JSON, use `"CatalogModifications": [{"Id": "nitrous", "Quantity": 2}]` for a rating-2 injector. Catalog and manual entries are both included in the capacity and price totals. Keep each modification in only one of those lists.
 
 The protection and sensor entries add vehicle armor, concealed armor, Bulwark, sensor systems, standard sonar, towed-array sonar, and hovercraft water seals (*Rigger 3 Revised*, pp. 131–132, 147–148, 152). Enter additional points for armor and Bulwark. The editor reports final protection, Handling, and sensor ratings. Enter the final sensor rating. To replace factory sensors, choose a higher rating. The calculator charges the full design points, cargo and load listed for the new system and gives no credit for the original equipment. Standard sonar is available on ships and submarines. Enter the final rating and choose a higher rating when replacing factory sonar. The same full-cost convention applies. Towed-array sonar keeps its own rating.
+
+The electronics catalog includes the common equipment listed on p. 146, plus remote-control encryption and retransmission units on p. 147. For displays, enter the total screen size in 20 cm units. For radios and personal tactical communications units, enter total Flux before any electronics port bonus. For other attached equipment, enter the number of units. The p. 146 table supplies cargo requirements. Use a manual entry for the equipment’s separate purchase price and any known weight. Price electronics ports separately.
 
 ## Availability
 

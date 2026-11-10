@@ -13,11 +13,14 @@ Public NotInheritable Class ModificationRule
     Public ReadOnly Property QuantityLabel As String
     Public ReadOnly Property Maximum As Integer
 
-    Public Sub New(id As String, name As String, quantityLabel As String, maximum As Integer)
+    Friend ReadOnly Property CargoPerUnit As Decimal
+
+    Public Sub New(id As String, name As String, quantityLabel As String, maximum As Integer, Optional cargoPerUnit As Decimal = 0D)
         Me.Id = id
         Me.Name = name
         Me.QuantityLabel = quantityLabel
         Me.Maximum = maximum
+        Me.CargoPerUnit = cargoPerUnit
     End Sub
 End Class
 
@@ -46,6 +49,24 @@ Public Module ModificationCatalog
         New ModificationRule("crash-cage", "Crash cage", "", 1),
         New ModificationRule("datajack-port", "Datajack port", "", 1),
         New ModificationRule("electronics-port", "Electronics port", "ports", Integer.MaxValue),
+        New ModificationRule("remote-control-encryption", "Remote-control encryption module", "rating", Integer.MaxValue),
+        New ModificationRule("retransmission-unit", "Retransmission unit", "units", Integer.MaxValue),
+        New ModificationRule("trideo-display", "Video/trideo display", "20 cm screen units", Integer.MaxValue, 0.15D),
+        New ModificationRule("simsense-player", "Simsense player", "units", Integer.MaxValue, 0.1D),
+        New ModificationRule("cellular-phone", "Cellular phone", "units", Integer.MaxValue, 0.05D),
+        New ModificationRule("tabletop-computer", "Tabletop computer, excluding monitor", "units", Integer.MaxValue, 0.5D),
+        New ModificationRule("computer-printer", "Computer printer", "units", Integer.MaxValue, 0.25D),
+        New ModificationRule("radio", "Radio", "total Flux", Integer.MaxValue, 0.3D),
+        New ModificationRule("av-recorder", "Audio/video/trideo recorder", "units", Integer.MaxValue, 0.25D),
+        New ModificationRule("cyberdeck", "Cyberdeck", "units", Integer.MaxValue, 0.15D),
+        New ModificationRule("remote-control-deck", "Remote-control deck", "units", Integer.MaxValue, 0.25D),
+        New ModificationRule("battletac-master", "BattleTac master component", "units", Integer.MaxValue, 0.6D),
+        New ModificationRule("tactical-comms-master", "Tactical communications master unit", "units", Integer.MaxValue, 2D),
+        New ModificationRule("tactical-comms-personal", "Tactical communications personal unit", "total Flux", Integer.MaxValue, 0.3D),
+        New ModificationRule("microwave-laser-link", "Microwave/laser link", "units", Integer.MaxValue, 1D),
+        New ModificationRule("satellite-dish-portable", "Standard portable satellite dish", "units", Integer.MaxValue, 2D),
+        New ModificationRule("satellite-dish-large", "Large portable satellite dish", "units", Integer.MaxValue, 6D),
+        New ModificationRule("satellite-dish-fixed", "Fixed-base satellite dish", "units", Integer.MaxValue, 20D),
         New ModificationRule("nitrous", "Nitrous oxide injectors", "rating", 6),
         New ModificationRule("rigger-adaptation", "Rigger adaptation", "", 1),
         New ModificationRule("spotlight", "Spotlight", "lights", Integer.MaxValue),
@@ -120,7 +141,7 @@ Public Module ModificationCatalog
             If rule.Id = "sonar" AndAlso choice.Quantity <= chassis.Sonar.GetValueOrDefault() Then
                 Throw New ArgumentException($"Choose a sonar rating above the factory rating of {chassis.Sonar}.")
             End If
-            result.Add(Price(rule.Id, rule.Name, choice.Quantity, chassis))
+            result.Add(Price(rule, choice.Quantity, chassis))
             Select Case rule.Id
                 Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
@@ -163,10 +184,10 @@ Public Module ModificationCatalog
         ratings.OffRoadHandling = If(upgrades?.OffRoadHandling, chassis.OffRoadHandling) + penalty
     End Sub
 
-    Private Function Price(id As String, name As String, quantity As Integer, chassis As StockChassis) As DesignAddition
+    Private Function Price(rule As ModificationRule, quantity As Integer, chassis As StockChassis) As DesignAddition
         Dim body = CDec(chassis.Body.GetValueOrDefault())
-        Dim item As New DesignAddition With {.Name = name}
-        Select Case id
+        Dim item As New DesignAddition With {.Name = rule.Name, .CargoConsumed = rule.CargoPerUnit * quantity}
+        Select Case rule.Id
             Case "airlock"
                 item.DesignPoints = 500D
                 item.CargoConsumed = 40D + 40D * quantity
@@ -178,6 +199,12 @@ Public Module ModificationCatalog
                 item.DesignPoints = 25D
             Case "electronics-port"
                 item.DesignPoints = 10D * quantity
+            Case "remote-control-encryption"
+                item.DesignPoints = 50D * quantity
+            Case "retransmission-unit"
+                item.DesignPoints = 250D * quantity
+                item.CargoConsumed = quantity
+                item.LoadConsumedKg = 5D * quantity
             Case "nitrous"
                 item.DesignPoints = 55D * quantity
                 item.CargoConsumed = 1.5D
@@ -195,7 +222,7 @@ Public Module ModificationCatalog
             Case "vehicle-armor", "concealed-armor"
                 item.DesignPoints = 50D * quantity
                 item.LoadConsumedKg = 5D * body * body * quantity
-                If id = "concealed-armor" Then item.CargoConsumed = 2D * quantity
+                If rule.Id = "concealed-armor" Then item.CargoConsumed = 2D * quantity
             Case "bulwark"
                 Dim hull = CDec(chassis.Hull.GetValueOrDefault())
                 Dim hullFactor = 100D * hull * hull

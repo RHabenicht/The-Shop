@@ -11,14 +11,19 @@ Friend NotInheritable Class ModificationDialog
         Text = "Catalog modifications"
         StartPosition = FormStartPosition.CenterParent
         AutoScaleMode = AutoScaleMode.Dpi
-        AutoSize = True
-        AutoSizeMode = AutoSizeMode.GrowAndShrink
+        ClientSize = New Size(580, 500)
         FormBorderStyle = FormBorderStyle.FixedDialog
         MaximizeBox = False
         MinimizeBox = False
 
-        Dim table As New TableLayoutPanel With {.AutoSize = True, .Dock = DockStyle.Fill, .ColumnCount = 2, .Padding = New Padding(12)}
-        Controls.Add(table)
+        Dim frame As New TableLayoutPanel With {.Dock = DockStyle.Fill, .ColumnCount = 1, .RowCount = 2}
+        frame.RowStyles.Add(New RowStyle(SizeType.Percent, 100))
+        frame.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+        Controls.Add(frame)
+        Dim scroll As New Panel With {.AutoScroll = True, .Dock = DockStyle.Fill}
+        frame.Controls.Add(scroll, 0, 0)
+        Dim table As New TableLayoutPanel With {.AutoSize = True, .Dock = DockStyle.Top, .ColumnCount = 2, .Padding = New Padding(12)}
+        scroll.Controls.Add(table)
         Dim explanation As New Label With {.Text = "Use 0 to remove a modification. Catalog costs are calculated automatically.",
             .AutoSize = True, .Margin = New Padding(3, 3, 3, 12)}
         table.Controls.Add(explanation, 0, 0)
@@ -46,8 +51,7 @@ Friend NotInheritable Class ModificationDialog
         Dim cancel As New Button With {.Text = "Cancel", .DialogResult = DialogResult.Cancel}
         actions.Controls.Add(apply)
         actions.Controls.Add(cancel)
-        table.Controls.Add(actions, 0, table.RowCount)
-        table.SetColumnSpan(actions, 2)
+        frame.Controls.Add(actions, 0, 1)
         AcceptButton = apply
         CancelButton = cancel
     End Sub

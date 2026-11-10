@@ -122,6 +122,17 @@ Module Program
                     Require(dialog.ReadSelection().Single(Function(item) item.Id = "performance-tires").Quantity = 4,
                             "The catalog dialog did not restore the selected quantity.")
                 End Using
+                File.WriteAllText(destination, "{""ChassisId"":""van"",""PowerPlantId"":""diesel"",""StreetIndex"":1," &
+                                  """Upgrades"":{""OnRoadHandling"":1},""CatalogModifications"":" &
+                                  "[{""Id"":""vehicle-armor"",""Quantity"":6},{""Id"":""sensors"",""Quantity"":2}]}")
+                editor.LoadDesignFile(destination)
+                Dim armored = editor.ReadDesign()
+                editor.WriteDesignFile(destination, armored)
+                editor.LoadDesignFile(destination)
+                Require(editor.ReadDesign().CatalogModifications.Count = 2 AndAlso totals.Text.Contains("Armor 6") AndAlso
+                        totals.Text.Contains("Final Handling 4/11") AndAlso totals.Text.Contains("Sensor 2") AndAlso
+                        totals.Text.Contains("500 kg") AndAlso totals.Text.Contains("Base ¥49,500.00"),
+                        "Armor, Handling, sensors, and their costs should combine and round trip.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

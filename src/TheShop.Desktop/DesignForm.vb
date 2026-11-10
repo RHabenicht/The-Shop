@@ -230,6 +230,17 @@ Public NotInheritable Class DesignForm
         If result.AppliedModifications IsNot Nothing Then
             totals.Text &= Environment.NewLine & $"{result.AppliedModifications.Count} catalog modifications applied."
         End If
+        Dim modified = result.ModifiedRatings
+        If modified IsNot Nothing Then
+            Dim values As New List(Of String)
+            If modified.Armor.HasValue Then values.Add($"Armor {modified.Armor}")
+            If modified.Bulwark.HasValue Then values.Add($"Bulwark {modified.Bulwark}")
+            If modified.Handling.HasValue Then values.Add($"Final Handling {modified.Handling}")
+            If modified.OnRoadHandling.HasValue Then values.Add($"Final Handling {modified.OnRoadHandling}/{modified.OffRoadHandling}")
+            If modified.Sensor.HasValue Then values.Add($"Sensor {modified.Sensor}")
+            If modified.TowedArraySonar.HasValue Then values.Add($"Towed-array sonar {modified.TowedArraySonar}")
+            totals.Text &= Environment.NewLine & String.Join("   ", values)
+        End If
         If result.Availability IsNot Nothing Then
             totals.Text &= Environment.NewLine & $"Availability {result.Availability.Rating} / {result.Availability.BaseDays} days" &
                 If(result.Availability.PlayerAccessible, "", " (outside player reach)")

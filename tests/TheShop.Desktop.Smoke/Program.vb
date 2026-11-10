@@ -220,6 +220,30 @@ Module Program
                 VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
                 Require(File.ReadAllText(sheetPath).Contains("<td>Water Speed rating</td><td>45</td>"),
                         "The vehicle sheet should report amphibious water speed separately.")
+                Dim securityDesign As New StockDesign With {
+                    .ChassisId = "sand-buggy", .PowerPlantId = "gasoline", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "proximity-alert", .Quantity = 1},
+                        New ModificationSelection With {.Id = "anti-theft-electric-system", .Quantity = 1},
+                        New ModificationSelection With {.Id = "improved-anti-theft-security", .Quantity = 6}
+                    }
+                }
+                Dim proximityRejected = False
+                Try
+                    securityDesign.Calculate(sheetCatalog)
+                Catch ex As ArgumentException When ex.Message.Contains("requires a sensor system")
+                    proximityRejected = True
+                End Try
+                Require(proximityRejected, "Proximity alerts should require sensors.")
+                securityDesign.CatalogModifications.Add(New ModificationSelection With {.Id = "sensors", .Quantity = 1})
+                For Each test In {(Rating:=6, Price:="6,240"), (Rating:=7, Price:="8,080"), (Rating:=10, Price:="25,280")}
+                    securityDesign.CatalogModifications(2).Quantity = test.Rating
+                    editor.WriteDesignFile(destination, securityDesign)
+                    editor.LoadDesignFile(destination)
+                    Require(totals.Text.Contains($"Base ¥{test.Price}.00") AndAlso
+                            editor.ReadDesign().CatalogModifications.Count = 4,
+                            $"Anti-theft rating {test.Rating} did not apply the expected design cost.")
+                Next
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

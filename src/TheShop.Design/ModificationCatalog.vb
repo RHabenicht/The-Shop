@@ -85,6 +85,9 @@ Public Module ModificationCatalog
         New ModificationRule("sensors", "Sensor system", "rating", 10),
         New ModificationRule("sonar", "Sonar system", "rating", 10),
         New ModificationRule("towed-array-sonar", "Towed-array sonar", "rating", 6),
+        New ModificationRule("improved-anti-theft-security", "Improved anti-theft security", "rating (3–10)", 10),
+        New ModificationRule("anti-theft-electric-system", "Anti-theft electric system", "", 1),
+        New ModificationRule("proximity-alert", "Proximity alert", "", 1),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -160,6 +163,9 @@ Public Module ModificationCatalog
                  chassis.Id.EndsWith("-tracked-crawler", StringComparison.Ordinal) OrElse
                  chassis.Id.EndsWith("-caterpillar", StringComparison.Ordinal)) Then
                 Throw New ArgumentException("A level 1 amphibious operation package requires wheels.")
+            End If
+            If rule.Id = "improved-anti-theft-security" AndAlso choice.Quantity < 3 Then
+                Throw New ArgumentException("Improved anti-theft security requires a rating from 3 to 10.")
             End If
             validated.Add((rule, choice.Quantity))
             Select Case rule.Id
@@ -292,6 +298,14 @@ Public Module ModificationCatalog
                 item.DesignPoints = 1000D * quantity
                 item.CargoConsumed = 125D
                 item.LoadConsumedKg = 1500D
+            Case "improved-anti-theft-security"
+                Dim pointsPerRating = If(quantity <= 6, 4D, If(quantity <= 9, 10D, 50D))
+                item.DesignPoints = pointsPerRating * quantity
+            Case "anti-theft-electric-system"
+                item.DesignPoints = 20D
+            Case "proximity-alert"
+                If sensorRating = 0 Then Throw New ArgumentException("A proximity alert requires a sensor system.")
+                item.DesignPoints = 2D
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

@@ -40,6 +40,8 @@ Select **Retransmission power amplifier** to set Flux for the installed retransm
 
 Amphibious operation packages add surface-water operation to bike and car chassis (*Rigger 3 Revised*, p. 149). Level 1 requires wheels. The editor and vehicle sheet list the water speed and Handling modifier separately from land ratings. Underwater operation requires additional equipment and remains a manual design decision.
 
+The anti-theft catalog includes improved security at ratings 3–10, the electric system, and proximity alerts (*Rigger 3 Revised*, pp. 149–150). Enter the final security rating. Proximity alerts require either factory sensors or a sensor system selected in the current design.
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

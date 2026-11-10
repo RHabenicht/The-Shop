@@ -23,12 +23,16 @@ Public Module RetrofitCatalog
         "electronics-port", "spotlight", "crash-cage", "retransmission-unit", "datajack-port",
         "bucket-seat", "bench-seat", "folding-bench-seat", "reinforced-bucket-seat",
         "ejection-bucket-seat", "reinforced-ejection-bucket-seat", "cabin-gas-seal", "cabin-water-seal",
-        "engine-water-seal", "life-support", "hovercraft-water-seal", "gridlink"
+        "engine-water-seal", "life-support", "hovercraft-water-seal", "gridlink",
+        "external-fixed-firmpoint", "external-fixed-hardpoint", "internal-fixed-firmpoint", "internal-fixed-hardpoint",
+        "pintle-mount", "ring-mount", "medium-launch-control", "heavy-launch-control",
+        "smartlink-integration-1", "smartlink-integration-2", "battletac-fddm", "battletac-ivis", "dipping-sonar", "ccss-integration"
     }
 
     Friend Function Apply(selections As IReadOnlyList(Of ModificationSelection), designSelections As IReadOnlyList(Of ModificationSelection),
                           chassis As StockChassis, plant As StockPowerPlant, upgrades As UpgradedRatings,
-                          totals As DesignTotals) As IReadOnlyList(Of InstalledRetrofit)
+                          totals As DesignTotals, validationCargo As Decimal, validationLoad As Decimal,
+                          ByRef finalRatings As ModifiedRatings) As IReadOnlyList(Of InstalledRetrofit)
         If selections Is Nothing OrElse selections.Count = 0 Then Return Nothing
         Dim entries As New List(Of InstalledRetrofit)
         Dim combined As New List(Of ModificationSelection)
@@ -45,7 +49,7 @@ Public Module RetrofitCatalog
         Dim groups = combined.GroupBy(Function(item) item.Id, StringComparer.OrdinalIgnoreCase).ToArray()
         For Each group In groups.Where(Function(items) items.Count() > 1)
             Dim rule = ModificationCatalog.Rules.Single(Function(candidate) String.Equals(candidate.Id, group.Key, StringComparison.OrdinalIgnoreCase))
-            If Not {"units", "seats", "ports", "sets", "racks", "10 person-hour blocks"}.Contains(rule.QuantityLabel) Then
+            If Not {"units", "seats", "ports", "sets", "racks", "mounts", "10 person-hour blocks"}.Contains(rule.QuantityLabel) Then
                 Throw New ArgumentException($"'{rule.Name}' is already present in the design.")
             End If
         Next
@@ -53,11 +57,12 @@ Public Module RetrofitCatalog
                 .Id = group.Key, .Quantity = CInt(group.Sum(Function(item) CLng(item.Quantity)))
             }).ToList()
         Dim validationRatings As ModifiedRatings = Nothing
-        ModificationCatalog.Apply(merged, chassis, plant, New VehicleDesign With {.Additions = New List(Of DesignAddition)},
+        ModificationCatalog.Apply(merged, chassis, plant, New VehicleDesign With {.Additions = New List(Of DesignAddition), .CargoCapacity = validationCargo, .LoadCapacityKg = validationLoad},
                                   upgrades, validationRatings)
         Dim cargo = totals.CargoRemaining - entries.Sum(Function(item) item.Quote.CargoConsumed)
         Dim load = totals.LoadRemainingKg - entries.Sum(Function(item) item.Quote.LoadConsumedKg)
         If cargo < 0D OrElse load < 0D Then Throw New ArgumentException("Installed retrofits exceed the vehicle's available cargo or load.")
+        finalRatings = validationRatings
         totals.CargoRemaining = cargo
         totals.LoadRemainingKg = load
         Return entries
@@ -127,6 +132,30 @@ Public Module RetrofitCatalog
                 Return BuildQuote(500D * body, 1D, "4 / 96 hours", 0D, 0D)
             Case "gridlink"
                 Return BuildQuote(600D, 1D, "3 / 96 hours", 1D, 0D)
+            Case "external-fixed-firmpoint", "medium-launch-control"
+                Return BuildQuote(750D * quantity, 2D, "6 / 7 days", quantity, 10D * quantity)
+            Case "external-fixed-hardpoint", "heavy-launch-control"
+                Return BuildQuote(2000D * quantity, 2D, "6 / 7 days", 2D * quantity, 10D * quantity)
+            Case "internal-fixed-firmpoint"
+                Return BuildQuote(1500D * quantity, 2D, "6 / 7 days", 5D * quantity, 10D * quantity)
+            Case "internal-fixed-hardpoint"
+                Return BuildQuote(3000D * quantity, 2D, "6 / 7 days", 7D * quantity, 10D * quantity)
+            Case "pintle-mount"
+                Return BuildQuote(50D * quantity, 1.5D, "4 / 96 hours", 0D, 0D)
+            Case "ring-mount"
+                Return BuildQuote(3000D * quantity, 2D, "8 / 14 days", quantity, 25D * quantity)
+            Case "smartlink-integration-1"
+                Return BuildQuote(650D * quantity, 1.5D, "4 / 48 hours", quantity, 0D)
+            Case "smartlink-integration-2"
+                Return BuildQuote(900D * quantity, 2D, "6 / 48 hours", quantity, 0D)
+            Case "battletac-fddm"
+                Return BuildQuote(35000D, 3D, "10 / 21 days", 0D, 0D)
+            Case "battletac-ivis"
+                Return BuildQuote(25000D, 3D, "8 / 14 days", 0D, 0D)
+            Case "dipping-sonar"
+                Return BuildQuote(15000D * quantity, 4.5D, "8 / 21 days", 16D, 50D)
+            Case "ccss-integration"
+                Return BuildQuote(400000D * quantity, 4D, "6 / 21 days", 0D, 0D)
             Case Else
                 Throw New ArgumentException("This retrofit has no catalog pricing.")
         End Select

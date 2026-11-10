@@ -526,6 +526,17 @@ Module Program
                         engineResult.ModifiedRatings.OffRoadHandling.GetValueOrDefault() = 8 AndAlso
                         engineResult.Totals.LoadRemainingKg = 1200D AndAlso engineResult.Totals.BaseCostNuyen = 22875D,
                         "Engine customization and drive-by-wire should apply limits, tiered costs, and the allocated bonus.")
+                retrofittedVan.InstalledRetrofits = New List(Of ModificationSelection) From {
+                    New ModificationSelection With {.Id = "external-fixed-firmpoint", .Quantity = 2},
+                    New ModificationSelection With {.Id = "smartlink-integration-2", .Quantity = 1}
+                }
+                editor.WriteDesignFile(destination, retrofittedVan)
+                editor.LoadDesignFile(destination)
+                Dim retrofitMountResult = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(retrofitMountResult.ModifiedRatings.Signature.GetValueOrDefault() = 1 AndAlso
+                        retrofitMountResult.RetrofitPartsCostNuyen = 4800D AndAlso
+                        retrofitMountResult.Totals.CargoRemaining = 45D AndAlso retrofitMountResult.Totals.LoadRemainingKg = 980D,
+                        "Retrofitted mounts should update final ratings and use customization pricing and capacity.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

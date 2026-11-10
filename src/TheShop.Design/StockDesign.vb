@@ -53,10 +53,12 @@ Public NotInheritable Class StockDesign
             Throw New ArgumentException($"Load capacity exceeds the catalog maximum of {powerPlant.MaximumLoadKg} kg.")
         End If
 
+        Dim validationCargo = design.CargoCapacity
+        Dim validationLoad = design.LoadCapacityKg
         Dim modifiedRatings As ModifiedRatings = Nothing
         Dim modifications = ModificationCatalog.Apply(CatalogModifications, chassis, powerPlant, design, ratings, modifiedRatings)
         Dim totals = design.Calculate()
-        Dim retrofits = RetrofitCatalog.Apply(InstalledRetrofits, CatalogModifications, chassis, powerPlant, ratings, totals)
+        Dim retrofits = RetrofitCatalog.Apply(InstalledRetrofits, CatalogModifications, chassis, powerPlant, ratings, totals, validationCargo, validationLoad, modifiedRatings)
         Return New StockDesignResult With {
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
             .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits,

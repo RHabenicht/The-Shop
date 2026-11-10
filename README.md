@@ -72,7 +72,7 @@ Select an Availability class in the editor to apply the p. 113 formula. The calc
 
 ## Quote a retrofit
 
-Choose **Retrofit quote…** to calculate list and street parts cost, Availability, and remaining capacity for one item on the current design. Retrofit entries cover cranes, winches, clinics, Valkyrie modules, seating, seals, life support, roll bars, GridLink, datajack and electronics ports, spotlights, crash cages, and retransmission units. Choose **Install** to add the quoted equipment to the vehicle, then save the design. **Installed retrofits…** changes quantities or removes entries with a zero quantity. Installed parts use customization capacity requirements and appear on the HTML sheet with a separate street parts total. Installation labor is handled separately.
+Choose **Retrofit quote…** to calculate list and street parts cost, Availability, and remaining capacity for one item on the current design. Retrofit entries cover cranes, winches, clinics, Valkyrie modules, seating, seals, life support, roll bars, GridLink, datajack and electronics ports, spotlights, crash cages, retransmission units, fixed mounts, ring and pintle mounts, launch controls, mount smartlinks, BattleTac receivers, dipping sonar, and CCSS integration. Choose **Install** to add the quoted equipment to the vehicle, then save the design. **Installed retrofits…** changes quantities or removes entries with a zero quantity. Installed parts use customization capacity requirements and appear on the HTML sheet with a separate street parts total. Installation labor is handled separately.
 
 ## Import a legacy vehicle
 

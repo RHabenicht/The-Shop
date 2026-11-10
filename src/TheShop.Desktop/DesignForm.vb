@@ -241,6 +241,9 @@ Public NotInheritable Class DesignForm
         If result.InstalledRetrofits IsNot Nothing Then
             totals.Text &= Environment.NewLine & $"Installed retrofit parts ¥{result.RetrofitPartsCostNuyen:N2}"
         End If
+        If catalogModifications IsNot Nothing AndAlso catalogModifications.Any(Function(item) item.Id.StartsWith("engine-customization-", StringComparison.OrdinalIgnoreCase)) Then
+            totals.Text &= Environment.NewLine & "Engine customization requires the gamemaster's Stress test."
+        End If
         Dim modified = result.ModifiedRatings
         If modified IsNot Nothing Then
             Dim values As New List(Of String)

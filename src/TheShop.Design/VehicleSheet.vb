@@ -119,6 +119,9 @@ Public Module VehicleSheet
             page.Append(E(System.Text.Json.JsonSerializer.Serialize(design.LegacyReference.Value, New System.Text.Json.JsonSerializerOptions With {.WriteIndented = True})))
             page.Append("</pre>")
         End If
+        If design.CatalogModifications IsNot Nothing AndAlso design.CatalogModifications.Any(Function(item) item.Id.StartsWith("engine-customization-", StringComparison.OrdinalIgnoreCase)) Then
+            page.Append("<p>Engine customization requires the gamemaster’s permanent engine Stress test.</p>")
+        End If
         page.Append("<p class='footer'>The Shop · Calculated from the current design. Manual entries are included in the totals.</p></main></body></html>")
         Return page.ToString()
     End Function

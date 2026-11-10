@@ -191,6 +191,19 @@ Module Program
                 editor.LoadDesignFile(destination)
                 Require(totals.Text.Contains("159 CF") AndAlso totals.Text.Contains("17500 kg"),
                         "Over-the-horizon sensors should work with factory sensors and consume their listed space and load.")
+                File.WriteAllText(destination, "{""ChassisId"":""airliner"",""PowerPlantId"":""jet-propeller"",""StreetIndex"":1," &
+                                  """CatalogModifications"":[{""Id"":""retransmission-power-amplifier"",""Quantity"":7}," &
+                                  "{""Id"":""retransmission-unit"",""Quantity"":2}]}")
+                editor.LoadDesignFile(destination)
+                editor.WriteDesignFile(destination, editor.ReadDesign())
+                editor.LoadDesignFile(destination)
+                Require(editor.ReadDesign().CatalogModifications.Count = 2 AndAlso
+                        totals.Text.Contains("496 CF") AndAlso totals.Text.Contains("4976 kg") AndAlso
+                        totals.Text.Contains("Base ¥767,500.00"),
+                        "Retransmission amplifier costs should scale and round cargo separately for each unit.")
+                VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
+                Require(File.ReadAllText(sheetPath).Contains("Flux 7 per unit"),
+                        "The vehicle sheet should report amplified retransmission Flux.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

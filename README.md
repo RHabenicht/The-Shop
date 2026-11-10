@@ -36,6 +36,8 @@ The electronics catalog includes the common equipment listed on p. 146, plus rem
 
 Magnetic-anomaly detectors are available on fixed-wing aircraft, rotor craft, and vectored-thrust aircraft. Over-the-horizon sensors are available on ships. Both require a sensor system and use the vehicle’s final Sensor rating to calculate Design Points (*Rigger 3 Revised*, p. 146).
 
+Select **Retransmission power amplifier** to set Flux for the installed retransmission units. The catalog applies the same rating to each unit and rounds cargo down per amplifier (*Rigger 3 Revised*, p. 147). Amplifiers for other devices and mixed retransmission ratings still use manual entries.
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

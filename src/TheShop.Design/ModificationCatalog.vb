@@ -51,6 +51,7 @@ Public Module ModificationCatalog
         New ModificationRule("electronics-port", "Electronics port", "ports", Integer.MaxValue),
         New ModificationRule("remote-control-encryption", "Remote-control encryption module", "rating", Integer.MaxValue),
         New ModificationRule("retransmission-unit", "Retransmission unit", "units", Integer.MaxValue),
+        New ModificationRule("retransmission-power-amplifier", "Retransmission power amplifier", "rating per unit", 10),
         New ModificationRule("magnetic-anomaly-detector", "Magnetic-anomaly detector", "", 1),
         New ModificationRule("over-the-horizon-sensors", "Over-the-horizon sensors", "", 1),
         New ModificationRule("trideo-display", "Video/trideo display", "20 cm screen units", Integer.MaxValue, 0.15D),
@@ -164,8 +165,13 @@ Public Module ModificationCatalog
         If seen.Contains("vehicle-armor") AndAlso seen.Contains("concealed-armor") Then
             Throw New ArgumentException("Vehicle armor and concealed armor cannot be combined.")
         End If
+        Dim retransmissionUnits = validated.Where(Function(choice) choice.Rule.Id = "retransmission-unit").
+            Select(Function(choice) choice.Quantity).SingleOrDefault()
+        If seen.Contains("retransmission-power-amplifier") AndAlso retransmissionUnits = 0 Then
+            Throw New ArgumentException("A retransmission power amplifier requires a retransmission unit.")
+        End If
         Dim sensorRating = If(finalRatings?.Sensor, chassis.Sensor.GetValueOrDefault())
-        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, sensorRating)).ToList()
+        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, sensorRating, retransmissionUnits)).ToList()
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
     End Function
@@ -194,7 +200,7 @@ Public Module ModificationCatalog
     End Sub
 
     Private Function Price(rule As ModificationRule, quantity As Integer, chassis As StockChassis,
-                           sensorRating As Integer) As DesignAddition
+                           sensorRating As Integer, retransmissionUnits As Integer) As DesignAddition
         Dim body = CDec(chassis.Body.GetValueOrDefault())
         Dim item As New DesignAddition With {.Name = rule.Name, .CargoConsumed = rule.CargoPerUnit * quantity}
         Select Case rule.Id
@@ -215,6 +221,11 @@ Public Module ModificationCatalog
                 item.DesignPoints = 250D * quantity
                 item.CargoConsumed = quantity
                 item.LoadConsumedKg = 5D * quantity
+            Case "retransmission-power-amplifier"
+                item.Name = $"{rule.Name} (Flux {quantity} per unit)"
+                item.DesignPoints = 5D * quantity * retransmissionUnits
+                item.CargoConsumed = Math.Floor(0.25D * quantity) * retransmissionUnits
+                item.LoadConsumedKg = CDec(quantity) * retransmissionUnits
             Case "magnetic-anomaly-detector", "over-the-horizon-sensors"
                 If sensorRating = 0 Then Throw New ArgumentException($"'{rule.Name}' requires a sensor system.")
                 If rule.Id = "magnetic-anomaly-detector" Then

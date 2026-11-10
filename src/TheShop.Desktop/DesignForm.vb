@@ -25,6 +25,7 @@ Public NotInheritable Class DesignForm
     Private ReadOnly loadOverride As New TextBox With {.Dock = DockStyle.Fill}
     Private ReadOnly startingValues As New Label With {.AutoSize = True, .Dock = DockStyle.Fill, .Padding = New Padding(0, 4, 0, 4)}
     Private ReadOnly totals As New Label With {.Name = "totals", .AutoSize = True, .Dock = DockStyle.Fill, .Padding = New Padding(0, 4, 0, 4)}
+    Private upgrades As DesignUpgrades
     Private ReadOnly additions As New DataGridView With {
         .Name = "additions",
         .Dock = DockStyle.Fill,
@@ -74,6 +75,7 @@ Public NotInheritable Class DesignForm
 
         Dim actions As New FlowLayoutPanel With {.Dock = DockStyle.Fill, .AutoSize = True}
         AddAction(actions, "Calculate", AddressOf Calculate)
+        AddAction(actions, "Design upgrades…", AddressOf EditUpgrades)
         AddAction(actions, "Open design…", AddressOf OpenDesign)
         AddAction(actions, "Save design…", AddressOf SaveDesign)
         layout.Controls.Add(actions, 0, 4)
@@ -146,7 +148,8 @@ Public NotInheritable Class DesignForm
             .StreetIndex = ReadNumber(streetIndex.Text, "Street Index"),
             .MarkupAdjustment = ReadNumber(markup.Text, "Markup adjustment"),
             .CargoCapacity = ReadOptional(cargo.Text, "Cargo override"),
-            .LoadCapacityKg = ReadOptional(loadOverride.Text, "Load override")
+            .LoadCapacityKg = ReadOptional(loadOverride.Text, "Load override"),
+            .Upgrades = upgrades
         }
         For Each row As DataGridViewRow In additions.Rows
             If row.IsNewRow Then Continue For
@@ -178,14 +181,37 @@ Public NotInheritable Class DesignForm
         Return ReadNumber(value, label)
     End Function
 
-    Private Sub ShowTotals(result As DesignTotals)
-        totals.Text = $"{result.DesignPoints:N} Design Points    Base ¥{result.BaseCostNuyen:N}    Street ¥{result.StreetCostNuyen:N}" &
-            Environment.NewLine & $"Remaining cargo {result.CargoRemaining} CF    Remaining load {result.LoadRemainingKg} kg"
+    Private Sub EditUpgrades(sender As Object, e As EventArgs)
+        Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
+        Dim plant = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant)
+        If chassis.Hull.HasValue AndAlso upgrades Is Nothing Then
+            ShowError(New ArgumentException("Use manual entries for Hull-rated vehicle options."))
+            Return
+        End If
+        Using dialog As New UpgradeDialog(upgrades, chassis, plant)
+            If dialog.ShowDialog(Me) = DialogResult.OK Then
+                upgrades = dialog.Selection
+                ClearTotals(sender, e)
+            End If
+        End Using
+    End Sub
+
+    Private Sub ShowTotals(result As StockDesignResult)
+        Dim totalsValue = result.Totals
+        totals.Text = $"{totalsValue.DesignPoints:N} Design Points    Base ¥{totalsValue.BaseCostNuyen:N}    Street ¥{totalsValue.StreetCostNuyen:N}" &
+            Environment.NewLine & $"Remaining cargo {totalsValue.CargoRemaining} CF    Remaining load {totalsValue.LoadRemainingKg} kg"
+        Dim ratings = result.UpgradedRatings
+        If ratings IsNot Nothing Then
+            Dim handling = If(ratings.Handling?.ToString(),
+                              If(ratings.OnRoadHandling.HasValue, $"{ratings.OnRoadHandling}/{ratings.OffRoadHandling}", "—"))
+            totals.Text &= Environment.NewLine &
+                $"Upgraded handling {handling}   Speed {If(ratings.Speed?.ToString(), "—")}   Accel {If(ratings.Acceleration?.ToString(), "—")}   Signature {If(ratings.Signature?.ToString(), "—")}"
+        End If
     End Sub
 
     Private Sub Calculate(sender As Object, e As EventArgs)
         Try
-            ShowTotals(ReadDesign().Calculate(catalog).Totals)
+            ShowTotals(ReadDesign().Calculate(catalog))
         Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
             ShowError(ex)
         End Try
@@ -210,7 +236,7 @@ Public NotInheritable Class DesignForm
             Using dialog As New SaveFileDialog With {.Filter = "The Shop design (*.json)|*.json", .DefaultExt = "json"}
                 If dialog.ShowDialog(Me) <> DialogResult.OK Then Return
                 WriteDesignFile(dialog.FileName, design)
-                ShowTotals(result.Totals)
+                ShowTotals(result)
             End Using
         Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse
                                    TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
@@ -230,11 +256,12 @@ Public NotInheritable Class DesignForm
         markup.Text = design.MarkupAdjustment.ToString(CultureInfo.CurrentCulture)
         cargo.Text = design.CargoCapacity?.ToString(CultureInfo.CurrentCulture)
         loadOverride.Text = design.LoadCapacityKg?.ToString(CultureInfo.CurrentCulture)
+        upgrades = design.Upgrades
         additions.Rows.Clear()
         For Each item In design.Additions
             additions.Rows.Add(item.Name, item.DesignPoints, item.DirectCostNuyen, item.CargoConsumed, item.LoadConsumedKg)
         Next
-        ShowTotals(result.Totals)
+        ShowTotals(result)
     End Sub
 
     Friend Sub WriteDesignFile(destination As String, design As StockDesign)

@@ -72,6 +72,15 @@ Module Program
                 Require(Not trailer.StartingSpeed.HasValue AndAlso Not trailer.StartingAcceleration.HasValue AndAlso
                         totals.Text.Contains("Base ¥1,500.00") AndAlso totals.Text.Contains("150 kg"),
                         "The trailer should have its chassis load rating and no propulsion ratings.")
+                File.WriteAllText(destination, "{""ChassisId"":""sand-buggy"",""PowerPlantId"":""gasoline"",""StreetIndex"":2," &
+                                  """Upgrades"":{""OffRoadHandling"":1,""Acceleration"":2,""CargoSteps"":10,""LoadSteps"":3}}")
+                editor.LoadDesignFile(destination)
+                Dim upgraded = editor.ReadDesign()
+                editor.WriteDesignFile(destination, upgraded)
+                editor.LoadDesignFile(destination)
+                Require(upgraded.Upgrades.OffRoadHandling = 1 AndAlso totals.Text.Contains("Upgraded handling 4/3") AndAlso
+                        totals.Text.Contains("Accel 8") AndAlso totals.Text.Contains("Street ¥11,840.00"),
+                        "Catalog upgrades should calculate and survive saving and reopening.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

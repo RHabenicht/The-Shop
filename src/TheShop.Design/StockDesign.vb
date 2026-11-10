@@ -12,6 +12,8 @@ Public NotInheritable Class StockDesign
     Public Property CargoCapacity As Decimal?
     Public Property LoadCapacityKg As Decimal?
     Public Property Additions As New List(Of DesignAddition)
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Upgrades As DesignUpgrades
 
     Public Function Calculate(catalog As IReadOnlyList(Of StockChassis)) As StockDesignResult
         Dim chassis = StockCatalog.FindById(catalog, ChassisId)
@@ -23,13 +25,6 @@ Public NotInheritable Class StockDesign
 
         Dim cargo = If(CargoCapacity, chassis.StartingCargo)
         Dim load = If(LoadCapacityKg, powerPlant.StartingLoadKg)
-        If cargo > chassis.MaximumCargo Then
-            Throw New ArgumentException($"Cargo capacity exceeds the catalog maximum of {chassis.MaximumCargo} CF.")
-        End If
-        If load > powerPlant.MaximumLoadKg Then
-            Throw New ArgumentException($"Load capacity exceeds the catalog maximum of {powerPlant.MaximumLoadKg} kg.")
-        End If
-
         Dim design As New VehicleDesign With {
             .ChassisDesignPoints = chassis.DesignPoints,
             .PowerPlantDesignPoints = powerPlant.DesignPoints,
@@ -40,7 +35,17 @@ Public NotInheritable Class StockDesign
             .MarkupAdjustment = MarkupAdjustment,
             .Additions = Additions
         }
-        Return New StockDesignResult With {.ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = design.Calculate()}
+        Dim ratings = Upgrades?.Apply(chassis, powerPlant, design, CargoCapacity, LoadCapacityKg)
+        If design.CargoCapacity > chassis.MaximumCargo Then
+            Throw New ArgumentException($"Cargo capacity exceeds the catalog maximum of {chassis.MaximumCargo} CF.")
+        End If
+        If design.LoadCapacityKg > powerPlant.MaximumLoadKg Then
+            Throw New ArgumentException($"Load capacity exceeds the catalog maximum of {powerPlant.MaximumLoadKg} kg.")
+        End If
+
+        Return New StockDesignResult With {
+            .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = design.Calculate(), .UpgradedRatings = ratings
+        }
     End Function
 End Class
 
@@ -164,4 +169,6 @@ Public NotInheritable Class StockDesignResult
     Public Property ChassisId As String
     Public Property PowerPlantId As String
     Public Property Totals As DesignTotals
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property UpgradedRatings As UpgradedRatings
 End Class

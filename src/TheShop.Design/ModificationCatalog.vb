@@ -134,6 +134,8 @@ Public Module ModificationCatalog
         New ModificationRule("advanced-drone-pilot", "Advanced drone pilot", "rating (2–5)", 5),
         New ModificationRule("extra-entry-points", "Additional entry points", "entry points", Integer.MaxValue),
         New ModificationRule("ballast-tanks", "Ballast tanks", "", 1),
+        New ModificationRule("sidecar", "Motorcycle sidecar", "1 small, 2 medium, 3 large", 3),
+        New ModificationRule("runflat-upgrade", "Runflat tire upgrade", "tires", Integer.MaxValue),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -234,7 +236,9 @@ Public Module ModificationCatalog
                 Return chassis.Category = "Hovercraft"
             Case "nitrous"
                 Return plant.Id = "gasoline" OrElse plant.Id = "diesel"
-            Case "performance-tires", "off-road-tires", "dual-purpose-tires"
+            Case "sidecar"
+                Return chassis.Category = "Bike" AndAlso chassis.Id <> "atv"
+            Case "performance-tires", "off-road-tires", "dual-purpose-tires", "runflat-upgrade"
                 Return chassis.Body.GetValueOrDefault() > 0 AndAlso Not chassis.IsDrone AndAlso
                     (chassis.Category = "Bike" OrElse
                     (chassis.Category = "Car" AndAlso chassis.Id <> "tracked-apc" AndAlso Not chassis.Id.EndsWith("-caterpillar", StringComparison.Ordinal)))
@@ -334,6 +338,19 @@ Public Module ModificationCatalog
             Select(Function(choice) choice.Quantity).SingleOrDefault()
         If seen.Contains("mechanical-arm-strength") AndAlso armCount = 0 Then
             Throw New ArgumentException("Mechanical arm strength enhancement requires a mechanical arm.")
+        End If
+        If seen.Contains("sidecar") Then
+            Dim size = validated.Single(Function(choice) choice.Rule.Id = "sidecar").Quantity
+            Dim handlingPenalty = If(size = 3, 2, 1)
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            finalRatings.Speed = Math.Max(0, If(upgrades?.Speed, plant.StartingSpeed).GetValueOrDefault() - 15)
+            Dim economy = If(upgrades?.Economy, If(plant.StartingEconomyKmPerLiter,
+                If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar)))
+            finalRatings.Economy = economy * 0.9D
+            finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) + handlingPenalty
+            finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) + handlingPenalty
+            finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) + handlingPenalty
+            design.CargoCapacity += If(size = 1, 6D, If(size = 2, 8D, 12D))
         End If
         Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount)).ToList()
         design.Additions = design.Additions.Concat(result).ToList()
@@ -556,6 +573,10 @@ Public Module ModificationCatalog
                 item.DesignPoints = squaredBody * 10D
                 item.CargoConsumed = squaredBody * 2D
                 item.LoadConsumedKg = squaredBody * 25D
+            Case "sidecar"
+                item.DesignPoints = If(quantity = 1, 10D, If(quantity = 2, 20D, 35D))
+            Case "runflat-upgrade"
+                item.DirectCostNuyen = 200D * quantity
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

@@ -54,6 +54,8 @@ Control options include GridLink, adjusted and secondary controls, contingency m
 
 Additional entry points are free within the Body or Hull limit. Ballast tanks require an engine water seal and provide depth control. Horizontal underwater propulsion and practical operating depth depend on the rest of the design (*Rigger 3 Revised*, pp. 115–116).
 
+Motorcycle sidecars add cargo and apply the size’s Handling penalty, a 15-point Speed reduction, and a ten-percent Economy reduction. Enter a runflat upgrade separately for each tire that receives one (*Rigger 3 Revised*, pp. 154–155).
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

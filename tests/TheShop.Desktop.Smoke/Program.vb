@@ -361,6 +361,20 @@ Module Program
                 Require(ballastDesign.Totals.CargoRemaining = 13D AndAlso ballastDesign.Totals.LoadRemainingKg = 540D AndAlso
                         ballastDesign.Totals.BaseCostNuyen = 68000D,
                         "Ballast tanks should use Body squared and entry points should carry no design cost.")
+                Dim sidecarDesign As New StockDesign With {
+                    .ChassisId = "chopper", .PowerPlantId = "gasoline", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "sidecar", .Quantity = 3},
+                        New ModificationSelection With {.Id = "runflat-upgrade", .Quantity = 3}
+                    }
+                }
+                editor.WriteDesignFile(destination, sidecarDesign)
+                editor.LoadDesignFile(destination)
+                Dim sidecarResult = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(sidecarResult.Totals.CargoRemaining = 14D AndAlso sidecarResult.Totals.DirectCostNuyen = 600D AndAlso
+                        sidecarResult.ModifiedRatings.Economy.GetValueOrDefault() = 9D AndAlso
+                        totals.Text.Contains("Final Speed 45") AndAlso totals.Text.Contains("Final Handling 6/8"),
+                        "Sidecars and runflat tires should apply the listed ratings and costs.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

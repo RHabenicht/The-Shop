@@ -302,6 +302,31 @@ Module Program
                 Dim generator = trailerDesign.Calculate(sheetCatalog).AppliedModifications.Single()
                 Require(generator.DesignPoints = 18.75D AndAlso generator.CargoConsumed = 4D AndAlso generator.LoadConsumedKg = 400D,
                         "A generator should use the trailer's starting chassis cost and capacities.")
+                Dim flotationDesign As New StockDesign With {
+                    .ChassisId = "airliner", .PowerPlantId = "jet-propeller", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "aircraft-flotation", .Quantity = 1},
+                        New ModificationSelection With {.Id = "drone-rack-body-2", .Quantity = 1}
+                    }
+                }
+                editor.WriteDesignFile(destination, flotationDesign)
+                editor.LoadDesignFile(destination)
+                Require(totals.Text.Contains("Final Speed 160") AndAlso flotationDesign.Calculate(sheetCatalog).ModifiedRatings.Economy = 0.9D AndAlso
+                        totals.Text.Contains("493 CF") AndAlso totals.Text.Contains("4955 kg") AndAlso
+                        totals.Text.Contains("Base ¥752,000.00"),
+                        "Aircraft floats and drone racks should apply their design costs, capacity, and ratings.")
+                Dim armDesign As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "mechanical-arm-strength", .Quantity = 3},
+                        New ModificationSelection With {.Id = "mechanical-arm", .Quantity = 2}
+                    }
+                }
+                Dim armResult = armDesign.Calculate(sheetCatalog)
+                Require(armResult.AppliedModifications(0).DesignPoints = 1440D AndAlso
+                        armResult.AppliedModifications(0).Name.Contains("Strength 19 per arm") AndAlso
+                        armResult.Totals.LoadRemainingKg = 620D AndAlso armResult.Totals.CargoRemaining = 44D,
+                        "Arm enhancements should be calculated for each installed arm.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

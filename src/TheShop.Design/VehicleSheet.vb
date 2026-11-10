@@ -44,7 +44,7 @@ Public Module VehicleSheet
             Row(page, "Handling (on-road / off-road)", Pair(If(modified?.OnRoadHandling, If(up?.OnRoadHandling, chassis.OnRoadHandling)),
                                                            If(modified?.OffRoadHandling, If(up?.OffRoadHandling, chassis.OffRoadHandling))))
         End If
-        Dim speed = If(up?.Speed, plant.StartingSpeed)
+        Dim speed = If(modified?.Speed, If(up?.Speed, plant.StartingSpeed))
         Dim speedText = Number(speed)
         If plant.StartingStallSpeed.HasValue Then speedText = Number(plant.StartingStallSpeed) & " / " & speedText & " (stall / flight)"
         If plant.StartingSecondarySpeed.HasValue Then speedText &= " / " & Number(plant.StartingSecondarySpeed) & " (paired operating ratings)"
@@ -63,7 +63,7 @@ Public Module VehicleSheet
         Dim fuel = If(up?.FuelCapacity, If(plant.FuelLiters, If(plant.FuelBars, If(plant.BatteryPowerFactors, If(plant.FuelCellPowerFactors, plant.RocketPowerFactors)))))
         Dim fuelUnit = If(up?.FuelUnit, If(plant.FuelLiters.HasValue, "L", If(plant.FuelBars.HasValue, "bars", "PF")))
         If fuel.HasValue Then Row(page, "Fuel capacity", Number(fuel) & " " & fuelUnit)
-        Dim economy = If(up?.Economy, If(plant.StartingEconomyKmPerLiter, If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar)))
+        Dim economy = If(modified?.Economy, If(up?.Economy, If(plant.StartingEconomyKmPerLiter, If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar))))
         If economy.HasValue Then Row(page, "Economy", Number(economy) & " " & plant.EconomyUnit)
         If chassis.TakeoffLandingProfile IsNot Nothing Then Row(page, "Takeoff / landing", chassis.TakeoffLandingProfile)
         If up?.TakeoffLandingDistanceMultiplier.HasValue Then Row(page, "Takeoff / landing distance multiplier", Number(up.TakeoffLandingDistanceMultiplier))

@@ -46,6 +46,8 @@ For a crane, enter its lifting capacity in kilograms. The catalog limits the rat
 
 The equipment catalog includes winches, generators for trailers, barges and rail cars, medical clinics, Valkyrie modules, and added standard, reinforced, folding, and ejection seats (*Rigger 3 Revised*, pp. 151–155). Enter winch pulling capacity in kilograms and seat counts as additional seats. Existing seating and clinic People Space are determined separately.
 
+Aircraft floats apply their speed and economy adjustments after design upgrades. The drone rack entries are sized for Body 0–3 assembled aerial drones. Rack weight is charged at design time, and carried drone weight is payload. A mechanical arm starts at Body squared in Strength. An enhancement applies the selected increase to every installed arm (*Rigger 3 Revised*, pp. 62, 151–152). Use manual entries for mixed arm enhancements.
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

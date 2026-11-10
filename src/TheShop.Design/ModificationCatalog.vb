@@ -33,6 +33,8 @@ Public NotInheritable Class ModifiedRatings
     Public Property Sensor As Integer?
     Public Property Sonar As Integer?
     Public Property TowedArraySonar As Integer?
+    Public Property Speed As Integer?
+    Public Property Economy As Decimal?
     Public Property WaterSpeed As Integer?
     Public Property WaterSpeedMetersPerTurn As Integer?
     Public Property WaterHandlingModifier As Integer?
@@ -102,13 +104,21 @@ Public Module ModificationCatalog
         New ModificationRule("reinforced-bench-seat", "Reinforced bench seat", "seats", Integer.MaxValue, 8D),
         New ModificationRule("ejection-bucket-seat", "Ejection bucket seat", "seats", Integer.MaxValue, 6D),
         New ModificationRule("reinforced-ejection-bucket-seat", "Reinforced ejection bucket seat", "seats", Integer.MaxValue, 6D),
+        New ModificationRule("aircraft-flotation", "Aircraft flotation package", "", 1),
+        New ModificationRule("mechanical-arm", "Mechanical arm", "arms", Integer.MaxValue),
+        New ModificationRule("mechanical-arm-strength", "Mechanical arm strength enhancement", "extra Strength per arm", Integer.MaxValue),
+        New ModificationRule("drone-rack-body-0", "Body 0 drone rack", "racks", Integer.MaxValue),
+        New ModificationRule("drone-rack-body-1", "Body 1 drone rack", "racks", Integer.MaxValue, 2D),
+        New ModificationRule("drone-rack-body-2", "Body 2 drone rack", "racks", Integer.MaxValue, 7D),
+        New ModificationRule("drone-rack-body-3", "Body 3 drone rack", "racks", Integer.MaxValue, 13D),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
 
     Public Function MaximumQuantity(rule As ModificationRule, chassis As StockChassis) As Integer
-        If rule.Id <> "crane" AndAlso rule.Id <> "winch" Then Return rule.Maximum
         Dim body = chassis.Body.GetValueOrDefault()
+        If rule.Id = "mechanical-arm-strength" Then Return If(body > 0 AndAlso body < 10, body * (10 - body), 0)
+        If rule.Id <> "crane" AndAlso rule.Id <> "winch" Then Return rule.Maximum
         If rule.Id = "winch" AndAlso body = 0 Then Return 5
         If body < liftingCapacityKg.Length Then Return liftingCapacityKg(body)
         Return CInt(Math.Min(Integer.MaxValue, 750D * body * body))
@@ -150,6 +160,15 @@ Public Module ModificationCatalog
             Case "bucket-seat", "reinforced-bucket-seat", "ejection-bucket-seat", "reinforced-ejection-bucket-seat"
                 Return Not chassis.IsDrone
             Case "crane"
+                Return chassis.Body.GetValueOrDefault() > 0
+            Case "aircraft-flotation"
+                Return plant.StartingSpeed.HasValue AndAlso (chassis.Category = "Fixed-Wing Aircraft" OrElse
+                    chassis.Category = "Rotor Craft" OrElse chassis.Category = "Vectored-Thrust Aircraft")
+            Case "mechanical-arm"
+                Return chassis.Body.GetValueOrDefault() > 0
+            Case "mechanical-arm-strength"
+                Return MaximumQuantity(rule, chassis) > 0
+            Case "drone-rack-body-0", "drone-rack-body-1", "drone-rack-body-2", "drone-rack-body-3"
                 Return chassis.Body.GetValueOrDefault() > 0
             Case "amphibious-operation"
                 Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
@@ -203,9 +222,9 @@ Public Module ModificationCatalog
             End If
             validated.Add((rule, choice.Quantity))
             Select Case rule.Id
-                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation"
+                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
-                    ApplyRating(finalRatings, rule.Id, choice.Quantity, chassis, upgrades)
+                    ApplyRating(finalRatings, rule.Id, choice.Quantity, chassis, plant, upgrades)
             End Select
         Next
         If seen.Contains("datajack-port") AndAlso seen.Contains("rigger-adaptation") Then
@@ -223,12 +242,17 @@ Public Module ModificationCatalog
             Throw New ArgumentException("A retransmission power amplifier requires a retransmission unit.")
         End If
         Dim sensorRating = If(finalRatings?.Sensor, chassis.Sensor.GetValueOrDefault())
-        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits)).ToList()
+        Dim armCount = validated.Where(Function(choice) choice.Rule.Id = "mechanical-arm").
+            Select(Function(choice) choice.Quantity).SingleOrDefault()
+        If seen.Contains("mechanical-arm-strength") AndAlso armCount = 0 Then
+            Throw New ArgumentException("Mechanical arm strength enhancement requires a mechanical arm.")
+        End If
+        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount)).ToList()
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
     End Function
 
-    Private Sub ApplyRating(ratings As ModifiedRatings, id As String, quantity As Integer, chassis As StockChassis,
+    Private Sub ApplyRating(ratings As ModifiedRatings, id As String, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant,
                             upgrades As UpgradedRatings)
         Select Case id
             Case "sensors"
@@ -239,6 +263,14 @@ Public Module ModificationCatalog
                 Return
             Case "towed-array-sonar"
                 ratings.TowedArraySonar = quantity
+                Return
+            Case "aircraft-flotation"
+                Dim isRotorCraft = chassis.Category = "Rotor Craft"
+                Dim speedFactor = If(isRotorCraft, 0.9D, 0.5D)
+                ratings.Speed = CInt(Math.Floor(If(upgrades?.Speed, plant.StartingSpeed).Value * speedFactor))
+                Dim economy = If(upgrades?.Economy, If(plant.StartingEconomyKmPerLiter,
+                    If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar)))
+                ratings.Economy = If(isRotorCraft, economy, economy * 1.2D)
                 Return
             Case "amphibious-operation"
                 ratings.WaterHandlingModifier = If(quantity = 1, 2, 0)
@@ -260,7 +292,7 @@ Public Module ModificationCatalog
     End Sub
 
     Private Function Price(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant,
-                           sensorRating As Integer, retransmissionUnits As Integer) As DesignAddition
+                           sensorRating As Integer, retransmissionUnits As Integer, armCount As Integer) As DesignAddition
         Dim body = CDec(chassis.Body.GetValueOrDefault())
         Dim item As New DesignAddition With {.Name = rule.Name, .CargoConsumed = rule.CargoPerUnit * quantity}
         Select Case rule.Id
@@ -376,6 +408,19 @@ Public Module ModificationCatalog
                 item.DesignPoints = quantity / 50D
                 item.CargoConsumed = 15D
                 item.LoadConsumedKg = body * 80D
+            Case "aircraft-flotation"
+                item.DesignPoints = chassis.DesignPoints * 0.2D
+            Case "mechanical-arm"
+                item.DesignPoints = body * 100D * quantity
+                item.CargoConsumed = 2D * quantity
+                item.LoadConsumedKg = body * body * 10D * quantity
+            Case "mechanical-arm-strength"
+                item.DesignPoints = If(quantity <= 3, 60D, 75D) * body * quantity * armCount
+                item.LoadConsumedKg = 10D * quantity * armCount
+                item.Name = $"Mechanical arm enhancement (Strength {body * body + quantity} per arm)"
+            Case "drone-rack-body-0", "drone-rack-body-1", "drone-rack-body-2", "drone-rack-body-3"
+                item.DesignPoints = body * 12D * quantity
+                item.LoadConsumedKg = 45D * quantity
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

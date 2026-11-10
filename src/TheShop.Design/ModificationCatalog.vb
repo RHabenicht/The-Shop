@@ -13,14 +13,21 @@ Public NotInheritable Class ModificationRule
     Public ReadOnly Property QuantityLabel As String
     Public ReadOnly Property Maximum As Integer
 
+    Friend ReadOnly Property PointsPerUnit As Decimal
+    Friend ReadOnly Property LoadPerUnit As Decimal
+    Friend ReadOnly Property MountPoints As Integer
     Friend ReadOnly Property CargoPerUnit As Decimal
 
-    Public Sub New(id As String, name As String, quantityLabel As String, maximum As Integer, Optional cargoPerUnit As Decimal = 0D)
+    Public Sub New(id As String, name As String, quantityLabel As String, maximum As Integer, Optional cargoPerUnit As Decimal = 0D,
+                   Optional pointsPerUnit As Decimal = 0D, Optional loadPerUnit As Decimal = 0D, Optional mountPoints As Integer = 0)
         Me.Id = id
         Me.Name = name
         Me.QuantityLabel = quantityLabel
         Me.Maximum = maximum
         Me.CargoPerUnit = cargoPerUnit
+        Me.PointsPerUnit = pointsPerUnit
+        Me.LoadPerUnit = loadPerUnit
+        Me.MountPoints = mountPoints
     End Sub
 End Class
 
@@ -37,6 +44,7 @@ Public NotInheritable Class ModifiedRatings
     Public Property ECCM As Integer?
     Public Property ElectronicDeception As Integer?
     Public Property ElectronicCounterDeception As Integer?
+    Public Property DippingSonar As Integer?
     Public Property RadarSignature As Integer?
     Public Property InfraredSignature As Integer?
     Public Property Acceleration As Integer?
@@ -167,6 +175,32 @@ Public Module ModificationCatalog
         New ModificationRule("improved-suspension", "Improved suspension", "levels", 2),
         New ModificationRule("off-road-suspension", "Off-road suspension", "levels", 2),
         New ModificationRule("improved-control-surfaces", "Improved control surfaces", "levels", 2),
+        New ModificationRule("external-fixed-firmpoint", "External fixed firmpoint", "mounts", Integer.MaxValue, 0.5D, 10D, 10D, 1),
+        New ModificationRule("external-fixed-hardpoint", "External fixed hardpoint", "mounts", Integer.MaxValue, 1D, 25D, 10D, 2),
+        New ModificationRule("internal-fixed-firmpoint", "Internal fixed firmpoint", "mounts", Integer.MaxValue, 3D, 20D, 10D, 1),
+        New ModificationRule("internal-fixed-hardpoint", "Internal fixed hardpoint", "mounts", Integer.MaxValue, 4D, 35D, 10D, 2),
+        New ModificationRule("pintle-mount", "Pintle mount", "mounts", Integer.MaxValue, 0D, 1D, 0D, 1),
+        New ModificationRule("ring-mount", "Ring mount", "mounts", Integer.MaxValue, 1D, 10D, 25D, 2),
+        New ModificationRule("remote-micro-turret", "Remote micro-turret", "mounts", Integer.MaxValue, 0D, 100D, 10D, 1),
+        New ModificationRule("remote-mini-turret", "Remote mini-turret", "mounts", Integer.MaxValue, 3D, 175D, 25D, 2),
+        New ModificationRule("remote-small-turret", "Remote small turret", "mounts", Integer.MaxValue, 4D, 350D, 100D, 4),
+        New ModificationRule("remote-medium-turret", "Remote medium turret", "mounts", Integer.MaxValue, 4D, 600D, 1000D, 6),
+        New ModificationRule("remote-large-turret", "Remote large turret", "mounts", Integer.MaxValue, 32D, 2500D, 8000D, 8),
+        New ModificationRule("remote-extra-large-turret", "Remote extra-large turret", "mounts", Integer.MaxValue, 64D, 5000D, 35000D, 10),
+        New ModificationRule("crewed-mini-turret", "Crewed mini-turret", "mounts", Integer.MaxValue, 6D, 125D, 25D, 2),
+        New ModificationRule("crewed-small-turret", "Crewed small turret", "mounts", Integer.MaxValue, 7D, 250D, 100D, 4),
+        New ModificationRule("crewed-medium-turret", "Crewed medium turret", "mounts", Integer.MaxValue, 16D, 500D, 1000D, 6),
+        New ModificationRule("crewed-large-turret", "Crewed large turret", "mounts", Integer.MaxValue, 60D, 1500D, 6000D, 8),
+        New ModificationRule("crewed-extra-large-turret", "Crewed extra-large turret", "mounts", Integer.MaxValue, 120D, 3000D, 30000D, 10),
+        New ModificationRule("medium-launch-control", "Medium launch control", "mounts", Integer.MaxValue, 0.5D, 10D, 10D, 1),
+        New ModificationRule("heavy-launch-control", "Heavy launch control", "mounts", Integer.MaxValue, 1D, 25D, 10D, 2),
+        New ModificationRule("autosoft-interpretation", "Autosoft interpretation system", "", 1),
+        New ModificationRule("battletac-fddm", "BattleTac FDDM receiver", "", 1, 0D, 350D),
+        New ModificationRule("battletac-ivis", "BattleTac IVIS receiver", "", 1, 0D, 250D),
+        New ModificationRule("ccss-integration", "Closed-circuit simsense integration", "technical rating", 10),
+        New ModificationRule("dipping-sonar", "Dipping sonar", "rating", 6, 12D),
+        New ModificationRule("smartlink-integration-1", "Smartlink I mount integration", "mounts", Integer.MaxValue, 0D, 25D),
+        New ModificationRule("smartlink-integration-2", "Smartlink II mount integration", "mounts", Integer.MaxValue, 0D, 35D),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -185,7 +219,17 @@ Public Module ModificationCatalog
     End Function
 
     Public Function IsCompatible(rule As ModificationRule, chassis As StockChassis, plant As StockPowerPlant) As Boolean
+        If rule.MountPoints > 0 Then
+            If chassis.Body.GetValueOrDefault() < rule.MountPoints OrElse chassis.Category = "Bike" Then Return False
+            If rule.Id = "ring-mount" AndAlso (chassis.IsDrone OrElse chassis.Category = "Rotor Craft") Then Return False
+            If rule.Id.StartsWith("crewed-", StringComparison.Ordinal) AndAlso chassis.IsDrone Then Return False
+            Return True
+        End If
         Select Case rule.Id
+            Case "ccss-integration"
+                Return chassis.Category = "Ship"
+            Case "dipping-sonar"
+                Return chassis.Category = "Rotor Craft" OrElse chassis.Category = "Vectored-Thrust Aircraft"
             Case "airlock"
                 Return chassis.Category = "Submarine" OrElse
                     (chassis.Body.HasValue AndAlso chassis.Category <> "Bike" AndAlso Not chassis.IsDrone AndAlso chassis.Id <> "sand-buggy")
@@ -338,7 +382,7 @@ Public Module ModificationCatalog
             End If
             validated.Add((rule, choice.Quantity))
             Select Case rule.Id
-                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation", "autonav", "advanced-drone-pilot", "ecm", "eccm", "electronic-deception", "electronic-counter-deception"
+                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation", "autonav", "advanced-drone-pilot", "ecm", "eccm", "electronic-deception", "electronic-counter-deception", "dipping-sonar"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
                     ApplyRating(finalRatings, rule.Id, choice.Quantity, chassis, plant, upgrades)
             End Select
@@ -443,6 +487,21 @@ Public Module ModificationCatalog
             If levels >= 20 Then Throw New ArgumentException("Turbocharging must leave positive Economy.")
             finalRatings.Economy = economy * (1D - 0.05D * levels)
         End If
+        Dim mountPoints = validated.Sum(Function(choice) CLng(choice.Rule.MountPoints) * choice.Quantity)
+        If mountPoints > chassis.Body.GetValueOrDefault() Then Throw New ArgumentException("Weapon mounts exceed the vehicle's Body-based hardpoint and firmpoint limit.")
+        Dim fixedAndTurretCount = validated.Where(Function(choice) choice.Rule.Id.Contains("fixed-") OrElse choice.Rule.Id.Contains("turret")).
+            Sum(Function(choice) CLng(choice.Quantity))
+        Dim smartlinks = validated.Where(Function(choice) choice.Rule.Id.StartsWith("smartlink-integration-", StringComparison.Ordinal)).
+            Sum(Function(choice) CLng(choice.Quantity))
+        If smartlinks > fixedAndTurretCount Then Throw New ArgumentException("Smartlink integrations require a separate fixed mount or turret for each installation.")
+        If chassis.Category = "Car" AndAlso Not chassis.IsDrone AndAlso
+            validated.Any(Function(choice) choice.Rule.Id.Contains("turret")) AndAlso Not seen.Contains("roll-bar") Then
+            Throw New ArgumentException("A crewed ground vehicle requires roll bars for turret installation.")
+        End If
+        Dim pilot = If(finalRatings?.Pilot, chassis.Pilot.GetValueOrDefault())
+        If (seen.Contains("autosoft-interpretation") OrElse seen.Contains("battletac-fddm") OrElse seen.Contains("battletac-ivis")) AndAlso pilot < 1 Then
+            Throw New ArgumentException("Drone software systems require a Pilot rating or remote-control interface.")
+        End If
         If seen.Contains("smart-armor") AndAlso If(finalRatings?.Armor, chassis.Armor.GetValueOrDefault()) < 1 Then
             Throw New ArgumentException("Smart armor requires vehicle Armor of at least 1.")
         End If
@@ -459,7 +518,15 @@ Public Module ModificationCatalog
                 finalRatings.InfraredSignature = signature.Value + choice.Quantity
             End If
         Next
-        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount)).ToList()
+        Dim externalMounts = validated.Any(Function(choice) choice.Rule.Id.StartsWith("external-fixed-", StringComparison.Ordinal))
+        Dim turretPenalty = validated.Where(Function(choice) choice.Rule.Id.Contains("turret")).Sum(Function(choice) CLng(choice.Quantity))
+        If externalMounts OrElse turretPenalty > 0 Then
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            finalRatings.Signature = CInt(If(finalRatings.Signature, If(upgrades?.Signature, plant.Signature)).GetValueOrDefault() - turretPenalty - If(externalMounts, 1, 0))
+            If finalRatings.RadarSignature.HasValue Then finalRatings.RadarSignature -= CInt(turretPenalty) + If(externalMounts, 1, 0)
+            If finalRatings.InfraredSignature.HasValue Then finalRatings.InfraredSignature -= CInt(turretPenalty) + If(externalMounts, 1, 0)
+        End If
+        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount, pilot)).ToList()
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
     End Function
@@ -475,6 +542,9 @@ Public Module ModificationCatalog
                 Return
             Case "towed-array-sonar"
                 ratings.TowedArraySonar = quantity
+                Return
+            Case "dipping-sonar"
+                ratings.DippingSonar = quantity
                 Return
             Case "ecm"
                 ratings.ECM = quantity
@@ -522,9 +592,10 @@ Public Module ModificationCatalog
     End Sub
 
     Private Function Price(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant,
-                           sensorRating As Integer, retransmissionUnits As Integer, armCount As Integer) As DesignAddition
+                           sensorRating As Integer, retransmissionUnits As Integer, armCount As Integer, pilot As Integer) As DesignAddition
         Dim body = CDec(chassis.Body.GetValueOrDefault())
-        Dim item As New DesignAddition With {.Name = rule.Name, .CargoConsumed = rule.CargoPerUnit * quantity}
+        Dim item As New DesignAddition With {.Name = rule.Name, .CargoConsumed = rule.CargoPerUnit * quantity,
+            .DesignPoints = rule.PointsPerUnit * quantity, .LoadConsumedKg = rule.LoadPerUnit * quantity}
         Select Case rule.Id
             Case "airlock"
                 item.DesignPoints = 500D
@@ -736,6 +807,14 @@ Public Module ModificationCatalog
                 item.DesignPoints = chassis.DesignPoints * 0.5D * quantity
             Case "improved-control-surfaces"
                 item.DesignPoints = chassis.DesignPoints * 0.4D * quantity
+            Case "autosoft-interpretation"
+                item.DesignPoints = pilot * 50D
+                item.CargoConsumed = 1D
+            Case "ccss-integration"
+                item.DesignPoints = 5000D * quantity
+            Case "dipping-sonar"
+                item.DesignPoints = 250D * quantity
+                item.LoadConsumedKg = 50D
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

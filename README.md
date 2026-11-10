@@ -62,6 +62,8 @@ The electronics catalog also covers ECM and ECCM ratings 1–10 and ED and ECD r
 
 Improved suspension, off-road suspension, and improved control surfaces use their chassis-based design costs. Ground suspension benefits account for the selected tire type. Off-road suspension applies the printed Speed and Economy multiplier (*Rigger 3 Revised*, pp. 129–130).
 
+Body-rated vehicles can select fixed mounts, pintles, rings, crewed and remote turrets, and launch controls. These entries share the vehicle’s hardpoint and firmpoint budget. Enter carried weapon and ammunition weight separately. Turret gun capacity, firing arcs, and crew space require review against the book. Aircraft door guns and Hull-rated mounts use manual entries. Autosoft interpretation, BattleTac FDDM and IVIS receivers, ship CCSS integration, dipping sonar, and mount smartlink integration are also available (*Rigger 3 Revised*, pp. 136–143).
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

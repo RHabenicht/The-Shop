@@ -487,6 +487,26 @@ Module Program
                         suspensionResult.AppliedModifications(0).DesignPoints = 10D AndAlso
                         suspensionResult.AppliedModifications(1).DesignPoints = 20D,
                         "Both suspension types should compose with dual-purpose tires and charge their listed chassis costs.")
+                electronicAircraft.CatalogModifications = New List(Of ModificationSelection) From {
+                    New ModificationSelection With {.Id = "external-fixed-hardpoint", .Quantity = 1},
+                    New ModificationSelection With {.Id = "remote-small-turret", .Quantity = 1},
+                    New ModificationSelection With {.Id = "internal-fixed-firmpoint", .Quantity = 1},
+                    New ModificationSelection With {.Id = "smartlink-integration-2", .Quantity = 2}
+                }
+                editor.WriteDesignFile(destination, electronicAircraft)
+                editor.LoadDesignFile(destination)
+                Dim mountResult = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(mountResult.Totals.BaseCostNuyen = 741250D AndAlso mountResult.Totals.CargoRemaining = 492D AndAlso
+                        mountResult.Totals.LoadRemainingKg = 4880D AndAlso mountResult.ModifiedRatings.Signature.GetValueOrDefault() = 1,
+                        "Weapon mounts should apply their design costs, capacity, and Signature penalties.")
+                electronicAircraft.CatalogModifications.Add(New ModificationSelection With {.Id = "remote-medium-turret", .Quantity = 1})
+                Dim mountLimitRejected = False
+                Try
+                    electronicAircraft.Calculate(sheetCatalog)
+                Catch ex As ArgumentException When ex.Message.Contains("hardpoint")
+                    mountLimitRejected = True
+                End Try
+                Require(mountLimitRejected, "Weapon mounts should share the vehicle's Body-based mounting budget.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

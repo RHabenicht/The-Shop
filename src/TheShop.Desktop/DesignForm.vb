@@ -252,6 +252,7 @@ Public NotInheritable Class DesignForm
             If modified.Sonar.HasValue Then values.Add($"Sonar {modified.Sonar}")
             If modified.Autonav.HasValue Then values.Add($"Autonav {modified.Autonav}")
             If modified.Pilot.HasValue Then values.Add($"Pilot {modified.Pilot}")
+            If modified.DippingSonar.HasValue Then values.Add($"Dipping sonar {modified.DippingSonar}")
             If modified.ECM.HasValue Then values.Add($"ECM {modified.ECM}")
             If modified.ECCM.HasValue Then values.Add($"ECCM {modified.ECCM}")
             If modified.ElectronicDeception.HasValue Then values.Add($"ED {modified.ElectronicDeception}")

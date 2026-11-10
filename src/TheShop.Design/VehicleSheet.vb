@@ -80,6 +80,12 @@ Public Module VehicleSheet
         Row(page, "Available load (kg)", Number(totals.LoadRemainingKg))
         If chassis.StartingDepth.HasValue Then Row(page, "Depth (m)", Number(If(up?.Depth, chassis.StartingDepth)))
         If modified?.TowedArraySonar.HasValue Then Row(page, "Towed-array sonar", Number(modified.TowedArraySonar))
+        If result.OperatingModes IsNot Nothing Then
+            For Each mode In result.OperatingModes
+                Row(page, mode.Name, $"Speed {Number(mode.Speed)}; Accel {Number(mode.Acceleration)}; Handling {Number(mode.Handling)}; Signature {Number(mode.Signature)}; Sonar Signature {Number(mode.SonarSignature)}")
+                If mode.Notes IsNot Nothing Then Row(page, mode.Name & " notes", mode.Notes)
+            Next
+        End If
         Dim fuel = If(up?.FuelCapacity, If(plant.FuelLiters, If(plant.FuelBars, If(plant.BatteryPowerFactors, If(plant.FuelCellPowerFactors, plant.RocketPowerFactors)))))
         Dim fuelUnit = If(up?.FuelUnit, If(plant.FuelLiters.HasValue, "L", If(plant.FuelBars.HasValue, "bars", "PF")))
         If fuel.HasValue Then Row(page, "Fuel capacity", Number(fuel) & " " & fuelUnit)

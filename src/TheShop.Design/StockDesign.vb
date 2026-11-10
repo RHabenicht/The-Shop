@@ -82,6 +82,7 @@ Public NotInheritable Class StockDesign
         Return New StockDesignResult With {
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
             .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits, .AuxiliaryEngine = AuxiliaryEngine.Ratings(auxiliary),
+            .OperatingModes = VehicleOperatingModes.Build(CatalogModifications, powerPlant, chassis, ratings, modifiedRatings),
             .Availability = If(AvailabilityClass.HasValue, VehicleAvailability.Calculate(AvailabilityClass.Value, totals.BaseCostNuyen), Nothing)
         }
     End Function
@@ -228,6 +229,8 @@ Public NotInheritable Class StockDesignResult
     Public Property AppliedModifications As IReadOnlyList(Of DesignAddition)
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property ModifiedRatings As ModifiedRatings
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property OperatingModes As IReadOnlyList(Of VehicleOperatingMode)
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property AuxiliaryEngine As AuxiliaryEngineRatings
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>

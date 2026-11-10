@@ -620,6 +620,31 @@ Module Program
                         smartMaterialResult.Totals.BaseCostNuyen = 43500D AndAlso
                         StockCatalog.FindById(sheetCatalog, "van").PowerPlants.Single(Function(item) item.Id = "diesel").MaximumSpeed.GetValueOrDefault() = 175,
                         "Smart materials should raise limits without mutating the shared catalog.")
+                Dim hydrofoilBoat As New StockDesign With {
+                    .ChassisId = "sport-cruiser", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "hydrofoil", .Quantity = 1}
+                    }
+                }
+                editor.WriteDesignFile(destination, hydrofoilBoat)
+                editor.LoadDesignFile(destination)
+                Dim hydrofoilResult = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(hydrofoilResult.OperatingModes.Single().Speed.GetValueOrDefault() = 37 AndAlso
+                        hydrofoilResult.OperatingModes.Single().Acceleration.GetValueOrDefault() = 5 AndAlso
+                        hydrofoilResult.OperatingModes.Single().Handling.GetValueOrDefault() = 6 AndAlso
+                        hydrofoilResult.Totals.CargoRemaining = 40D,
+                        "Hydrofoil performance should be shown as an operating mode with its design capacity cost.")
+                Dim deckVan As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "flight-deck", .Quantity = 10},
+                        New ModificationSelection With {.Id = "flight-deck-catapult", .Quantity = 1},
+                        New ModificationSelection With {.Id = "flight-deck-angled", .Quantity = 1}
+                    }
+                }
+                Dim deckResult = deckVan.Calculate(sheetCatalog)
+                Require(deckResult.Totals.BaseCostNuyen = 14700D AndAlso deckResult.Totals.CargoRemaining = 40D AndAlso
+                        deckResult.Totals.LoadRemainingKg = 760D, "Flight decks should include their length, catapult, and angled-deck costs.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

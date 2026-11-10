@@ -272,6 +272,12 @@ Public Module ModificationCatalog
         New ModificationRule("tailhook", "Tailhook system", "", 1),
         New ModificationRule("stol-profile", "STOL takeoff/landing profile", "", 1, 0D, 250D),
         New ModificationRule("vstol-profile", "VSTOL takeoff/landing profile", "", 1, 0D, 400D),
+        New ModificationRule("ducted-waterjet", "Ducted waterjet drive", "", 1),
+        New ModificationRule("emd-drive", "Electromagnetic ducted waterjet drive", "", 1),
+        New ModificationRule("hydrofoil", "Hydrofoil capability", "", 1, 8D, 50D),
+        New ModificationRule("flight-deck", "Flight deck", "metres of length", Integer.MaxValue),
+        New ModificationRule("flight-deck-catapult", "Flight deck catapult/arrestor wire", "", 1),
+        New ModificationRule("flight-deck-angled", "Angled flight deck", "", 1),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -425,6 +431,14 @@ Public Module ModificationCatalog
                 Return chassis.Body.HasValue AndAlso plant.Id <> "unpowered"
             Case "tailhook", "stol-profile", "vstol-profile"
                 Return chassis.Category = "Fixed-Wing Aircraft" AndAlso chassis.Body.GetValueOrDefault() > 0
+            Case "ducted-waterjet"
+                Return chassis.Category = "Submarine"
+            Case "emd-drive"
+                Return chassis.Category = "Submarine" AndAlso plant.Id = "nuclear"
+            Case "hydrofoil"
+                Return chassis.Category = "Boat" AndAlso chassis.Id <> "skiff"
+            Case "flight-deck", "flight-deck-catapult", "flight-deck-angled"
+                Return chassis.Hull.HasValue OrElse chassis.Body.GetValueOrDefault() > 0
             Case "amphibious-operation"
                 Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
             Case "hovercraft-water-seal"
@@ -692,6 +706,11 @@ Public Module ModificationCatalog
                 End Select
             Next
         End If
+        Dim deckLength = validated.Where(Function(choice) choice.Rule.Id = "flight-deck").Select(Function(choice) choice.Quantity).SingleOrDefault()
+        If (seen.Contains("flight-deck-catapult") OrElse seen.Contains("flight-deck-angled")) AndAlso deckLength = 0 Then
+            Throw New ArgumentException("Flight-deck accessories require a flight deck.")
+        End If
+        If seen.Contains("ducted-waterjet") AndAlso seen.Contains("emd-drive") Then Throw New ArgumentException("Select one ducted waterjet drive.")
         Dim mountPoints = validated.Sum(Function(choice) CLng(choice.Rule.MountPoints) * choice.Quantity)
         If mountPoints > chassis.Body.GetValueOrDefault() Then Throw New ArgumentException("Weapon mounts exceed the vehicle's Body-based hardpoint and firmpoint limit.")
         Dim fixedAndTurretCount = validated.Where(Function(choice) choice.Rule.Id.Contains("fixed-") OrElse choice.Rule.Id.Contains("turret")).
@@ -756,7 +775,7 @@ Public Module ModificationCatalog
                 finalRatings.SonarSignature = CInt(plant.SonarSignature.GetValueOrDefault() - sonarPenalty)
             End If
         End If
-        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount, pilot, adaptation)).ToList()
+        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount, pilot, adaptation, deckLength)).ToList()
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
     End Function
@@ -829,7 +848,7 @@ Public Module ModificationCatalog
     End Sub
 
     Private Function Price(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant,
-                           sensorRating As Integer, retransmissionUnits As Integer, armCount As Integer, pilot As Integer, adaptation As Integer) As DesignAddition
+                           sensorRating As Integer, retransmissionUnits As Integer, armCount As Integer, pilot As Integer, adaptation As Integer, deckLength As Integer) As DesignAddition
         Dim body = CDec(chassis.Body.GetValueOrDefault())
         Dim item As New DesignAddition With {.Name = rule.Name, .CargoConsumed = rule.CargoPerUnit * quantity,
             .DesignPoints = rule.PointsPerUnit * quantity, .LoadConsumedKg = rule.LoadPerUnit * quantity}
@@ -1100,6 +1119,27 @@ Public Module ModificationCatalog
                 item.DesignPoints = chassis.DesignPoints * 0.1D
                 item.CargoConsumed = body / 2D
                 item.LoadConsumedKg = body * 125D
+            Case "ducted-waterjet", "emd-drive"
+                Dim hull = CDec(chassis.Hull.GetValueOrDefault())
+                Dim factor = If(chassis.Hull.HasValue, 100D * hull * hull, 1D)
+                Dim electromagnetic = rule.Id = "emd-drive"
+                item.DesignPoints = If(electromagnetic, 50000D, 5000D) * factor
+                item.CargoConsumed = If(electromagnetic, 6D, 4D) * factor
+                item.LoadConsumedKg = If(electromagnetic, 4D, 3D) * factor
+            Case "flight-deck", "flight-deck-catapult", "flight-deck-angled"
+                Dim size = CDec(If(chassis.Hull, chassis.Body).GetValueOrDefault())
+                Dim factor = If(chassis.Hull.HasValue, 100D * size * size, size)
+                Select Case rule.Id
+                    Case "flight-deck"
+                        item.DesignPoints = deckLength * factor
+                    Case "flight-deck-catapult"
+                        item.DesignPoints = factor * 2D
+                        item.CargoConsumed = factor * 2D
+                        item.LoadConsumedKg = factor * 10D
+                    Case "flight-deck-angled"
+                        item.DesignPoints = deckLength * factor * 0.1D
+                        item.LoadConsumedKg = If(chassis.Hull.HasValue, 20D * (deckLength + factor), deckLength * 20D)
+                End Select
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

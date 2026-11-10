@@ -74,6 +74,8 @@ Robot options include robotic-pilot programming, robotic reflexes, improved neur
 
 Design enhancements include hybrid engines, smart materials, fin drives, removed manual controls, setup/breakdown capability, special storage, Structural Agility, tailhooks, and STOL/VSTOL profiles. Hybrid engines and fin drives adjust starting ratings before functional upgrades. Smart materials raise maximum ratings. Enter the gamemaster-assigned final Street Index and any required chassis markup adjustment, including the smart-materials requirements of fin drives. Fin drives also require the printed Availability adjustment. Special storage entries charge supporting machinery space; the designated storage volume remains cargo space (*Rigger 3 Revised*, pp. 117–119).
 
+Hydrofoils, ducted waterjets, and nuclear-powered electromagnetic ducted drives show their engaged ratings as operating modes. Flight decks use a length in metres, with catapult/arrestor wire and angled-deck options. Check aircraft size, runway profile, and deck length for takeoff and landing (*Rigger 3 Revised*, pp. 116–119).
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

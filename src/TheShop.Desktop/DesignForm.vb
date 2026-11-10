@@ -251,6 +251,11 @@ Public NotInheritable Class DesignForm
             Dim engine = result.AuxiliaryEngine
             totals.Text &= Environment.NewLine & $"Auxiliary {engine.Name}   Speed {engine.Speed}   Acceleration {engine.Acceleration}"
         End If
+        If result.OperatingModes IsNot Nothing Then
+            For Each mode In result.OperatingModes
+                totals.Text &= Environment.NewLine & $"{mode.Name}   Speed {mode.Speed}   Accel {mode.Acceleration}   Handling {mode.Handling}   Signature {mode.Signature}   Sonar Signature {mode.SonarSignature}"
+            Next
+        End If
         Dim modified = result.ModifiedRatings
         If modified IsNot Nothing Then
             Dim values As New List(Of String)

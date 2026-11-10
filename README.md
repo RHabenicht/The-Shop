@@ -58,6 +58,8 @@ Motorcycle sidecars add cargo and apply the size’s Handling penalty, a 15-poin
 
 Turbocharging and superconductive drive increase Speed and Acceleration, reduce Signature, and apply the Economy penalty after other design options. The catalog prices each level at 75 percent of the power plant’s Design Points and enforces the increased Speed ceiling (*Rigger 3 Revised*, p. 126).
 
+The electronics catalog also covers ECM and ECCM ratings 1–10 and ED and ECD ratings 1–6. Radar-absorbent materials and thermal baffles report separate radar and infrared Signatures. Noisemaker dispensers, smart armor, and chameleon paint use the printed design specifications and compatibility rules (*Rigger 3 Revised*, pp. 134–135, 144–145, 153). Smart armor and radar-absorbent materials require the appropriate vehicle Availability class.
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

@@ -33,6 +33,12 @@ Public NotInheritable Class ModifiedRatings
     Public Property Sensor As Integer?
     Public Property Sonar As Integer?
     Public Property TowedArraySonar As Integer?
+    Public Property ECM As Integer?
+    Public Property ECCM As Integer?
+    Public Property ElectronicDeception As Integer?
+    Public Property ElectronicCounterDeception As Integer?
+    Public Property RadarSignature As Integer?
+    Public Property InfraredSignature As Integer?
     Public Property Acceleration As Integer?
     Public Property Signature As Integer?
     Public Property Speed As Integer?
@@ -53,6 +59,16 @@ Public Module ModificationCatalog
     Private ReadOnly sonarCargo As Integer() = {0, 4, 6, 10, 16, 50, 75, 100, 200, 300, 500}
     Private ReadOnly sonarLoad As Integer() = {0, 120, 250, 350, 500, 750, 1000, 1250, 1500, 2000, 2500}
 
+    Private ReadOnly ecmPoints As Integer() = {0, 100, 200, 300, 500, 750, 1000, 2000, 3000, 5000, 10000}
+    Private ReadOnly ecmLoad As Integer() = {0, 5, 10, 15, 20, 25, 50, 75, 100, 150, 250}
+    Private ReadOnly eccmPoints As Integer() = {0, 100, 200, 300, 400, 500, 750, 1000, 2500, 3000, 5000}
+    Private ReadOnly eccmLoad As Integer() = {0, 3, 5, 8, 12, 18, 25, 50, 75, 100, 150}
+    Private ReadOnly edPoints As Integer() = {0, 150, 300, 500, 750, 1000, 2500}
+    Private ReadOnly edCargo As Integer() = {0, 1, 2, 4, 5, 6, 8}
+    Private ReadOnly edLoad As Integer() = {0, 10, 20, 30, 45, 50, 75}
+    Private ReadOnly ecdPoints As Integer() = {0, 100, 300, 500, 750, 1500, 3000}
+    Private ReadOnly ecdCargo As Integer() = {0, 1, 2, 3, 4, 5, 8}
+    Private ReadOnly ecdLoad As Integer() = {0, 25, 30, 35, 45, 60, 75}
     Private ReadOnly pilotPoints As Integer() = {0, 0, 50, 250, 1250, 5000}
     Private ReadOnly autonavPoints As Integer() = {0, 5, 10, 50, 150}
 
@@ -139,6 +155,15 @@ Public Module ModificationCatalog
         New ModificationRule("sidecar", "Motorcycle sidecar", "1 small, 2 medium, 3 large", 3),
         New ModificationRule("runflat-upgrade", "Runflat tire upgrade", "tires", Integer.MaxValue),
         New ModificationRule("turbocharging", "Turbocharging / superconductive drive", "levels", Integer.MaxValue),
+        New ModificationRule("ecm", "Electronic countermeasures", "rating", 10),
+        New ModificationRule("eccm", "Electronic counter-countermeasures", "rating", 10),
+        New ModificationRule("electronic-deception", "Electronic deception", "rating", 6),
+        New ModificationRule("electronic-counter-deception", "Electronic counter-deception", "rating", 6),
+        New ModificationRule("radar-absorbent-materials", "Radar-absorbent materials", "levels", 3),
+        New ModificationRule("thermal-baffles", "Thermal baffles", "levels", 2),
+        New ModificationRule("noisemaker-dispenser", "Noisemaker dispenser", "noisemakers", Integer.MaxValue),
+        New ModificationRule("smart-armor", "Smart armor system", "", 1),
+        New ModificationRule("chameleon-paint", "Photovoltaic chameleon paint", "", 1),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -241,6 +266,13 @@ Public Module ModificationCatalog
                      plant.Id.StartsWith("electric-", StringComparison.Ordinal)) AndAlso
                     (Not chassis.Category.Contains("Aircraft") AndAlso chassis.Category <> "Rotor Craft" OrElse
                      plant.Id.StartsWith("electric-", StringComparison.Ordinal))
+            Case "thermal-baffles"
+                Return chassis.Body.HasValue AndAlso
+                    (plant.Id = "gasoline" OrElse plant.Id = "methane" OrElse plant.Id = "diesel" OrElse plant.Id.StartsWith("jet-", StringComparison.Ordinal))
+            Case "noisemaker-dispenser"
+                Return chassis.Category = "Boat" OrElse chassis.Category = "Ship" OrElse chassis.Category = "Submarine"
+            Case "smart-armor"
+                Return chassis.Body.GetValueOrDefault() >= 4
             Case "amphibious-operation"
                 Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
             Case "hovercraft-water-seal"
@@ -301,7 +333,7 @@ Public Module ModificationCatalog
             End If
             validated.Add((rule, choice.Quantity))
             Select Case rule.Id
-                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation", "autonav", "advanced-drone-pilot"
+                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation", "autonav", "advanced-drone-pilot", "ecm", "eccm", "electronic-deception", "electronic-counter-deception"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
                     ApplyRating(finalRatings, rule.Id, choice.Quantity, chassis, plant, upgrades)
             End Select
@@ -378,6 +410,22 @@ Public Module ModificationCatalog
             If levels >= 20 Then Throw New ArgumentException("Turbocharging must leave positive Economy.")
             finalRatings.Economy = economy * (1D - 0.05D * levels)
         End If
+        If seen.Contains("smart-armor") AndAlso If(finalRatings?.Armor, chassis.Armor.GetValueOrDefault()) < 1 Then
+            Throw New ArgumentException("Smart armor requires vehicle Armor of at least 1.")
+        End If
+        If seen.Contains("chameleon-paint") AndAlso (seen.Contains("smart-armor") OrElse seen.Contains("radar-absorbent-materials")) Then
+            Throw New ArgumentException("Chameleon paint is incompatible with smart armor and radar-absorbent materials.")
+        End If
+        For Each choice In validated.Where(Function(item) item.Rule.Id = "radar-absorbent-materials" OrElse item.Rule.Id = "thermal-baffles")
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            Dim signature = If(finalRatings.Signature, If(upgrades?.Signature, plant.Signature))
+            If Not signature.HasValue Then Throw New ArgumentException("Signature enhancement requires a base Signature rating.")
+            If choice.Rule.Id = "radar-absorbent-materials" Then
+                finalRatings.RadarSignature = signature.Value + choice.Quantity
+            Else
+                finalRatings.InfraredSignature = signature.Value + choice.Quantity
+            End If
+        Next
         Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount)).ToList()
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
@@ -394,6 +442,18 @@ Public Module ModificationCatalog
                 Return
             Case "towed-array-sonar"
                 ratings.TowedArraySonar = quantity
+                Return
+            Case "ecm"
+                ratings.ECM = quantity
+                Return
+            Case "eccm"
+                ratings.ECCM = quantity
+                Return
+            Case "electronic-deception"
+                ratings.ElectronicDeception = quantity
+                Return
+            Case "electronic-counter-deception"
+                ratings.ElectronicCounterDeception = quantity
                 Return
             Case "autonav"
                 ratings.Autonav = quantity
@@ -605,6 +665,38 @@ Public Module ModificationCatalog
                 item.DirectCostNuyen = 200D * quantity
             Case "turbocharging"
                 item.DesignPoints = plant.DesignPoints * 0.75D * quantity
+            Case "ecm"
+                item.DesignPoints = ecmPoints(quantity)
+                item.CargoConsumed = sensorCargo(quantity)
+                item.LoadConsumedKg = ecmLoad(quantity)
+            Case "eccm"
+                item.DesignPoints = eccmPoints(quantity)
+                item.CargoConsumed = sensorCargo(quantity)
+                item.LoadConsumedKg = eccmLoad(quantity)
+            Case "electronic-deception"
+                item.DesignPoints = edPoints(quantity)
+                item.CargoConsumed = edCargo(quantity)
+                item.LoadConsumedKg = edLoad(quantity)
+            Case "electronic-counter-deception"
+                item.DesignPoints = ecdPoints(quantity)
+                item.CargoConsumed = ecdCargo(quantity)
+                item.LoadConsumedKg = ecdLoad(quantity)
+            Case "radar-absorbent-materials"
+                Dim levels = CDec(quantity)
+                item.DesignPoints = levels * levels * levels * 50D
+            Case "thermal-baffles"
+                item.DesignPoints = 75D * quantity
+                item.LoadConsumedKg = body * 50D * quantity
+            Case "noisemaker-dispenser"
+                item.DesignPoints = 350D
+                item.CargoConsumed = 16D + 8D * quantity
+                item.LoadConsumedKg = 150D + 25D * quantity
+            Case "smart-armor"
+                item.DesignPoints = 250D
+                item.CargoConsumed = 2D
+                item.LoadConsumedKg = body * 50D
+            Case "chameleon-paint"
+                item.DesignPoints = 50D
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

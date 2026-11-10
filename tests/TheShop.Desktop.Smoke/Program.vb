@@ -446,6 +446,32 @@ Module Program
                         turboResult.ModifiedRatings.Economy.GetValueOrDefault() = turboPlant.StartingEconomyKmPerLiter.GetValueOrDefault() * 0.9D AndAlso
                         turboResult.AppliedModifications.Single().DesignPoints = 52.5D,
                         "Turbocharging should apply the listed power plant cost and final rating changes.")
+                Dim electronicAircraft As New StockDesign With {
+                    .ChassisId = "airliner", .PowerPlantId = "jet-propeller", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "ecm", .Quantity = 10},
+                        New ModificationSelection With {.Id = "eccm", .Quantity = 10},
+                        New ModificationSelection With {.Id = "electronic-deception", .Quantity = 6},
+                        New ModificationSelection With {.Id = "electronic-counter-deception", .Quantity = 6}
+                    }
+                }
+                editor.WriteDesignFile(destination, electronicAircraft)
+                editor.LoadDesignFile(destination)
+                Require(totals.Text.Contains("ECM 10") AndAlso totals.Text.Contains("ECCM 10") AndAlso
+                        totals.Text.Contains("ED 6") AndAlso totals.Text.Contains("ECD 6") AndAlso
+                        totals.Text.Contains("452 CF") AndAlso totals.Text.Contains("4450 kg") AndAlso
+                        totals.Text.Contains("Base ¥5,750,000.00"),
+                        "Electronic systems should apply the complete rating tables and reopen correctly.")
+                electronicAircraft.CatalogModifications = New List(Of ModificationSelection) From {
+                    New ModificationSelection With {.Id = "radar-absorbent-materials", .Quantity = 2},
+                    New ModificationSelection With {.Id = "thermal-baffles", .Quantity = 1},
+                    New ModificationSelection With {.Id = "smart-armor", .Quantity = 1},
+                    New ModificationSelection With {.Id = "vehicle-armor", .Quantity = 1}
+                }
+                Dim signatureResult = electronicAircraft.Calculate(sheetCatalog)
+                Require(signatureResult.ModifiedRatings.RadarSignature.GetValueOrDefault() = 5 AndAlso
+                        signatureResult.ModifiedRatings.InfraredSignature.GetValueOrDefault() = 4,
+                        "Radar and infrared improvements should retain their separate final signatures.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

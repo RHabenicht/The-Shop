@@ -132,12 +132,18 @@ Public Module ModificationCatalog
         New ModificationRule("autonav", "Autonav", "rating", 4),
         New ModificationRule("remote-control-interface", "Remote-control interface", "", 1),
         New ModificationRule("advanced-drone-pilot", "Advanced drone pilot", "rating (2–5)", 5),
+        New ModificationRule("extra-entry-points", "Additional entry points", "entry points", Integer.MaxValue),
+        New ModificationRule("ballast-tanks", "Ballast tanks", "", 1),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
 
     Public Function MaximumQuantity(rule As ModificationRule, chassis As StockChassis) As Integer
         Dim body = chassis.Body.GetValueOrDefault()
+        If rule.Id = "extra-entry-points" Then
+            If chassis.Hull.HasValue Then Return CInt(Math.Min(Integer.MaxValue, chassis.Hull.Value * 2D))
+            Return CInt(Math.Ceiling(body / 2D))
+        End If
         If rule.Id = "mechanical-arm-strength" Then Return If(body > 0 AndAlso body < 10, body * (10 - body), 0)
         If rule.Id <> "crane" AndAlso rule.Id <> "winch" Then Return rule.Maximum
         If rule.Id = "winch" AndAlso body = 0 Then Return 5
@@ -148,7 +154,13 @@ Public Module ModificationCatalog
     Public Function IsCompatible(rule As ModificationRule, chassis As StockChassis, plant As StockPowerPlant) As Boolean
         Select Case rule.Id
             Case "airlock"
-                Return chassis.Category = "Submarine"
+                Return chassis.Category = "Submarine" OrElse
+                    (chassis.Body.HasValue AndAlso chassis.Category <> "Bike" AndAlso Not chassis.IsDrone AndAlso chassis.Id <> "sand-buggy")
+            Case "extra-entry-points"
+                Return MaximumQuantity(rule, chassis) > 0
+            Case "ballast-tanks"
+                Return chassis.Body.HasValue AndAlso chassis.Category <> "Submarine" AndAlso chassis.Category <> "Ship" AndAlso
+                    chassis.Category <> "Boat" AndAlso chassis.Category <> "Bike" AndAlso chassis.Id <> "sand-buggy" AndAlso plant.Id <> "unpowered"
             Case "crash-cage"
                 Return Not chassis.IsDrone AndAlso chassis.Category <> "Bike"
             Case "datajack-port", "rigger-adaptation"
@@ -294,10 +306,17 @@ Public Module ModificationCatalog
             Throw New ArgumentException("A retransmission power amplifier requires a retransmission unit.")
         End If
         Dim sensorRating = If(finalRatings?.Sensor, chassis.Sensor.GetValueOrDefault())
+        Dim hasCabinSeal = seen.Contains("cabin-gas-seal") OrElse seen.Contains("cabin-water-seal")
+        If seen.Contains("airlock") AndAlso chassis.Category <> "Submarine" AndAlso Not hasCabinSeal Then
+            Throw New ArgumentException("An airlock on this chassis requires a cabin seal.")
+        End If
+        If seen.Contains("ballast-tanks") AndAlso Not seen.Contains("engine-water-seal") Then
+            Throw New ArgumentException("Ballast tanks require an engine water seal.")
+        End If
         If seen.Contains("cabin-gas-seal") AndAlso seen.Contains("cabin-water-seal") Then
             Throw New ArgumentException("Select one cabin seal.")
         End If
-        If seen.Contains("cabin-overpressure") AndAlso Not (seen.Contains("cabin-gas-seal") OrElse seen.Contains("cabin-water-seal")) Then
+        If seen.Contains("cabin-overpressure") AndAlso Not hasCabinSeal Then
             Throw New ArgumentException("Cabin over-pressurization requires a cabin seal.")
         End If
         If seen.Contains("remote-control-interface") Then
@@ -532,6 +551,11 @@ Public Module ModificationCatalog
                 item.DesignPoints = 25D * body
             Case "advanced-drone-pilot"
                 item.DesignPoints = pilotPoints(quantity)
+            Case "ballast-tanks"
+                Dim squaredBody = body * body
+                item.DesignPoints = squaredBody * 10D
+                item.CargoConsumed = squaredBody * 2D
+                item.LoadConsumedKg = squaredBody * 25D
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

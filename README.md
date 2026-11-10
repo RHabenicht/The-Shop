@@ -26,7 +26,7 @@ Use manual entries for Hull-rated options, speed upgrades on vehicles with two o
 
 ## Add catalog modifications
 
-Choose **Catalog mods…** in the editor. The catalog prices airlocks for submarines, crash cages, datajack ports, electronics ports, nitrous oxide injectors, rigger adaptation, spotlights, and three types of special tires. It uses the design costs and design capacity requirements from *Rigger 3 Revised*, pp. 116, 126, 128, 130, 132, 145–146, and 154–155. Special installations outside this catalog and in-play effects still require manual handling. Use one tire type and enter the number of tires. Rigger adaptation already includes a datajack port.
+Choose **Catalog mods…** in the editor. The catalog prices airlocks for submarines and vehicles with sealed cabins, crash cages, datajack ports, electronics ports, nitrous oxide injectors, rigger adaptation, spotlights, and three types of special tires. It uses the design costs and design capacity requirements from *Rigger 3 Revised*, pp. 116, 126, 128, 130, 132, 145–146, and 154–155. Special installations outside this catalog and in-play effects still require manual handling. Use one tire type and enter the number of tires. Rigger adaptation already includes a datajack port.
 
 In stock design JSON, use `"CatalogModifications": [{"Id": "nitrous", "Quantity": 2}]` for a rating-2 injector. Catalog and manual entries are both included in the capacity and price totals. Keep each modification in only one of those lists.
 
@@ -51,6 +51,8 @@ Aircraft floats apply their speed and economy adjustments after design upgrades.
 Cabin and engine seals, cabin over-pressurization, and life support are available as separate options. Enter life support in blocks of ten person-hours. Check that the design has a suitable sealed cabin and that its entry points, engine air supply, and depth limits suit the intended operation. Roll bars and SunCell solar power are also available (*Rigger 3 Revised*, pp. 126, 132–133).
 
 Control options include GridLink, adjusted and secondary controls, contingency maneuver controls, advanced passenger protection, motorbike gyro-stabilization, Autonav, remote-control interfaces, and advanced Pilot ratings (*Rigger 3 Revised*, pp. 126–131). Autonav and Pilot selections set final ratings. Remote-control interfaces require sensors and give a base Pilot of 1. Motorbikes require gyro-stabilization for remote control or Autonav 2 and above.
+
+Additional entry points are free within the Body or Hull limit. Ballast tanks require an engine water seal and provide depth control. Horizontal underwater propulsion and practical operating depth depend on the rest of the design (*Rigger 3 Revised*, pp. 115–116).
 
 ## Availability
 

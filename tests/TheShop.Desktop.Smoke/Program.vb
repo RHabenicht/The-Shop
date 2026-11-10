@@ -355,6 +355,12 @@ Module Program
                 Require(totals.Text.Contains("Pilot 3") AndAlso totals.Text.Contains("Autonav 2") AndAlso
                         totals.Text.Contains("Base ¥61,000.00") AndAlso totals.Text.Contains("963 kg"),
                         "Remote control, Autonav, and Pilot should use final ratings regardless of selection order.")
+                sealedVan.CatalogModifications.Add(New ModificationSelection With {.Id = "ballast-tanks", .Quantity = 1})
+                sealedVan.CatalogModifications.Add(New ModificationSelection With {.Id = "extra-entry-points", .Quantity = 2})
+                Dim ballastDesign = sealedVan.Calculate(sheetCatalog)
+                Require(ballastDesign.Totals.CargoRemaining = 13D AndAlso ballastDesign.Totals.LoadRemainingKg = 540D AndAlso
+                        ballastDesign.Totals.BaseCostNuyen = 68000D,
+                        "Ballast tanks should use Body squared and entry points should carry no design cost.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

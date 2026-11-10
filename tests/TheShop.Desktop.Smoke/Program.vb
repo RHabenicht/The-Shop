@@ -375,6 +375,16 @@ Module Program
                         sidecarResult.ModifiedRatings.Economy.GetValueOrDefault() = 9D AndAlso
                         totals.Text.Contains("Final Speed 45") AndAlso totals.Text.Contains("Final Handling 6/8"),
                         "Sidecars and runflat tires should apply the listed ratings and costs.")
+                Dim deepSub As New StockDesign With {
+                    .ChassisId = "attack-submarine", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .Upgrades = New DesignUpgrades With {.DepthSteps = 2, .Acceleration = 1}
+                }
+                editor.WriteDesignFile(destination, deepSub)
+                editor.LoadDesignFile(destination)
+                Dim deepResult = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(deepResult.Totals.DesignPoints = 370029D AndAlso
+                        deepResult.Totals.LoadRemainingKg = 700000D AndAlso totals.Text.Contains("Depth 420 m"),
+                        "Hull-rated depth upgrades should apply Hull Factor and leave other upgrade costs intact.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

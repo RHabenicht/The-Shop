@@ -16,7 +16,7 @@ Public NotInheritable Class DesignUpgrades
         Dim steps = {Speed, Acceleration, Handling, OnRoadHandling, OffRoadHandling, CargoSteps, LoadSteps, Signature, EconomySteps, FuelSteps, DepthSteps}
         If steps.Any(Function(value) value < 0) Then Throw New ArgumentException("Upgrade steps cannot be negative.")
         If steps.All(Function(value) value = 0) Then Return Nothing
-        If chassis.Hull.HasValue Then Throw New ArgumentException("Use manual entries for Hull-rated vehicle options.")
+        If chassis.Hull.HasValue AndAlso LoadSteps > 0 Then Throw New ArgumentException("Use manual entries for Hull-rated load increases.")
         If design.Additions Is Nothing Then Throw New ArgumentException("Additions must be an array.")
         If (CargoSteps > 0 AndAlso cargoOverride.HasValue) OrElse (LoadSteps > 0 AndAlso loadOverride.HasValue) Then
             Throw New ArgumentException("Clear the matching capacity override before applying an automatic cargo or load upgrade.")
@@ -55,7 +55,9 @@ Public NotInheritable Class DesignUpgrades
         If DepthSteps > 0 Then
             ratings.Depth = Increase(chassis.StartingDepth, chassis.MaximumDepth, 10 * DepthSteps, "Depth")
             points += 2D * DepthSteps
-            loadUsed += 2D * chassis.Body.GetValueOrDefault() * DepthSteps
+            Dim size = CDec(If(chassis.Hull, chassis.Body).GetValueOrDefault())
+            Dim hullFactor = If(chassis.Hull.HasValue, 100D * size * size, 1D)
+            loadUsed += hullFactor * size * 2D * DepthSteps
         End If
 
         If FuelSteps > 0 Then

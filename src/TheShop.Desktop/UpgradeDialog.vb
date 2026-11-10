@@ -20,26 +20,25 @@ Friend NotInheritable Class UpgradeDialog
         Dim table As New TableLayoutPanel With {.AutoSize = True, .Dock = DockStyle.Fill, .ColumnCount = 2, .Padding = New Padding(12)}
         Controls.Add(table)
         current = If(current, New DesignUpgrades())
-        Dim supported = Not chassis.Hull.HasValue
         AddSteps(table, "Speed +1 (2 DP)", current.Speed, Sub(n) Selection.Speed = n,
-                 supported AndAlso plant.StartingSpeed.HasValue AndAlso Not plant.StartingSecondarySpeed.HasValue)
-        AddSteps(table, "Acceleration +1 (25 DP)", current.Acceleration, Sub(n) Selection.Acceleration = n, supported AndAlso plant.StartingAcceleration.HasValue)
-        AddSteps(table, "Handling −1 (25 DP)", current.Handling, Sub(n) Selection.Handling = n, supported AndAlso chassis.Handling.HasValue)
-        AddSteps(table, "On-road Handling −1 (25 DP)", current.OnRoadHandling, Sub(n) Selection.OnRoadHandling = n, supported AndAlso chassis.OnRoadHandling.HasValue)
-        AddSteps(table, "Off-road Handling −1 (25 DP)", current.OffRoadHandling, Sub(n) Selection.OffRoadHandling = n, supported AndAlso chassis.OffRoadHandling.HasValue)
-        AddSteps(table, "Cargo +0.2 CF (1 DP)", current.CargoSteps, Sub(n) Selection.CargoSteps = n, supported AndAlso chassis.MaximumCargo > chassis.StartingCargo)
+                 plant.StartingSpeed.HasValue AndAlso Not plant.StartingSecondarySpeed.HasValue)
+        AddSteps(table, "Acceleration +1 (25 DP)", current.Acceleration, Sub(n) Selection.Acceleration = n, plant.StartingAcceleration.HasValue)
+        AddSteps(table, "Handling −1 (25 DP)", current.Handling, Sub(n) Selection.Handling = n, chassis.Handling.HasValue)
+        AddSteps(table, "On-road Handling −1 (25 DP)", current.OnRoadHandling, Sub(n) Selection.OnRoadHandling = n, chassis.OnRoadHandling.HasValue)
+        AddSteps(table, "Off-road Handling −1 (25 DP)", current.OffRoadHandling, Sub(n) Selection.OffRoadHandling = n, chassis.OffRoadHandling.HasValue)
+        AddSteps(table, "Cargo +0.2 CF (1 DP)", current.CargoSteps, Sub(n) Selection.CargoSteps = n, chassis.MaximumCargo > chassis.StartingCargo)
         Dim kg = If(chassis.Body.GetValueOrDefault() = 0, 1, 10)
-        AddSteps(table, $"Load +{kg} kg (1 DP)", current.LoadSteps, Sub(n) Selection.LoadSteps = n, supported AndAlso plant.MaximumLoadKg > plant.StartingLoadKg)
-        AddSteps(table, "Signature +1 (200 × levels⁴ DP, GM limit)", current.Signature, Sub(n) Selection.Signature = n, supported AndAlso plant.Signature.HasValue)
+        AddSteps(table, $"Load +{kg} kg (1 DP)", current.LoadSteps, Sub(n) Selection.LoadSteps = n, Not chassis.Hull.HasValue AndAlso plant.MaximumLoadKg > plant.StartingLoadKg)
+        AddSteps(table, "Signature +1 (200 × levels⁴ DP, GM limit)", current.Signature, Sub(n) Selection.Signature = n, plant.Signature.HasValue)
 
         AddSteps(table, "Economy +5% of starting rating (5 DP)", current.EconomySteps, Sub(n) Selection.EconomySteps = n,
-                 supported AndAlso plant.EconomyUnit IsNot Nothing)
+                 plant.EconomyUnit IsNot Nothing)
 
         Dim fuel = FuelExpansionRule.ForPlant(chassis, plant)
         Dim fuelLabel = If(fuel Is Nothing, "Fuel capacity", $"Fuel +{fuel?.Amount} {fuel?.Unit} ({fuel?.Points} DP)")
-        AddSteps(table, fuelLabel, current.FuelSteps, Sub(n) Selection.FuelSteps = n, supported AndAlso fuel IsNot Nothing)
+        AddSteps(table, fuelLabel, current.FuelSteps, Sub(n) Selection.FuelSteps = n, fuel IsNot Nothing)
         AddSteps(table, "Depth +10 m (2 DP plus load)", current.DepthSteps, Sub(n) Selection.DepthSteps = n,
-                 supported AndAlso chassis.StartingDepth.HasValue)
+                 chassis.StartingDepth.HasValue)
 
         Dim buttons As New FlowLayoutPanel With {.AutoSize = True, .Dock = DockStyle.Fill}
         Dim apply As New Button With {.Text = "Apply", .DialogResult = DialogResult.OK}

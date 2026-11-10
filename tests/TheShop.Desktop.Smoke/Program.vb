@@ -387,6 +387,9 @@ Module Program
                         deepResult.UpgradedRatings.Speed.GetValueOrDefault() = 32 AndAlso
                         deepResult.UpgradedRatings.SecondarySpeed.GetValueOrDefault() = 26,
                         "Hull-rated depth and paired speed upgrades should apply their listed costs and limits.")
+                editor.StartLegacyDesign(LegacyVehicleReader.Read(legacyPath))
+                Require(editor.ReadDesign().ChassisId = "sand-buggy" AndAlso editor.ReadDesign().PowerPlantId = "gasoline",
+                        "A uniquely named legacy chassis and compatible engine should replace the current components.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

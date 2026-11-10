@@ -357,9 +357,10 @@ Public NotInheritable Class DesignForm
             If picker.ShowDialog(Me) <> DialogResult.OK Then Return
             Try
                 Dim reference = LegacyVehicleReader.Read(picker.FileName)
-                Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
-                Dim plant = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant)
-                Dim message = $"Start a new Rigger 3 Revised design using {chassis.Name} / {plant.Name}." &
+                Dim components = LegacyComponents(reference)
+                Dim source = If(components.Matched, "Matched legacy components.", "Using the components currently selected in the editor.")
+                Dim message = $"Start a new Rigger 3 Revised design using {components.Chassis.Name} / {components.Plant.Name}." &
+                    Environment.NewLine & source &
                     Environment.NewLine & "The original values are kept for reference. Review and reapply modifications under the revised rules."
                 If ShowLegacyReference(reference, message) = DialogResult.OK Then
                     StartLegacyDesign(reference)
@@ -371,10 +372,23 @@ Public NotInheritable Class DesignForm
         End Using
     End Sub
 
+    Private Function LegacyComponents(reference As JsonElement) As (Chassis As StockChassis, Plant As StockPowerPlant, Matched As Boolean)
+        Dim chassisName = reference.GetProperty("Chassis").GetProperty("Name").GetString().Trim()
+        Dim plantName = reference.GetProperty("Engine").GetProperty("Name").GetString().Trim()
+        Dim matchingChassis = catalog.Where(Function(item) String.Equals(item.Name, chassisName, StringComparison.OrdinalIgnoreCase)).ToArray()
+        If matchingChassis.Length = 1 Then
+            Dim matchingPlants = matchingChassis(0).PowerPlants.
+                Where(Function(item) String.Equals(item.Name, plantName, StringComparison.OrdinalIgnoreCase)).ToArray()
+            If matchingPlants.Length = 1 Then Return (matchingChassis(0), matchingPlants(0), True)
+        End If
+        Return (DirectCast(chassisBox.SelectedItem, StockChassis), DirectCast(powerPlantBox.SelectedItem, StockPowerPlant), False)
+    End Function
+
     Friend Sub StartLegacyDesign(reference As JsonElement)
+        Dim components = LegacyComponents(reference)
         DisplayDesign(New StockDesign With {
-            .ChassisId = DirectCast(chassisBox.SelectedItem, StockChassis).Id,
-            .PowerPlantId = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant).Id,
+            .ChassisId = components.Chassis.Id,
+            .PowerPlantId = components.Plant.Id,
             .StreetIndex = 1D,
             .Name = reference.GetProperty("Name").GetString(),
             .LegacyReference = reference

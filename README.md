@@ -62,7 +62,7 @@ Select an Availability class in the editor to apply the p. 113 formula. The calc
 
 ## Import a legacy vehicle
 
-To bring a `Shop v1.40` save into the editor, choose the revised chassis and power plant and select **Import .shp…**. Review the source record before starting the new design. Original options and markups stay in **Legacy reference** and are saved with the new design. Reapply them using Rigger 3 Revised values where appropriate.
+To bring a `Shop v1.40` save into the editor, select **Import .shp…**. The editor suggests the revised chassis and compatible power plant when both names match uniquely. For other saves it uses the editor’s current selection. Review the source record before starting the new design. Original options and markups stay in **Legacy reference** and are saved with the new design. Reapply them using Rigger 3 Revised values where appropriate.
 
 For command-line extraction:
 

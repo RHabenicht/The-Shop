@@ -33,6 +33,8 @@ Public NotInheritable Class ModifiedRatings
     Public Property Sensor As Integer?
     Public Property Sonar As Integer?
     Public Property TowedArraySonar As Integer?
+    Public Property Acceleration As Integer?
+    Public Property Signature As Integer?
     Public Property Speed As Integer?
     Public Property Economy As Decimal?
     Public Property Pilot As Integer?
@@ -136,6 +138,7 @@ Public Module ModificationCatalog
         New ModificationRule("ballast-tanks", "Ballast tanks", "", 1),
         New ModificationRule("sidecar", "Motorcycle sidecar", "1 small, 2 medium, 3 large", 3),
         New ModificationRule("runflat-upgrade", "Runflat tire upgrade", "tires", Integer.MaxValue),
+        New ModificationRule("turbocharging", "Turbocharging / superconductive drive", "levels", Integer.MaxValue),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -231,6 +234,13 @@ Public Module ModificationCatalog
                 Return Not chassis.IsDrone AndAlso chassis.Body.HasValue AndAlso plant.Id <> "unpowered"
             Case "advanced-drone-pilot"
                 Return chassis.Pilot.GetValueOrDefault() < rule.Maximum AndAlso plant.Id <> "unpowered"
+            Case "turbocharging"
+                Return plant.StartingSpeed.HasValue AndAlso plant.MaximumSpeed.HasValue AndAlso
+                    plant.StartingAcceleration.HasValue AndAlso
+                    (plant.Id = "gasoline" OrElse plant.Id = "diesel" OrElse plant.Id = "methane" OrElse
+                     plant.Id.StartsWith("electric-", StringComparison.Ordinal)) AndAlso
+                    (Not chassis.Category.Contains("Aircraft") AndAlso chassis.Category <> "Rotor Craft" OrElse
+                     plant.Id.StartsWith("electric-", StringComparison.Ordinal))
             Case "amphibious-operation"
                 Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
             Case "hovercraft-water-seal"
@@ -352,6 +362,21 @@ Public Module ModificationCatalog
             finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) + handlingPenalty
             finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) + handlingPenalty
             design.CargoCapacity += If(size = 1, 6D, If(size = 2, 8D, 12D))
+        End If
+        If seen.Contains("turbocharging") Then
+            Dim levels = validated.Single(Function(choice) choice.Rule.Id = "turbocharging").Quantity
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            Dim baseSpeed = If(finalRatings.Speed, If(upgrades?.Speed, plant.StartingSpeed)).GetValueOrDefault()
+            Dim maximum = Math.Max(baseSpeed + 15D, plant.MaximumSpeed.Value * 1.25D)
+            Dim speed = baseSpeed + 15D * levels
+            If speed > maximum Then Throw New ArgumentException("Turbocharging exceeds the increased maximum Speed.")
+            finalRatings.Speed = CInt(speed)
+            finalRatings.Acceleration = CInt(If(upgrades?.Acceleration, plant.StartingAcceleration).GetValueOrDefault() + CLng(levels))
+            finalRatings.Signature = CInt(If(upgrades?.Signature, plant.Signature).GetValueOrDefault() - CLng(levels))
+            Dim economy = If(finalRatings.Economy, If(upgrades?.Economy, If(plant.StartingEconomyKmPerLiter,
+                If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar))))
+            If levels >= 20 Then Throw New ArgumentException("Turbocharging must leave positive Economy.")
+            finalRatings.Economy = economy * (1D - 0.05D * levels)
         End If
         Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount)).ToList()
         design.Additions = design.Additions.Concat(result).ToList()
@@ -578,6 +603,8 @@ Public Module ModificationCatalog
                 item.DesignPoints = If(quantity = 1, 10D, If(quantity = 2, 20D, 35D))
             Case "runflat-upgrade"
                 item.DirectCostNuyen = 200D * quantity
+            Case "turbocharging"
+                item.DesignPoints = plant.DesignPoints * 0.75D * quantity
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

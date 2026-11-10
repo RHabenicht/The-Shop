@@ -434,6 +434,18 @@ Module Program
                     excessRetrofitRejected = True
                 End Try
                 Require(excessRetrofitRejected, "Installed retrofits should reject capacity overflows.")
+                Dim turboVan As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "turbocharging", .Quantity = 2}
+                    }
+                }
+                Dim turboResult = turboVan.Calculate(sheetCatalog)
+                Dim turboPlant = StockCatalog.FindById(sheetCatalog, "van").PowerPlants.Single(Function(item) item.Id = "diesel")
+                Require(turboResult.ModifiedRatings.Speed.GetValueOrDefault() = turboPlant.StartingSpeed.GetValueOrDefault() + 30 AndAlso
+                        turboResult.ModifiedRatings.Economy.GetValueOrDefault() = turboPlant.StartingEconomyKmPerLiter.GetValueOrDefault() * 0.9D AndAlso
+                        turboResult.AppliedModifications.Single().DesignPoints = 52.5D,
+                        "Turbocharging should apply the listed power plant cost and final rating changes.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

@@ -252,6 +252,8 @@ Public NotInheritable Class DesignForm
             If modified.Sonar.HasValue Then values.Add($"Sonar {modified.Sonar}")
             If modified.Autonav.HasValue Then values.Add($"Autonav {modified.Autonav}")
             If modified.Pilot.HasValue Then values.Add($"Pilot {modified.Pilot}")
+            If modified.Acceleration.HasValue Then values.Add($"Final Acceleration {modified.Acceleration}")
+            If modified.Signature.HasValue Then values.Add($"Final Signature {modified.Signature}")
             If modified.Speed.HasValue Then values.Add($"Final Speed {modified.Speed}")
             If modified.Economy.HasValue Then values.Add($"Final Economy {modified.Economy}")
             If modified.WaterSpeed.HasValue Then values.Add($"Water Speed rating {modified.WaterSpeed}")

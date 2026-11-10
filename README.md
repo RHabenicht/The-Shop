@@ -34,6 +34,8 @@ The protection and sensor entries add vehicle armor, concealed armor, Bulwark, s
 
 The electronics catalog includes the common equipment listed on p. 146, plus remote-control encryption and retransmission units on p. 147. For displays, enter the total screen size in 20 cm units. For radios and personal tactical communications units, enter total Flux before any electronics port bonus. For other attached equipment, enter the number of units. The p. 146 table supplies cargo requirements. Use a manual entry for the equipment’s separate purchase price and any known weight. Price electronics ports separately.
 
+Magnetic-anomaly detectors are available on fixed-wing aircraft, rotor craft, and vectored-thrust aircraft. Over-the-horizon sensors are available on ships. Both require a sensor system and use the vehicle’s final Sensor rating to calculate Design Points (*Rigger 3 Revised*, p. 146).
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

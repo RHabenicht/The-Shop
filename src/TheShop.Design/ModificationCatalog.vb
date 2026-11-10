@@ -51,6 +51,8 @@ Public Module ModificationCatalog
         New ModificationRule("electronics-port", "Electronics port", "ports", Integer.MaxValue),
         New ModificationRule("remote-control-encryption", "Remote-control encryption module", "rating", Integer.MaxValue),
         New ModificationRule("retransmission-unit", "Retransmission unit", "units", Integer.MaxValue),
+        New ModificationRule("magnetic-anomaly-detector", "Magnetic-anomaly detector", "", 1),
+        New ModificationRule("over-the-horizon-sensors", "Over-the-horizon sensors", "", 1),
         New ModificationRule("trideo-display", "Video/trideo display", "20 cm screen units", Integer.MaxValue, 0.15D),
         New ModificationRule("simsense-player", "Simsense player", "units", Integer.MaxValue, 0.1D),
         New ModificationRule("cellular-phone", "Cellular phone", "units", Integer.MaxValue, 0.05D),
@@ -96,6 +98,11 @@ Public Module ModificationCatalog
                 Return chassis.Body.GetValueOrDefault() > 0 AndAlso chassis.Armor.GetValueOrDefault() = 0
             Case "bulwark"
                 Return chassis.Hull.HasValue
+            Case "magnetic-anomaly-detector"
+                Return chassis.Category = "Fixed-Wing Aircraft" OrElse chassis.Category = "Rotor Craft" OrElse
+                    chassis.Category = "Vectored-Thrust Aircraft"
+            Case "over-the-horizon-sensors"
+                Return chassis.Category = "Ship"
             Case "sensors"
                 Return chassis.Sensor.GetValueOrDefault() < rule.Maximum
             Case "sonar"
@@ -122,7 +129,7 @@ Public Module ModificationCatalog
         If selections Is Nothing OrElse selections.Count = 0 Then Return Nothing
         If design.Additions Is Nothing Then Throw New ArgumentException("Additions must be an array.")
         Dim seen As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
-        Dim result As New List(Of DesignAddition)
+        Dim validated As New List(Of (Rule As ModificationRule, Quantity As Integer))
 
         For Each choice In selections
             If choice Is Nothing Then Throw New ArgumentException("A modification selection cannot be null.")
@@ -141,7 +148,7 @@ Public Module ModificationCatalog
             If rule.Id = "sonar" AndAlso choice.Quantity <= chassis.Sonar.GetValueOrDefault() Then
                 Throw New ArgumentException($"Choose a sonar rating above the factory rating of {chassis.Sonar}.")
             End If
-            result.Add(Price(rule, choice.Quantity, chassis))
+            validated.Add((rule, choice.Quantity))
             Select Case rule.Id
                 Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
@@ -157,6 +164,8 @@ Public Module ModificationCatalog
         If seen.Contains("vehicle-armor") AndAlso seen.Contains("concealed-armor") Then
             Throw New ArgumentException("Vehicle armor and concealed armor cannot be combined.")
         End If
+        Dim sensorRating = If(finalRatings?.Sensor, chassis.Sensor.GetValueOrDefault())
+        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, sensorRating)).ToList()
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
     End Function
@@ -184,7 +193,8 @@ Public Module ModificationCatalog
         ratings.OffRoadHandling = If(upgrades?.OffRoadHandling, chassis.OffRoadHandling) + penalty
     End Sub
 
-    Private Function Price(rule As ModificationRule, quantity As Integer, chassis As StockChassis) As DesignAddition
+    Private Function Price(rule As ModificationRule, quantity As Integer, chassis As StockChassis,
+                           sensorRating As Integer) As DesignAddition
         Dim body = CDec(chassis.Body.GetValueOrDefault())
         Dim item As New DesignAddition With {.Name = rule.Name, .CargoConsumed = rule.CargoPerUnit * quantity}
         Select Case rule.Id
@@ -205,6 +215,17 @@ Public Module ModificationCatalog
                 item.DesignPoints = 250D * quantity
                 item.CargoConsumed = quantity
                 item.LoadConsumedKg = 5D * quantity
+            Case "magnetic-anomaly-detector", "over-the-horizon-sensors"
+                If sensorRating = 0 Then Throw New ArgumentException($"'{rule.Name}' requires a sensor system.")
+                If rule.Id = "magnetic-anomaly-detector" Then
+                    item.DesignPoints = 250D * sensorRating
+                    item.CargoConsumed = 12D
+                    item.LoadConsumedKg = 50D
+                Else
+                    item.DesignPoints = 1000D * sensorRating
+                    item.CargoConsumed = 216D
+                    item.LoadConsumedKg = 2500D
+                End If
             Case "nitrous"
                 item.DesignPoints = 55D * quantity
                 item.CargoConsumed = 1.5D

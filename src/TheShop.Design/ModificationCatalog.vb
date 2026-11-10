@@ -51,7 +51,7 @@ Public Module ModificationCatalog
         New ModificationRule("electronics-port", "Electronics port", "ports", Integer.MaxValue),
         New ModificationRule("remote-control-encryption", "Remote-control encryption module", "rating", Integer.MaxValue),
         New ModificationRule("retransmission-unit", "Retransmission unit", "units", Integer.MaxValue),
-        New ModificationRule("retransmission-power-amplifier", "Retransmission power amplifier", "rating per unit", 10),
+        New ModificationRule("retransmission-power-amplifier", "Retransmission power amplifier", "Flux per unit", 10),
         New ModificationRule("magnetic-anomaly-detector", "Magnetic-anomaly detector", "", 1),
         New ModificationRule("over-the-horizon-sensors", "Over-the-horizon sensors", "", 1),
         New ModificationRule("trideo-display", "Video/trideo display", "20 cm screen units", Integer.MaxValue, 0.15D),

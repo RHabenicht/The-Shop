@@ -202,7 +202,7 @@ Module Program
                         totals.Text.Contains("Base ¥767,500.00"),
                         "Retransmission amplifier costs should scale and round cargo separately for each unit.")
                 VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
-                Require(File.ReadAllText(sheetPath).Contains("Flux 7 per unit"),
+                Require(File.ReadAllText(sheetPath).Contains("7 Flux per unit"),
                         "The vehicle sheet should report amplified retransmission Flux.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using

@@ -24,12 +24,16 @@ Friend NotInheritable Class ModificationDialog
         MaximizeBox = False
         MinimizeBox = False
 
-        Dim frame As New TableLayoutPanel With {.Dock = DockStyle.Fill, .ColumnCount = 1, .RowCount = 2}
+        Dim frame As New TableLayoutPanel With {.Dock = DockStyle.Fill, .ColumnCount = 1, .RowCount = 3}
+        frame.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         frame.RowStyles.Add(New RowStyle(SizeType.Percent, 100))
         frame.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         Controls.Add(frame)
+        Dim search As New TextBox With {.Name = "modificationSearch", .Dock = DockStyle.Fill,
+            .PlaceholderText = "Find a modification…", .Margin = New Padding(12)}
+        frame.Controls.Add(search, 0, 0)
         Dim scroll As New Panel With {.AutoScroll = True, .Dock = DockStyle.Fill}
-        frame.Controls.Add(scroll, 0, 0)
+        frame.Controls.Add(scroll, 0, 1)
         Dim table As New TableLayoutPanel With {.AutoSize = True, .Dock = DockStyle.Top, .ColumnCount = 2, .Padding = New Padding(12)}
         scroll.Controls.Add(table)
         Dim explanation As New Label With {.Text = "Use 0 to remove a modification. Catalog costs are calculated automatically.",
@@ -55,16 +59,32 @@ Friend NotInheritable Class ModificationDialog
             Dim input As New NumericUpDown With {.Maximum = If(compatible, Math.Max(ModificationCatalog.MaximumQuantity(rule, chassis), value), value), .Value = value,
                 .Enabled = compatible OrElse value > 0}
             quantities.Add((rule, input))
-            table.Controls.Add(New Label With {.Text = label, .AutoSize = True, .Anchor = AnchorStyles.Left}, 0, row)
+            table.Controls.Add(New Label With {.Text = label, .AutoSize = True, .MaximumSize = New Size(360, 0), .Anchor = AnchorStyles.Left}, 0, row)
             table.Controls.Add(input, 1, row)
         Next
 
+        AddHandler search.TextChanged,
+            Sub(sender, e)
+                Dim query = search.Text.Trim()
+                table.SuspendLayout()
+                Try
+                    For index As Integer = 0 To quantities.Count - 1
+                        Dim entry = quantities(index)
+                        Dim matches = entry.Rule.Name.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                            entry.Rule.Id.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0
+                        table.GetControlFromPosition(0, index + 1).Visible = matches
+                        entry.Input.Visible = matches
+                    Next
+                Finally
+                    table.ResumeLayout()
+                End Try
+            End Sub
         Dim actions As New FlowLayoutPanel With {.AutoSize = True, .Dock = DockStyle.Fill}
         Dim apply As New Button With {.Text = "Apply", .DialogResult = DialogResult.OK}
         Dim cancel As New Button With {.Text = "Cancel", .DialogResult = DialogResult.Cancel}
         actions.Controls.Add(apply)
         actions.Controls.Add(cancel)
-        frame.Controls.Add(actions, 0, 1)
+        frame.Controls.Add(actions, 0, 2)
         AcceptButton = apply
         CancelButton = cancel
     End Sub

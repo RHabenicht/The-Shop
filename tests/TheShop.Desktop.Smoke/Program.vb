@@ -119,6 +119,7 @@ Module Program
                         "Catalog modifications did not price and round trip correctly.")
                 Using dialog As New ModificationDialog(modified.CatalogModifications, DirectCast(chassis.SelectedItem, StockChassis),
                                                        DirectCast(powerPlant.SelectedItem, StockPowerPlant))
+                    FindControl(Of TextBox)(dialog, "modificationSearch").Text = "sensor"
                     Require(dialog.ReadSelection().Single(Function(item) item.Id = "performance-tires").Quantity = 4,
                             "The catalog dialog did not restore the selected quantity.")
                 End Using

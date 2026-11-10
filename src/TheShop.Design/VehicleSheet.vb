@@ -86,8 +86,8 @@ Public Module VehicleSheet
                 If mode.Notes IsNot Nothing Then Row(page, mode.Name & " notes", mode.Notes)
             Next
         End If
-        Dim fuel = If(up?.FuelCapacity, If(plant.FuelLiters, If(plant.FuelBars, If(plant.BatteryPowerFactors, If(plant.FuelCellPowerFactors, plant.RocketPowerFactors)))))
-        Dim fuelUnit = If(up?.FuelUnit, If(plant.FuelLiters.HasValue, "L", If(plant.FuelBars.HasValue, "bars", "PF")))
+        Dim fuel = If(modified?.FuelCapacity, If(up?.FuelCapacity, If(plant.FuelLiters, If(plant.FuelBars, If(plant.BatteryPowerFactors, If(plant.FuelCellPowerFactors, plant.RocketPowerFactors))))))
+        Dim fuelUnit = If(modified?.FuelUnit, If(up?.FuelUnit, If(plant.FuelLiters.HasValue, "L", If(plant.FuelBars.HasValue, "bars", "PF"))))
         If fuel.HasValue Then Row(page, "Fuel capacity", Number(fuel) & " " & fuelUnit)
         Dim economy = If(modified?.Economy, If(up?.Economy, If(plant.StartingEconomyKmPerLiter, If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar))))
         If economy.HasValue Then Row(page, "Economy", Number(economy) & " " & plant.EconomyUnit)

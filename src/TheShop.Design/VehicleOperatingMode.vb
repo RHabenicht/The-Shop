@@ -44,6 +44,15 @@ Public Module VehicleOperatingModes
                 .Notes = $"Handling test modifier +{penalty} while active."
             })
         End If
+        If DesignEnhancements.Has(selections, "aircraft-drop-tanks") Then
+            Dim pairs = selections.Single(Function(item) String.Equals(item.Id, "aircraft-drop-tanks", StringComparison.OrdinalIgnoreCase)).Quantity
+            modes.Add(New VehicleOperatingMode With {
+                .Name = "Drop tanks jettisoned", .Speed = speed + 15 * (pairs - 1),
+                .Handling = If(modified?.Handling, If(upgrades?.Handling, chassis.Handling)) - pairs \ 2,
+                .Signature = signature + pairs,
+                .Notes = $"Fuel capacity drops by {2000D * pairs} L and fuel remaining in the tanks is lost."
+            })
+        End If
         Return If(modes.Count = 0, Nothing, modes)
     End Function
 

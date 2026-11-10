@@ -78,6 +78,8 @@ Hydrofoils, ducted waterjets, and nuclear-powered electromagnetic ducted drives 
 
 Partial amenities serve groups of up to 50 people. Special machinery consumes its designated space and requires a gamemaster-set markup. Armor for added seats is limited to two points per seat. Spare tires have their own storage and purchase costs. Firearm mount conversions, uniform gunnery recoil adjusters, and weapon gyro-stabilization use their design specifications. Enter weapon weights and mixed recoil-adjustment configurations separately (*Rigger 3 Revised*, pp. 118, 120, 136–137, 142, 154–155).
 
+Ammunition bins use 0.2 CF blocks and the per-mount installation weight. Add carried ammunition weight separately. Aircraft drop tanks come in pairs, consume external mounting positions, increase fuel capacity, and apply mounted performance penalties. The exported sheet also shows the jettisoned operating mode (*Rigger 3 Revised*, pp. 136, 149).
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

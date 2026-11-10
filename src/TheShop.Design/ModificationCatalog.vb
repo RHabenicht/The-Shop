@@ -54,6 +54,8 @@ Public NotInheritable Class ModifiedRatings
     Public Property Signature As Integer?
     Public Property Speed As Integer?
     Public Property Economy As Decimal?
+    Public Property FuelCapacity As Decimal?
+    Public Property FuelUnit As String
     Public Property TakeoffLandingProfile As String
     Public Property SetupBreakdownMinutes As Integer?
     Public Property StructuralAgility As Integer?
@@ -295,6 +297,10 @@ Public Module ModificationCatalog
         New ModificationRule("heavy-mount-conversion", "MMG/HMG/assault cannon mount conversion", "weapons", Integer.MaxValue, 0D, 3D, 1D),
         New ModificationRule("gunnery-recoil-adjusters", "Gunnery recoil adjusters", "levels per fixed mount/turret", 12),
         New ModificationRule("weapon-gyro-stabilization", "Weapon gyro-stabilization", "total active rating", Integer.MaxValue, 1D),
+        New ModificationRule("ammo-bin-small-arms", "Ammunition bin — rifle/LMG", "0.2 CF blocks, 2,000 rounds each", Integer.MaxValue, 0.2D),
+        New ModificationRule("ammo-bin-machine-gun", "Ammunition bin — MMG/HMG", "0.2 CF blocks, 200 rounds each", Integer.MaxValue, 0.2D),
+        New ModificationRule("ammo-bin-heavy", "Ammunition bin — GL/assault cannon", "0.2 CF blocks, 20 rounds each", Integer.MaxValue, 0.2D),
+        New ModificationRule("aircraft-drop-tanks", "Aircraft drop tanks", "pairs", Integer.MaxValue),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -304,6 +310,7 @@ Public Module ModificationCatalog
         If rule.Id = "special-machinery" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
         If rule.Id = "weapon-gyro-stabilization" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
         If rule.Id = "setup-time-reduction" Then Return CInt(Math.Ceiling((2D * body + 1D) / 2D))
+        If rule.Id = "aircraft-drop-tanks" Then Return body \ 2
         If rule.Id = "external-missile-mounts" Then Return body
         If rule.Id = "extra-entry-points" Then
             If chassis.Hull.HasValue Then Return CInt(Math.Min(Integer.MaxValue, chassis.Hull.Value * 2D))
@@ -458,6 +465,9 @@ Public Module ModificationCatalog
                 Return chassis.Category = "Boat" AndAlso chassis.Id <> "skiff"
             Case "flight-deck", "flight-deck-catapult", "flight-deck-angled"
                 Return chassis.Hull.HasValue OrElse chassis.Body.GetValueOrDefault() > 0
+            Case "aircraft-drop-tanks"
+                Return (chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft") AndAlso
+                    chassis.Body.GetValueOrDefault() >= 2 AndAlso plant.FuelLiters.HasValue
             Case "amphibious-operation"
                 Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
             Case "hovercraft-water-seal"
@@ -755,6 +765,9 @@ Public Module ModificationCatalog
             Dim seats = validated.Where(Function(choice) choice.Rule.QuantityLabel = "seats").Sum(Function(choice) CLng(choice.Quantity))
             If armor > 2D * seats Then Throw New ArgumentException("Seat armor is limited to two points per added seat. Enter factory-seat armor manually.")
         End If
+        If validated.Any(Function(choice) choice.Rule.Id.StartsWith("ammo-bin-", StringComparison.Ordinal)) AndAlso fixedAndTurretCount = 0 Then
+            Throw New ArgumentException("Ammunition bins require a fixed mount or turret.")
+        End If
         Dim smartlinks = validated.Where(Function(choice) choice.Rule.Id.StartsWith("smartlink-integration-", StringComparison.Ordinal)).
             Sum(Function(choice) CLng(choice.Quantity))
         If smartlinks > fixedAndTurretCount Then Throw New ArgumentException("Smartlink integrations require a separate fixed mount or turret for each installation.")
@@ -794,6 +807,17 @@ Public Module ModificationCatalog
                 finalRatings.InfraredSignature = signature.Value + choice.Quantity
             End If
         Next
+        If seen.Contains("aircraft-drop-tanks") Then
+            Dim pairs = validated.Single(Function(choice) choice.Rule.Id = "aircraft-drop-tanks").Quantity
+            Dim external = validated.Where(Function(choice) choice.Rule.Id = "external-missile-mounts").Select(Function(choice) choice.Quantity).SingleOrDefault()
+            If 2D * pairs + external > chassis.Body.GetValueOrDefault() Then Throw New ArgumentException("Drop tanks and external missile mounts exceed the aircraft's external mounting limit.")
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            finalRatings.FuelCapacity = If(upgrades?.FuelCapacity, plant.FuelLiters).GetValueOrDefault() + 2000D * pairs
+            finalRatings.FuelUnit = "L"
+            finalRatings.Signature = CInt(If(finalRatings.Signature, If(upgrades?.Signature, plant.Signature)).GetValueOrDefault() - CLng(pairs))
+            finalRatings.Speed = CInt(Math.Max(0D, If(finalRatings.Speed, If(upgrades?.Speed, plant.StartingSpeed)).GetValueOrDefault() - 15D * (pairs - 1D)))
+            finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) + pairs \ 2
+        End If
         Dim fixedExternalPenalty = If(validated.Any(Function(choice) choice.Rule.Id.StartsWith("external-fixed-", StringComparison.Ordinal)), 1, 0)
         Dim missileMounts = validated.Where(Function(choice) choice.Rule.Id = "external-missile-mounts").Select(Function(choice) choice.Quantity).SingleOrDefault()
         Dim isAircraft = chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft"
@@ -819,6 +843,10 @@ Public Module ModificationCatalog
         If seen.Contains("gunnery-recoil-adjusters") Then
             Dim index = validated.FindIndex(Function(choice) choice.Rule.Id = "gunnery-recoil-adjusters")
             result(index).DesignPoints *= fixedAndTurretCount
+        End If
+        If validated.Any(Function(choice) choice.Rule.Id.StartsWith("ammo-bin-", StringComparison.Ordinal)) Then
+            Dim index = validated.FindIndex(Function(choice) choice.Rule.Id.StartsWith("ammo-bin-", StringComparison.Ordinal))
+            result(index).LoadConsumedKg = fixedAndTurretCount
         End If
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
@@ -1199,6 +1227,8 @@ Public Module ModificationCatalog
             Case "weapon-gyro-stabilization"
                 item.DesignPoints = 15D * quantity
                 item.LoadConsumedKg = quantity + 24D
+            Case "aircraft-drop-tanks"
+                item.DirectCostNuyen = 8000D * quantity
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

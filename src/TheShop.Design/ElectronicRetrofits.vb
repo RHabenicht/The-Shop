@@ -30,7 +30,7 @@ Public Module ElectronicRetrofits
                 prices = {0D, 10000D, 20000D, 30000D, 50000D, 75000D, 100000D, 200000D, 300000D, 500000D, 1000000D}
                 cargo = sensorCargo
                 load = {0, 5, 10, 15, 20, 25, 50, 75, 100, 150, 250}
-                indices = {Nothing, 2.5D, 3D, 3.5D, 4D, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing}
+                indices = New Decimal?() {Nothing, 2.5D, 3D, 3.5D, 4D, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing}
                 availability = {"", "5 / 7 days", "6 / 10 days", "7 / 14 days", "8 / 21 days",
                     "10 / 30 days", "12 / 45 days", "14 / 60 days", "16 / 3 months", "18 / 6 months", "20 / 1 year"}
             Case "eccm"
@@ -43,13 +43,13 @@ Public Module ElectronicRetrofits
                 prices = {0D, 15000D, 30000D, 50000D, 75000D, 100000D, 250000D}
                 cargo = {0, 2, 3, 5, 6, 7, 9}
                 load = {0, 10, 20, 30, 45, 50, 75}
-                indices = {Nothing, 3D, 3.5D, 4D, 4.5D, 5D, Nothing}
+                indices = New Decimal?() {Nothing, 3D, 3.5D, 4D, 4.5D, 5D, Nothing}
                 availability = {"", "8 / 30 days", "8 / 45 days", "8 / 60 days", "10 / 3 months", "12 / 6 months", "16 / 1 year"}
             Case "electronic-counter-deception"
                 prices = {0D, 10000D, 30000D, 50000D, 75000D, 150000D, 300000D}
                 cargo = {0, 2, 3, 4, 5, 6, 8}
                 load = {0, 25, 30, 35, 45, 60, 75}
-                indices = {Nothing, 3D, 3.5D, 4D, 4.5D, 5D, Nothing}
+                indices = New Decimal?() {Nothing, 3D, 3.5D, 4D, 4.5D, 5D, Nothing}
                 availability = {"", "8 / 30 days", "8 / 45 days", "8 / 60 days", "10 / 3 months", "12 / 6 months", "16 / 1 year"}
             Case Else
                 Throw New ArgumentException("Unknown electronic retrofit system.")

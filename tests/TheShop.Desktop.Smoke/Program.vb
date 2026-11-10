@@ -722,6 +722,24 @@ Module Program
                             FindControl(Of Label)(restrictedQuote, "retrofitOutput").Text.Contains("¥60,000.00"),
                             "The assigned Street Index should price restricted equipment and enable installation.")
                 End Using
+                electronicAircraft.CatalogModifications = New List(Of ModificationSelection) From {
+                    New ModificationSelection With {.Id = "aircraft-drop-tanks", .Quantity = 2}
+                }
+                Dim dropTankResult = electronicAircraft.Calculate(sheetCatalog)
+                Require(dropTankResult.ModifiedRatings.FuelCapacity.GetValueOrDefault() = 9000D AndAlso
+                        dropTankResult.ModifiedRatings.Speed.GetValueOrDefault() = 305 AndAlso
+                        dropTankResult.ModifiedRatings.Handling.GetValueOrDefault() = 7 AndAlso
+                        dropTankResult.OperatingModes.Single().Speed.GetValueOrDefault() = 320 AndAlso
+                        dropTankResult.Totals.DirectCostNuyen = 16000D,
+                        "Drop tanks should add fuel, mounting penalties, cost, and a jettisoned operating mode.")
+                electronicAircraft.CatalogModifications = New List(Of ModificationSelection) From {
+                    New ModificationSelection With {.Id = "external-fixed-firmpoint", .Quantity = 1},
+                    New ModificationSelection With {.Id = "remote-micro-turret", .Quantity = 1},
+                    New ModificationSelection With {.Id = "ammo-bin-small-arms", .Quantity = 10}
+                }
+                Dim ammoResult = electronicAircraft.Calculate(sheetCatalog)
+                Require(ammoResult.Totals.CargoRemaining = 497.5D AndAlso ammoResult.Totals.LoadRemainingKg = 4978D,
+                        "Ammo bins should use 0.2 CF blocks and the per-mount installation load.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

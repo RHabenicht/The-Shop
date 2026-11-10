@@ -274,6 +274,7 @@ Public NotInheritable Class DesignForm
             If modified.Sensor.HasValue Then values.Add($"Sensor {modified.Sensor}")
             If modified.Sonar.HasValue Then values.Add($"Sonar {modified.Sonar}")
             If modified.Autonav.HasValue Then values.Add($"Autonav {modified.Autonav}")
+            If modified.FuelCapacity.HasValue Then values.Add($"Final fuel {modified.FuelCapacity} {modified.FuelUnit}")
             If modified.TakeoffLandingProfile IsNot Nothing Then values.Add($"Takeoff/landing {modified.TakeoffLandingProfile}")
             If modified.SetupBreakdownMinutes.HasValue Then values.Add($"Setup/breakdown {modified.SetupBreakdownMinutes} min")
             If modified.StructuralAgility.HasValue Then values.Add($"Structural Agility {modified.StructuralAgility}")

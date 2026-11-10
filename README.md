@@ -97,13 +97,6 @@ The calculator takes Rigger 3 Revised values entered in a JSON file. Enter cargo
 
 The Lockheed-Chenowth Light Strike Vehicle example reproduces the book's 169 Design Points, ¥6,760 base price, ¥13,520 street price, 5 CF and 45 kg remaining. For the Brickyard Beauty, the book gives ¥210,300 before tires and ¥900 for tires. The calculator gives ¥211,200 base and ¥633,600 at Street Index 3 from those inputs. The printed totals on p. 114 differ. See *Rigger 3 Revised*, pp. 111–114.
 
-## Port plan
-
-1. Use [The Shop 1.4.2](https://ojaste.ca/TheShop/) as the reference for the vehicle editor, saved designs, and HTML sheets. The original download contains a classic Visual Basic project that depends on `COMDLG32.OCX`.
-2. Target Visual Basic 17.13 and .NET 10 for the Windows desktop port. Use native .NET file dialogs.
-3. Implement and verify the Rigger 3 Revised rules for chassis, power plants, modifications, costs, and final vehicle stats. Keep the rules separate from the editor so calculations can be tested against worked examples.
-4. Check which legacy vehicle files can be imported and identify any values that need manual conversion under the revised rules.
-
 ## Original program
 
 James Ojaste created The Shop. His site hosts the original Visual Basic source and credits David Taylor for entering most of the chassis and engine data and Nullsheen for arranging the later VB6 migration. 

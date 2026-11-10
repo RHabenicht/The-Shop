@@ -81,6 +81,7 @@ Public NotInheritable Class StockDesign
         Dim modifications = ModificationCatalog.Apply(CatalogModifications, chassis, powerPlant, design, ratings, modifiedRatings)
         Dim totals = design.Calculate()
         Dim retrofits = RetrofitCatalog.Apply(InstalledRetrofits, CatalogModifications, chassis, powerPlant, ratings, totals, validationCargo, validationLoad, modifiedRatings)
+        Dim externalCargo = If(retrofits?.Sum(Function(item) item.Quote.ExternalCargoCapacity), 0D)
         Dim availability = If(AvailabilityClass.HasValue, VehicleAvailability.Calculate(AvailabilityClass.Value, totals.BaseCostNuyen), Nothing)
         If availability IsNot Nothing AndAlso DesignEnhancements.Has(CatalogModifications, "fin-drive") Then
             availability.Rating += 4D
@@ -90,7 +91,7 @@ Public NotInheritable Class StockDesign
         Return New StockDesignResult With {
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
             .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits, .AuxiliaryEngine = AuxiliaryEngine.Ratings(auxiliary),
-            .OperatingModes = VehicleOperatingModes.Build(CatalogModifications, powerPlant, chassis, ratings, modifiedRatings),
+            .ExternalCargoCapacity = externalCargo, .OperatingModes = VehicleOperatingModes.Build(CatalogModifications, powerPlant, chassis, ratings, modifiedRatings, externalCargo),
             .Availability = availability
         }
     End Function
@@ -237,6 +238,8 @@ Public NotInheritable Class StockDesignResult
     Public Property AppliedModifications As IReadOnlyList(Of DesignAddition)
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property ModifiedRatings As ModifiedRatings
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingDefault)>
+    Public Property ExternalCargoCapacity As Decimal
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property OperatingModes As IReadOnlyList(Of VehicleOperatingMode)
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>

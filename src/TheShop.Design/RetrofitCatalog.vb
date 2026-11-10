@@ -2,6 +2,7 @@ Public NotInheritable Class RetrofitQuote
     Public Property PartsCostNuyen As Decimal
     Public Property StreetIndex As Decimal?
     Public Property Availability As String
+    Public Property ExternalCargoCapacity As Decimal
     Public Property CargoConsumed As Decimal
     Public Property LoadConsumedKg As Decimal
     Public ReadOnly Property StreetPartsCostNuyen As Decimal?
@@ -28,7 +29,7 @@ Public Module RetrofitCatalog
         "pintle-mount", "ring-mount", "medium-launch-control", "heavy-launch-control",
         "smartlink-integration-1", "smartlink-integration-2", "battletac-fddm", "battletac-ivis", "dipping-sonar", "ccss-integration",
         "sensors", "sonar", "ecm", "eccm", "electronic-deception", "electronic-counter-deception",
-        "improved-anti-theft-security", "anti-theft-electric-system", "proximity-alert", "autonav", "advanced-drone-pilot"
+        "improved-anti-theft-security", "anti-theft-electric-system", "proximity-alert", "autonav", "advanced-drone-pilot", "external-cargo-mounts"
     }
 
     Friend Function Apply(selections As IReadOnlyList(Of ModificationSelection), designSelections As IReadOnlyList(Of ModificationSelection),
@@ -58,7 +59,7 @@ Public Module RetrofitCatalog
                 Throw New ArgumentException($"'{rule.Name}' is already present in the design.")
             End If
         Next
-        Dim merged = groups.Select(Function(group) New ModificationSelection With {
+        Dim merged = groups.Where(Function(group) Not String.Equals(group.Key, "external-cargo-mounts", StringComparison.OrdinalIgnoreCase)).Select(Function(group) New ModificationSelection With {
                 .Id = group.Key, .Quantity = If(IsReplacementRating(group.Key), group.Last().Quantity, CInt(group.Sum(Function(item) CLng(item.Quantity))))
             }).ToList()
         Dim validationRatings As ModifiedRatings = Nothing
@@ -83,9 +84,14 @@ Public Module RetrofitCatalog
         Return {"sensors", "sonar", "ecm", "eccm", "electronic-deception", "electronic-counter-deception", "improved-anti-theft-security", "autonav", "advanced-drone-pilot", "robotic-pilot"}.Contains(id.ToLowerInvariant())
     End Function
 
+    Private Function Compatible(rule As ModificationRule, chassis As StockChassis, plant As StockPowerPlant) As Boolean
+        If rule.Id = "external-cargo-mounts" Then Return chassis.StartingCargo >= 1D
+        Return ModificationCatalog.IsCompatible(rule, chassis, plant)
+    End Function
+
     Public Function AvailableRules(chassis As StockChassis, plant As StockPowerPlant) As IReadOnlyList(Of ModificationRule)
         Return ModificationCatalog.Rules.Where(Function(rule) supported.Contains(rule.Id) AndAlso
-            ModificationCatalog.IsCompatible(rule, chassis, plant)).ToArray()
+            Compatible(rule, chassis, plant)).ToArray()
     End Function
 
     Public Function Quote(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant,
@@ -99,7 +105,7 @@ Public Module RetrofitCatalog
     End Function
 
     Private Function BaseQuote(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant) As RetrofitQuote
-        If Not supported.Contains(rule.Id) OrElse Not ModificationCatalog.IsCompatible(rule, chassis, plant) Then
+        If Not supported.Contains(rule.Id) OrElse Not Compatible(rule, chassis, plant) Then
             Throw New ArgumentException("This retrofit is unavailable for the selected vehicle.")
         End If
         If quantity < 1 OrElse quantity > ModificationCatalog.MaximumQuantity(rule, chassis) Then
@@ -194,6 +200,10 @@ Public Module RetrofitCatalog
                 Dim prices = {0D, 0D, 5000D, 25000D, 500000D, 2500000D}
                 Return BuildQuote(prices(quantity), If(quantity = 5, CType(Nothing, Decimal?), If(quantity = 4, 4D, 2D)),
                                   If(quantity = 5, "14 / 70 days", If(quantity = 4, "10 / 35 days", "6 / 14 days")), 0D, 0D)
+            Case "external-cargo-mounts"
+                Dim result = BuildQuote(250D * quantity, 1D, "4 / 72 hours", 0D, 0D)
+                result.ExternalCargoCapacity = quantity
+                Return result
             Case Else
                 Throw New ArgumentException("This retrofit has no catalog pricing.")
         End Select

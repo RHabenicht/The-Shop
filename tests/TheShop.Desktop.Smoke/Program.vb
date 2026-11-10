@@ -740,6 +740,20 @@ Module Program
                 Dim ammoResult = electronicAircraft.Calculate(sheetCatalog)
                 Require(ammoResult.Totals.CargoRemaining = 497.5D AndAlso ammoResult.Totals.LoadRemainingKg = 4980D,
                         "Design-time ammunition bins should use their cargo blocks without the customization-only installation weight.")
+                Dim externalCargoVan As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .InstalledRetrofits = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "external-cargo-mounts", .Quantity = 12}
+                    }
+                }
+                editor.WriteDesignFile(destination, externalCargoVan)
+                editor.LoadDesignFile(destination)
+                Dim externalCargoResult = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(externalCargoResult.ExternalCargoCapacity = 12D AndAlso externalCargoResult.RetrofitPartsCostNuyen = 3000D AndAlso
+                        externalCargoResult.Totals.CargoRemaining = 48D AndAlso externalCargoResult.OperatingModes.Single().Name = "External cargo mounts loaded",
+                        "External mounts should store separate cargo capacity and report the loaded Handling modifier.")
+                Require(JsonSerializer.Serialize(externalCargoResult).Contains("""ExternalCargoCapacity"":12"),
+                        "Stock calculator results should serialize new value-type fields for the command-line entry point.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

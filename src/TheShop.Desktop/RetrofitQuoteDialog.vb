@@ -59,6 +59,7 @@ Friend NotInheritable Class RetrofitQuoteDialog
                                         streetCost & Environment.NewLine &
                                         $"Availability {result.Availability}{Environment.NewLine}" &
                                         $"Remaining cargo {cargo:0.##} CF   Remaining load {load:0.##} kg"
+                                    If result.ExternalCargoCapacity > 0D Then output.Text &= Environment.NewLine & $"External cargo capacity {result.ExternalCargoCapacity} CF."
                                     installButton.Enabled = cargo >= 0D AndAlso load >= 0D AndAlso result.StreetIndex.HasValue
                                     If cargo < 0D OrElse load < 0D Then output.Text &= Environment.NewLine & "Exceeds available capacity."
                                 End Sub

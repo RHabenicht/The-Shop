@@ -10,7 +10,7 @@ End Class
 
 Public Module VehicleOperatingModes
     Public Function Build(selections As IReadOnlyList(Of ModificationSelection), plant As StockPowerPlant, chassis As StockChassis,
-                          upgrades As UpgradedRatings, modified As ModifiedRatings) As IReadOnlyList(Of VehicleOperatingMode)
+                          upgrades As UpgradedRatings, modified As ModifiedRatings, Optional externalCargo As Decimal = 0D) As IReadOnlyList(Of VehicleOperatingMode)
         Dim modes As New List(Of VehicleOperatingMode)
         Dim speed = If(modified?.Speed, If(upgrades?.Speed, plant.StartingSpeed))
         Dim accel = If(modified?.Acceleration, If(upgrades?.Acceleration, plant.StartingAcceleration))
@@ -51,6 +51,13 @@ Public Module VehicleOperatingModes
                 .Handling = If(modified?.Handling, If(upgrades?.Handling, chassis.Handling)) - pairs \ 2,
                 .Signature = signature + pairs,
                 .Notes = $"Fuel capacity drops by {2000D * pairs} L and fuel remaining in the tanks is lost."
+            })
+        End If
+        If externalCargo > 0D Then
+            modes.Add(New VehicleOperatingMode With {
+                .Name = "External cargo mounts loaded", .Speed = speed,
+                .Handling = If(modified?.Handling, If(upgrades?.Handling, chassis.Handling)) + 1,
+                .Notes = "Apply +1 to Handling when external cargo is loaded. Payload weight counts against Load."
             })
         End If
         Return If(modes.Count = 0, Nothing, modes)

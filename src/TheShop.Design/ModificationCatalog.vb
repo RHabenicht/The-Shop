@@ -301,12 +301,14 @@ Public Module ModificationCatalog
         New ModificationRule("ammo-bin-machine-gun", "Ammunition bin — MMG/HMG", "0.2 CF blocks, 200 rounds each", Integer.MaxValue, 0.2D),
         New ModificationRule("ammo-bin-heavy", "Ammunition bin — GL/assault cannon", "0.2 CF blocks, 20 rounds each", Integer.MaxValue, 0.2D),
         New ModificationRule("aircraft-drop-tanks", "Aircraft drop tanks", "pairs", Integer.MaxValue),
+        New ModificationRule("external-cargo-mounts", "External cargo mounts (retrofit only)", "CF capacity", Integer.MaxValue),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
 
     Public Function MaximumQuantity(rule As ModificationRule, chassis As StockChassis) As Integer
         Dim body = chassis.Body.GetValueOrDefault()
+        If rule.Id = "external-cargo-mounts" Then Return CInt(Math.Min(Integer.MaxValue, Math.Floor(chassis.StartingCargo)))
         If rule.Id = "special-machinery" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
         If rule.Id = "weapon-gyro-stabilization" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
         If rule.Id = "setup-time-reduction" Then Return CInt(Math.Ceiling((2D * body + 1D) / 2D))
@@ -331,6 +333,8 @@ Public Module ModificationCatalog
             Return True
         End If
         Select Case rule.Id
+            Case "external-cargo-mounts"
+                Return False
             Case "ccss-integration"
                 Return chassis.Category = "Ship"
             Case "torpedo-tube-manual", "torpedo-tube-autoloader", "torpedo-storage-rack"

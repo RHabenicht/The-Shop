@@ -76,6 +76,7 @@ Public Module VehicleSheet
         If modified?.AdaptationPool.HasValue Then Row(page, "Adaptation Pool", Number(modified.AdaptationPool))
         If modified?.RoboticReflexes.HasValue Then Row(page, "Robotic reflexes", Number(modified.RoboticReflexes))
         Row(page, "Autonav / Pilot", Pair(If(modified?.Autonav, chassis.Autonav), If(modified?.Pilot, chassis.Pilot)))
+        If result.ExternalCargoCapacity > 0D Then Row(page, "External cargo capacity (CF)", Number(CType(result.ExternalCargoCapacity, Decimal?)))
         Row(page, "Available cargo (CF)", Number(totals.CargoRemaining))
         Row(page, "Available load (kg)", Number(totals.LoadRemainingKg))
         If chassis.StartingDepth.HasValue Then Row(page, "Depth (m)", Number(If(up?.Depth, chassis.StartingDepth)))

@@ -255,6 +255,7 @@ Public NotInheritable Class DesignForm
             Dim engine = result.AuxiliaryEngine
             totals.Text &= Environment.NewLine & $"Auxiliary {engine.Name}   Speed {engine.Speed}   Acceleration {engine.Acceleration}"
         End If
+        If result.ExternalCargoCapacity > 0D Then totals.Text &= Environment.NewLine & $"External cargo capacity {result.ExternalCargoCapacity} CF"
         If result.OperatingModes IsNot Nothing Then
             For Each mode In result.OperatingModes
                 totals.Text &= Environment.NewLine & $"{mode.Name}   Speed {mode.Speed}   Accel {mode.Acceleration}   Handling {mode.Handling}   Signature {mode.Signature}   Sonar Signature {mode.SonarSignature}"
@@ -365,7 +366,7 @@ Public NotInheritable Class DesignForm
         Try
             Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
             Dim plant = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant)
-            Using dialog As New ModificationDialog(installedRetrofits, chassis, plant, RetrofitCatalog.Rules, "Installed retrofits")
+            Using dialog As New ModificationDialog(installedRetrofits, chassis, plant, RetrofitCatalog.Rules, "Installed retrofits", retrofits:=True)
                 If dialog.ShowDialog(Me) = DialogResult.OK Then
                     Dim design = ReadDesign()
                     design.InstalledRetrofits = dialog.ReadSelection()?.ToList()

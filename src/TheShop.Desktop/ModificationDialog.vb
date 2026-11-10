@@ -9,7 +9,8 @@ Friend NotInheritable Class ModificationDialog
     Private ReadOnly quantities As New List(Of (Rule As ModificationRule, Input As NumericUpDown))
 
     Public Sub New(current As IReadOnlyList(Of ModificationSelection), chassis As StockChassis, plant As StockPowerPlant,
-                   Optional rules As IReadOnlyList(Of ModificationRule) = Nothing, Optional caption As String = "Catalog modifications")
+                   Optional rules As IReadOnlyList(Of ModificationRule) = Nothing, Optional caption As String = "Catalog modifications",
+                   Optional retrofits As Boolean = False)
         Text = caption
         If current IsNot Nothing Then
             For Each choice In current
@@ -40,7 +41,7 @@ Friend NotInheritable Class ModificationDialog
         For Each rule In If(rules, ModificationCatalog.Rules)
             Dim selected = current?.SingleOrDefault(Function(choice) String.Equals(choice.Id, rule.Id, StringComparison.OrdinalIgnoreCase))
             Dim value = If(selected?.Quantity, 0)
-            Dim compatible = ModificationCatalog.IsCompatible(rule, chassis, plant)
+            Dim compatible = If(retrofits, RetrofitCatalog.AvailableRules(chassis, plant).Any(Function(candidate) candidate.Id = rule.Id), ModificationCatalog.IsCompatible(rule, chassis, plant))
             Dim label = rule.Name
             If rule.QuantityLabel.Length > 0 Then label &= $" ({rule.QuantityLabel})"
             If rule.Id = "sensors" AndAlso chassis.Sensor.GetValueOrDefault() > 0 Then

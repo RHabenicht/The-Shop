@@ -70,7 +70,7 @@ Public Module ModificationCatalog
             Case "bulwark"
                 Return chassis.Hull.HasValue
             Case "sensors"
-                Return chassis.Sensor.GetValueOrDefault() = 0 AndAlso chassis.Id <> "sport-cruiser" AndAlso chassis.Id <> "yacht"
+                Return chassis.Sensor.GetValueOrDefault() < rule.Maximum
             Case "towed-array-sonar"
                 Return chassis.Category = "Ship" OrElse chassis.Category = "Submarine"
             Case "hovercraft-water-seal"
@@ -104,6 +104,9 @@ Public Module ModificationCatalog
             End If
             If Not IsCompatible(rule, chassis, plant) Then
                 Throw New ArgumentException($"'{rule.Name}' is unavailable for this chassis or power plant.")
+            End If
+            If rule.Id = "sensors" AndAlso choice.Quantity <= chassis.Sensor.GetValueOrDefault() Then
+                Throw New ArgumentException($"Choose a sensor rating above the factory rating of {chassis.Sensor}.")
             End If
             result.Add(Price(rule.Id, rule.Name, choice.Quantity, chassis))
             Select Case rule.Id

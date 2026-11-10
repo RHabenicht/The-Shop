@@ -36,6 +36,9 @@ Friend NotInheritable Class ModificationDialog
             Dim compatible = ModificationCatalog.IsCompatible(rule, chassis, plant)
             Dim label = rule.Name
             If rule.QuantityLabel.Length > 0 Then label &= $" ({rule.QuantityLabel})"
+            If rule.Id = "sensors" AndAlso chassis.Sensor.GetValueOrDefault() > 0 Then
+                label &= $" · factory {chassis.Sensor}"
+            End If
             If Not compatible Then label &= " · unavailable"
             Dim row = table.RowCount
             table.RowCount += 1

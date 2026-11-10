@@ -146,6 +146,15 @@ Module Program
                 Require(sheet.Contains("Courier &lt;One&gt; &amp; Co.") AndAlso sheet.Contains("49,500") AndAlso
                         sheet.Contains("Vehicle armor") AndAlso sheet.Contains("Sensor system") AndAlso
                         Not sheet.Contains("<One>"), "The HTML sheet did not retain and escape the vehicle values.")
+                File.WriteAllText(destination, "{""ChassisId"":""airliner"",""PowerPlantId"":""jet-propeller"",""StreetIndex"":1," &
+                                  """CatalogModifications"":[{""Id"":""sensors"",""Quantity"":2}]}")
+                editor.LoadDesignFile(destination)
+                editor.WriteDesignFile(destination, editor.ReadDesign())
+                editor.LoadDesignFile(destination)
+                Require(editor.ReadDesign().CatalogModifications.Single().Quantity = 2 AndAlso
+                        totals.Text.Contains("Sensor 2") AndAlso totals.Text.Contains("499 CF") AndAlso
+                        totals.Text.Contains("4980 kg") AndAlso totals.Text.Contains("Base ¥643,750.00"),
+                        "Replacing factory sensors should charge for the selected system and report its final rating.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

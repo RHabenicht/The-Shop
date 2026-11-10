@@ -1,7 +1,7 @@
 [Setup]
 AppId=TheShop.RHabenicht
 AppName=The Shop
-AppVersion=0.2.0
+AppVersion=0.2.4
 DefaultDirName={localappdata}\Programs\The Shop
 DefaultGroupName=The Shop
 PrivilegesRequired=lowest

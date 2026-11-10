@@ -30,7 +30,7 @@ Choose **Catalog mods…** in the editor. The catalog prices airlocks for submar
 
 In stock design JSON, use `"CatalogModifications": [{"Id": "nitrous", "Quantity": 2}]` for a rating-2 injector. Catalog and manual entries are both included in the capacity and price totals. Keep each modification in only one of those lists.
 
-The protection and sensor entries add vehicle armor, concealed armor, Bulwark, sensor systems, towed-array sonar, and hovercraft water seals (*Rigger 3 Revised*, pp. 131–132, 147–148, 152). Enter additional points for armor and Bulwark. The editor reports final protection, Handling, and sensor ratings. The sensor entry supports new installations on stock chassis without sensors. Use manual entries for replacing existing sensors. Towed-array sonar has a separate rating from the stock sonar system.
+The protection and sensor entries add vehicle armor, concealed armor, Bulwark, sensor systems, towed-array sonar, and hovercraft water seals (*Rigger 3 Revised*, pp. 131–132, 147–148, 152). Enter additional points for armor and Bulwark. The editor reports final protection, Handling, and sensor ratings. Enter the final sensor rating. To replace factory sensors, choose a higher rating. The calculator charges the full design points, cargo and load listed for the new system and gives no credit for the original equipment. Towed-array sonar has a separate rating from the stock sonar system.
 
 ## Availability
 

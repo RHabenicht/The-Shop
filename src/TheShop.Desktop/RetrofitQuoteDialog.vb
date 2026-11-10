@@ -25,48 +25,71 @@ Friend NotInheritable Class RetrofitQuoteDialog
         Dim options As New ComboBox With {.Name = "retrofitOptions", .DropDownStyle = ComboBoxStyle.DropDownList, .Width = 320, .DisplayMember = NameOf(ModificationRule.Name)}
         Dim quantity As New NumericUpDown With {.Name = "retrofitQuantity", .Minimum = 1, .Maximum = Integer.MaxValue, .Value = 1}
         Dim quantityLabel As New Label With {.AutoSize = True}
+        Dim customIndex As New CheckBox With {.Name = "customStreetIndex", .Text = "Use assigned Street Index", .AutoSize = True}
+        Dim streetIndex As New NumericUpDown With {.Name = "retrofitStreetIndex", .Minimum = 0.01D, .Maximum = 1000D, .DecimalPlaces = 2, .Value = 1D, .Enabled = False}
+        Dim updating As Boolean
         Dim output As New Label With {.Name = "retrofitOutput", .AutoSize = True, .MinimumSize = New Size(360, 0)}
         Dim closeButton As New Button With {.Text = "Close", .DialogResult = DialogResult.Cancel}
         Dim installButton As New Button With {.Name = "installRetrofit", .Text = "Install", .Enabled = False}
         layout.Controls.Add(options)
         layout.Controls.Add(quantityLabel)
         layout.Controls.Add(quantity)
+        layout.Controls.Add(customIndex)
+        layout.Controls.Add(streetIndex)
         layout.Controls.Add(output)
         layout.Controls.Add(installButton)
         layout.Controls.Add(closeButton)
         CancelButton = closeButton
 
         Dim refresh As Action = Sub()
+                                    If updating Then Return
                                     Dim rule = TryCast(options.SelectedItem, ModificationRule)
                                     If rule Is Nothing Then
                                         installButton.Enabled = False
                                         output.Text = "No catalog retrofits are available for this vehicle."
                                         Return
                                     End If
-                                    Dim result = RetrofitCatalog.Quote(rule, CInt(quantity.Value), chassis, plant)
+                                    Dim result = RetrofitCatalog.Quote(rule, CInt(quantity.Value), chassis, plant, If(customIndex.Checked, CType(streetIndex.Value, Decimal?), Nothing))
                                     Dim cargo = totals.CargoRemaining - result.CargoConsumed
                                     Dim load = totals.LoadRemainingKg - result.LoadConsumedKg
+                                    Dim streetCost = If(result.StreetPartsCostNuyen.HasValue,
+                                        $"Street parts cost ¥{result.StreetPartsCostNuyen.GetValueOrDefault():N2} (SI {result.StreetIndex})",
+                                        "Assign a Street Index to price and install this restricted part.")
                                     output.Text = $"List parts cost ¥{result.PartsCostNuyen:N2}{Environment.NewLine}" &
-                                        $"Street parts cost ¥{result.StreetPartsCostNuyen:N2} (SI {result.StreetIndex}){Environment.NewLine}" &
+                                        streetCost & Environment.NewLine &
                                         $"Availability {result.Availability}{Environment.NewLine}" &
                                         $"Remaining cargo {cargo:0.##} CF   Remaining load {load:0.##} kg"
-                                    installButton.Enabled = cargo >= 0D AndAlso load >= 0D
+                                    installButton.Enabled = cargo >= 0D AndAlso load >= 0D AndAlso result.StreetIndex.HasValue
                                     If cargo < 0D OrElse load < 0D Then output.Text &= Environment.NewLine & "Exceeds available capacity."
                                 End Sub
         AddHandler installButton.Click,
             Sub(sender, e)
                 Dim rule = DirectCast(options.SelectedItem, ModificationRule)
-                _Selection = New ModificationSelection With {.Id = rule.Id, .Quantity = CInt(quantity.Value)}
+                _Selection = New ModificationSelection With {.Id = rule.Id, .Quantity = CInt(quantity.Value),
+                    .StreetIndexOverride = If(customIndex.Checked, CType(streetIndex.Value, Decimal?), Nothing)}
                 DialogResult = DialogResult.OK
             End Sub
         AddHandler quantity.ValueChanged, Sub(sender, e) refresh()
+        AddHandler streetIndex.ValueChanged, Sub(sender, e) refresh()
+        AddHandler customIndex.CheckedChanged,
+            Sub(sender, e)
+                streetIndex.Enabled = customIndex.Checked
+                refresh()
+            End Sub
         AddHandler options.SelectedIndexChanged,
             Sub(sender, e)
                 Dim rule = TryCast(options.SelectedItem, ModificationRule)
                 If rule IsNot Nothing Then
-                    quantity.Maximum = ModificationCatalog.MaximumQuantity(rule, chassis)
-                    quantity.Enabled = quantity.Maximum > 1
-                    quantityLabel.Text = If(rule.QuantityLabel.Length = 0, "Quantity", rule.QuantityLabel)
+                    updating = True
+                    Try
+                        quantity.Minimum = 1D
+                        quantity.Maximum = ModificationCatalog.MaximumQuantity(rule, chassis)
+                        quantity.Minimum = If(rule.Id = "improved-anti-theft-security", 3D, If(rule.Id = "advanced-drone-pilot", 2D, 1D))
+                        quantity.Enabled = quantity.Maximum > quantity.Minimum
+                        quantityLabel.Text = If(rule.QuantityLabel.Length = 0, "Quantity", rule.QuantityLabel)
+                    Finally
+                        updating = False
+                    End Try
                 End If
                 refresh()
             End Sub

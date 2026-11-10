@@ -1,10 +1,10 @@
 Public NotInheritable Class RetrofitQuote
     Public Property PartsCostNuyen As Decimal
-    Public Property StreetIndex As Decimal
+    Public Property StreetIndex As Decimal?
     Public Property Availability As String
     Public Property CargoConsumed As Decimal
     Public Property LoadConsumedKg As Decimal
-    Public ReadOnly Property StreetPartsCostNuyen As Decimal
+    Public ReadOnly Property StreetPartsCostNuyen As Decimal?
         Get
             Return PartsCostNuyen * StreetIndex
         End Get
@@ -26,7 +26,9 @@ Public Module RetrofitCatalog
         "engine-water-seal", "life-support", "hovercraft-water-seal", "gridlink",
         "external-fixed-firmpoint", "external-fixed-hardpoint", "internal-fixed-firmpoint", "internal-fixed-hardpoint",
         "pintle-mount", "ring-mount", "medium-launch-control", "heavy-launch-control",
-        "smartlink-integration-1", "smartlink-integration-2", "battletac-fddm", "battletac-ivis", "dipping-sonar", "ccss-integration"
+        "smartlink-integration-1", "smartlink-integration-2", "battletac-fddm", "battletac-ivis", "dipping-sonar", "ccss-integration",
+        "sensors", "sonar", "ecm", "eccm", "electronic-deception", "electronic-counter-deception",
+        "improved-anti-theft-security", "anti-theft-electric-system", "proximity-alert", "autonav", "advanced-drone-pilot"
     }
 
     Friend Function Apply(selections As IReadOnlyList(Of ModificationSelection), designSelections As IReadOnlyList(Of ModificationSelection),
@@ -43,18 +45,21 @@ Public Module RetrofitCatalog
             Dim rule = ModificationCatalog.Rules.SingleOrDefault(Function(candidate) String.Equals(candidate.Id, selection.Id, StringComparison.OrdinalIgnoreCase))
             If rule Is Nothing OrElse Not seen.Add(rule.Id) Then Throw New ArgumentException("An installed retrofit is unknown or repeated.")
             entries.Add(New InstalledRetrofit With {.Name = rule.Name, .Quantity = selection.Quantity,
-                .Quote = Quote(rule, selection.Quantity, chassis, plant)})
+                .Quote = Quote(rule, selection.Quantity, chassis, plant, selection.StreetIndexOverride)})
+            If Not entries.Last().Quote.StreetIndex.HasValue Then Throw New ArgumentException("Assign a Street Index before installing this restricted retrofit.")
             combined.Add(New ModificationSelection With {.Id = rule.Id, .Quantity = selection.Quantity})
         Next
         Dim groups = combined.GroupBy(Function(item) item.Id, StringComparer.OrdinalIgnoreCase).ToArray()
         For Each group In groups.Where(Function(items) items.Count() > 1)
             Dim rule = ModificationCatalog.Rules.Single(Function(candidate) String.Equals(candidate.Id, group.Key, StringComparison.OrdinalIgnoreCase))
-            If Not {"units", "seats", "ports", "sets", "racks", "mounts", "10 person-hour blocks"}.Contains(rule.QuantityLabel) Then
+            If IsReplacementRating(rule.Id) Then
+                If group.Last().Quantity <= group.First().Quantity Then Throw New ArgumentException($"Choose a higher replacement rating for '{rule.Name}'.")
+            ElseIf Not {"units", "seats", "ports", "sets", "racks", "mounts", "10 person-hour blocks"}.Contains(rule.QuantityLabel) Then
                 Throw New ArgumentException($"'{rule.Name}' is already present in the design.")
             End If
         Next
         Dim merged = groups.Select(Function(group) New ModificationSelection With {
-                .Id = group.Key, .Quantity = CInt(group.Sum(Function(item) CLng(item.Quantity)))
+                .Id = group.Key, .Quantity = If(IsReplacementRating(group.Key), group.Last().Quantity, CInt(group.Sum(Function(item) CLng(item.Quantity))))
             }).ToList()
         Dim validationRatings As ModifiedRatings = Nothing
         ModificationCatalog.Apply(merged, chassis, plant, New VehicleDesign With {.Additions = New List(Of DesignAddition), .CargoCapacity = validationCargo, .LoadCapacityKg = validationLoad},
@@ -74,12 +79,26 @@ Public Module RetrofitCatalog
         End Get
     End Property
 
+    Private Function IsReplacementRating(id As String) As Boolean
+        Return {"sensors", "sonar", "ecm", "eccm", "electronic-deception", "electronic-counter-deception", "improved-anti-theft-security", "autonav", "advanced-drone-pilot", "robotic-pilot"}.Contains(id.ToLowerInvariant())
+    End Function
+
     Public Function AvailableRules(chassis As StockChassis, plant As StockPowerPlant) As IReadOnlyList(Of ModificationRule)
         Return ModificationCatalog.Rules.Where(Function(rule) supported.Contains(rule.Id) AndAlso
             ModificationCatalog.IsCompatible(rule, chassis, plant)).ToArray()
     End Function
 
-    Public Function Quote(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant) As RetrofitQuote
+    Public Function Quote(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant,
+                          Optional streetIndexOverride As Decimal? = Nothing) As RetrofitQuote
+        Dim result = BaseQuote(rule, quantity, chassis, plant)
+        If streetIndexOverride.HasValue Then
+            If streetIndexOverride.Value <= 0D Then Throw New ArgumentException("A retrofit Street Index must be positive.")
+            result.StreetIndex = streetIndexOverride.Value
+        End If
+        Return result
+    End Function
+
+    Private Function BaseQuote(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant) As RetrofitQuote
         If Not supported.Contains(rule.Id) OrElse Not ModificationCatalog.IsCompatible(rule, chassis, plant) Then
             Throw New ArgumentException("This retrofit is unavailable for the selected vehicle.")
         End If
@@ -87,6 +106,7 @@ Public Module RetrofitCatalog
             Throw New ArgumentException("The retrofit quantity or rating is outside the allowed range.")
         End If
 
+        If ElectronicRetrofits.Contains(rule.Id) Then Return ElectronicRetrofits.Quote(rule.Id, quantity)
         Dim body = CDec(chassis.Body.GetValueOrDefault())
         Select Case rule.Id
             Case "crane"
@@ -156,12 +176,30 @@ Public Module RetrofitCatalog
                 Return BuildQuote(15000D * quantity, 4.5D, "8 / 21 days", 16D, 50D)
             Case "ccss-integration"
                 Return BuildQuote(400000D * quantity, 4D, "6 / 21 days", 0D, 0D)
+            Case "improved-anti-theft-security"
+                If quantity < 3 Then Throw New ArgumentException("Improved security requires rating 3 or higher.")
+                Dim rate = If(quantity <= 6, 400D, If(quantity <= 9, 1000D, 5000D))
+                Return BuildQuote(rate * quantity, If(quantity <= 6, 1.25D, If(quantity <= 9, 1.5D, 2D)),
+                                  If(quantity <= 6, "4 / 7 days", If(quantity <= 9, "5 / 10 days", "6 / 14 days")), 0D, 0D)
+            Case "anti-theft-electric-system"
+                Return BuildQuote(2000D, Nothing, "Use the security system's Availability", 0D, 0D)
+            Case "proximity-alert"
+                Return BuildQuote(250D, Nothing, "Use the security system's Availability", 0D, 0D)
+            Case "autonav"
+                Dim prices = {0D, 500D, 1000D, 5000D, 15000D}
+                Dim indices = {0D, 1D, 1D, 1.5D, 2D}
+                Dim availability = {"", "2 / 90 hours", "3 / 6 days", "3 / 8 days", "6 / 14 days"}
+                Return BuildQuote(prices(quantity), indices(quantity), availability(quantity), 0D, 0D)
+            Case "advanced-drone-pilot"
+                Dim prices = {0D, 0D, 5000D, 25000D, 500000D, 2500000D}
+                Return BuildQuote(prices(quantity), If(quantity = 5, CType(Nothing, Decimal?), If(quantity = 4, 4D, 2D)),
+                                  If(quantity = 5, "14 / 70 days", If(quantity = 4, "10 / 35 days", "6 / 14 days")), 0D, 0D)
             Case Else
                 Throw New ArgumentException("This retrofit has no catalog pricing.")
         End Select
     End Function
 
-    Private Function BuildQuote(cost As Decimal, index As Decimal, availability As String, cargo As Decimal, load As Decimal) As RetrofitQuote
+    Private Function BuildQuote(cost As Decimal, index As Decimal?, availability As String, cargo As Decimal, load As Decimal) As RetrofitQuote
         Return New RetrofitQuote With {
             .PartsCostNuyen = cost, .StreetIndex = index, .Availability = availability,
             .CargoConsumed = cargo, .LoadConsumedKg = load

@@ -5,11 +5,17 @@ Imports TheShop.Design
 Friend NotInheritable Class ModificationDialog
     Inherits Form
 
+    Private ReadOnly priceOverrides As New Dictionary(Of String, Decimal?)(StringComparer.OrdinalIgnoreCase)
     Private ReadOnly quantities As New List(Of (Rule As ModificationRule, Input As NumericUpDown))
 
     Public Sub New(current As IReadOnlyList(Of ModificationSelection), chassis As StockChassis, plant As StockPowerPlant,
                    Optional rules As IReadOnlyList(Of ModificationRule) = Nothing, Optional caption As String = "Catalog modifications")
         Text = caption
+        If current IsNot Nothing Then
+            For Each choice In current
+                priceOverrides(choice.Id) = choice.StreetIndexOverride
+            Next
+        End If
         StartPosition = FormStartPosition.CenterParent
         AutoScaleMode = AutoScaleMode.Dpi
         ClientSize = New Size(580, 500)
@@ -64,7 +70,8 @@ Friend NotInheritable Class ModificationDialog
 
     Public Function ReadSelection() As List(Of ModificationSelection)
         Dim selection = quantities.Where(Function(item) item.Input.Value > 0).
-            Select(Function(item) New ModificationSelection With {.Id = item.Rule.Id, .Quantity = CInt(item.Input.Value)}).ToList()
+            Select(Function(item) New ModificationSelection With {.Id = item.Rule.Id, .Quantity = CInt(item.Input.Value),
+                .StreetIndexOverride = If(priceOverrides.ContainsKey(item.Rule.Id), priceOverrides(item.Rule.Id), Nothing)}).ToList()
         Return If(selection.Count = 0, Nothing, selection)
     End Function
 End Class

@@ -245,7 +245,7 @@ Public NotInheritable Class StockDesignResult
     Public Property InstalledRetrofits As IReadOnlyList(Of InstalledRetrofit)
     Public ReadOnly Property RetrofitPartsCostNuyen As Decimal
         Get
-            Return If(InstalledRetrofits?.Sum(Function(item) item.Quote.StreetPartsCostNuyen), 0D)
+            Return If(InstalledRetrofits?.Sum(Function(item) item.Quote.StreetPartsCostNuyen.GetValueOrDefault()), 0D)
         End Get
     End Property
 End Class

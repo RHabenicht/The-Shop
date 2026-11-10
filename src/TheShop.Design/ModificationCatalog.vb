@@ -5,6 +5,8 @@ Public NotInheritable Class ModificationSelection
     Public Property Id As String
     <JsonRequired>
     Public Property Quantity As Integer
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property StreetIndexOverride As Decimal?
 End Class
 
 Public NotInheritable Class ModificationRule

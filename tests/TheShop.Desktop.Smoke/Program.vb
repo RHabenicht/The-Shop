@@ -687,6 +687,41 @@ Module Program
                 VehicleSheet.Write(sheetPath, converted, sheetCatalog)
                 Require(File.ReadAllText(sheetPath).Contains("Review manually: Unknown option"),
                         "Legacy conversion review notes should appear on the vehicle sheet.")
+                Dim sensorRefit As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "sensors", .Quantity = 2}
+                    },
+                    .InstalledRetrofits = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "sensors", .Quantity = 5, .StreetIndexOverride = 4D}
+                    }
+                }
+                editor.WriteDesignFile(destination, sensorRefit)
+                editor.LoadDesignFile(destination)
+                Dim sensorRefitResult = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(sensorRefitResult.ModifiedRatings.Sensor.GetValueOrDefault() = 5 AndAlso
+                        sensorRefitResult.RetrofitPartsCostNuyen = 60000D AndAlso sensorRefitResult.Totals.CargoRemaining = 41D AndAlso
+                        sensorRefitResult.Totals.LoadRemainingKg = 930D AndAlso sensorRefitResult.Totals.BaseCostNuyen = 17000D,
+                        "Replacement sensors should use the final rating, saved Street Index, and customization capacity.")
+                Using editRetrofits As New ModificationDialog(sensorRefit.InstalledRetrofits, quoteChassis, quotePlant, RetrofitCatalog.Rules)
+                    Require(editRetrofits.ReadSelection().Single().StreetIndexOverride.GetValueOrDefault() = 4D,
+                            "Editing installed quantities should retain the assigned parts Street Index.")
+                End Using
+                Using restrictedQuote As New RetrofitQuoteDialog(quoteChassis, quotePlant, New DesignTotals With {
+                    .CargoRemaining = 48D, .LoadRemainingKg = 1000D
+                })
+                    restrictedQuote.BindingContext = New BindingContext()
+                    Dim choices = FindControl(Of ComboBox)(restrictedQuote, "retrofitOptions")
+                    choices.SelectedIndex = choices.Items.Cast(Of ModificationRule)().ToList().FindIndex(Function(rule) rule.Id = "sensors")
+                    FindControl(Of NumericUpDown)(restrictedQuote, "retrofitQuantity").Value = 5D
+                    Require(Not FindControl(Of Button)(restrictedQuote, "installRetrofit").Enabled,
+                            "A restricted part should require an assigned Street Index before installation.")
+                    FindControl(Of NumericUpDown)(restrictedQuote, "retrofitStreetIndex").Value = 4D
+                    FindControl(Of CheckBox)(restrictedQuote, "customStreetIndex").Checked = True
+                    Require(FindControl(Of Button)(restrictedQuote, "installRetrofit").Enabled AndAlso
+                            FindControl(Of Label)(restrictedQuote, "retrofitOutput").Text.Contains("¥60,000.00"),
+                            "The assigned Street Index should price restricted equipment and enable installation.")
+                End Using
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

@@ -377,14 +377,16 @@ Module Program
                         "Sidecars and runflat tires should apply the listed ratings and costs.")
                 Dim deepSub As New StockDesign With {
                     .ChassisId = "attack-submarine", .PowerPlantId = "diesel", .StreetIndex = 1,
-                    .Upgrades = New DesignUpgrades With {.DepthSteps = 2, .Acceleration = 1}
+                    .Upgrades = New DesignUpgrades With {.DepthSteps = 2, .Acceleration = 1, .Speed = 2, .SecondarySpeed = 1}
                 }
                 editor.WriteDesignFile(destination, deepSub)
                 editor.LoadDesignFile(destination)
                 Dim deepResult = editor.ReadDesign().Calculate(sheetCatalog)
-                Require(deepResult.Totals.DesignPoints = 370029D AndAlso
-                        deepResult.Totals.LoadRemainingKg = 700000D AndAlso totals.Text.Contains("Depth 420 m"),
-                        "Hull-rated depth upgrades should apply Hull Factor and leave other upgrade costs intact.")
+                Require(deepResult.Totals.DesignPoints = 370035D AndAlso
+                        deepResult.Totals.LoadRemainingKg = 700000D AndAlso totals.Text.Contains("Depth 420 m") AndAlso
+                        deepResult.UpgradedRatings.Speed.GetValueOrDefault() = 32 AndAlso
+                        deepResult.UpgradedRatings.SecondarySpeed.GetValueOrDefault() = 26,
+                        "Hull-rated depth and paired speed upgrades should apply their listed costs and limits.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

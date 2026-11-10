@@ -47,7 +47,7 @@ Public Module VehicleSheet
         Dim speed = If(modified?.Speed, If(up?.Speed, plant.StartingSpeed))
         Dim speedText = Number(speed)
         If plant.StartingStallSpeed.HasValue Then speedText = Number(plant.StartingStallSpeed) & " / " & speedText & " (stall / flight)"
-        If plant.StartingSecondarySpeed.HasValue Then speedText &= " / " & Number(plant.StartingSecondarySpeed) & " (paired operating ratings)"
+        If plant.StartingSecondarySpeed.HasValue Then speedText &= " / " & Number(If(up?.SecondarySpeed, plant.StartingSecondarySpeed)) & " (paired operating ratings)"
         Row(page, "Speed", speedText)
         If modified?.WaterSpeed.HasValue Then Row(page, "Water Speed rating", Number(modified.WaterSpeed))
         If modified?.WaterSpeedMetersPerTurn.HasValue Then Row(page, "Water speed", Number(modified.WaterSpeedMetersPerTurn) & " m/turn")
@@ -79,7 +79,7 @@ Public Module VehicleSheet
         page.Append("</tbody></table><h2>Options and modifications</h2><table><thead><tr><th>Item</th><th>Selection</th></tr></thead><tbody>")
         If design.Upgrades IsNot Nothing Then
             Dim selections As New Dictionary(Of String, Integer) From {
-                {"Speed increase", design.Upgrades.Speed}, {"Acceleration increase", design.Upgrades.Acceleration},
+                {"Speed increase", design.Upgrades.Speed}, {"Secondary speed increase", design.Upgrades.SecondarySpeed}, {"Acceleration increase", design.Upgrades.Acceleration},
                 {"Handling improvement", design.Upgrades.Handling}, {"On-road Handling improvement", design.Upgrades.OnRoadHandling},
                 {"Off-road Handling improvement", design.Upgrades.OffRoadHandling}, {"Cargo increase (0.2 CF steps)", design.Upgrades.CargoSteps},
                 {"Load increase (steps)", design.Upgrades.LoadSteps}, {"Signature increase", design.Upgrades.Signature},

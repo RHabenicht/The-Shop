@@ -20,8 +20,12 @@ Friend NotInheritable Class UpgradeDialog
         Dim table As New TableLayoutPanel With {.AutoSize = True, .Dock = DockStyle.Fill, .ColumnCount = 2, .Padding = New Padding(12)}
         Controls.Add(table)
         current = If(current, New DesignUpgrades())
-        AddSteps(table, "Speed +1 (2 DP)", current.Speed, Sub(n) Selection.Speed = n,
-                 plant.StartingSpeed.HasValue AndAlso Not plant.StartingSecondarySpeed.HasValue)
+        AddSteps(table, If(plant.StartingSecondarySpeed.HasValue, "Primary speed +1 (2 DP)", "Speed +1 (2 DP)"),
+                 current.Speed, Sub(n) Selection.Speed = n, plant.StartingSpeed.HasValue)
+        If plant.StartingSecondarySpeed.HasValue OrElse current.SecondarySpeed > 0 Then
+            AddSteps(table, "Secondary speed +1 (2 DP)", current.SecondarySpeed, Sub(n) Selection.SecondarySpeed = n,
+                     plant.StartingSecondarySpeed.HasValue)
+        End If
         AddSteps(table, "Acceleration +1 (25 DP)", current.Acceleration, Sub(n) Selection.Acceleration = n, plant.StartingAcceleration.HasValue)
         AddSteps(table, "Handling −1 (25 DP)", current.Handling, Sub(n) Selection.Handling = n, chassis.Handling.HasValue)
         AddSteps(table, "On-road Handling −1 (25 DP)", current.OnRoadHandling, Sub(n) Selection.OnRoadHandling = n, chassis.OnRoadHandling.HasValue)

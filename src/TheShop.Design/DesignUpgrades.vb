@@ -1,5 +1,6 @@
 Public NotInheritable Class DesignUpgrades
     Public Property Speed As Integer
+    Public Property SecondarySpeed As Integer
     Public Property Acceleration As Integer
     Public Property Handling As Integer
     Public Property OnRoadHandling As Integer
@@ -13,7 +14,7 @@ Public NotInheritable Class DesignUpgrades
 
     Friend Function Apply(chassis As StockChassis, plant As StockPowerPlant, design As VehicleDesign,
                           cargoOverride As Decimal?, loadOverride As Decimal?) As UpgradedRatings
-        Dim steps = {Speed, Acceleration, Handling, OnRoadHandling, OffRoadHandling, CargoSteps, LoadSteps, Signature, EconomySteps, FuelSteps, DepthSteps}
+        Dim steps = {Speed, SecondarySpeed, Acceleration, Handling, OnRoadHandling, OffRoadHandling, CargoSteps, LoadSteps, Signature, EconomySteps, FuelSteps, DepthSteps}
         If steps.Any(Function(value) value < 0) Then Throw New ArgumentException("Upgrade steps cannot be negative.")
         If steps.All(Function(value) value = 0) Then Return Nothing
         If chassis.Hull.HasValue AndAlso LoadSteps > 0 Then Throw New ArgumentException("Use manual entries for Hull-rated load increases.")
@@ -21,12 +22,10 @@ Public NotInheritable Class DesignUpgrades
         If (CargoSteps > 0 AndAlso cargoOverride.HasValue) OrElse (LoadSteps > 0 AndAlso loadOverride.HasValue) Then
             Throw New ArgumentException("Clear the matching capacity override before applying an automatic cargo or load upgrade.")
         End If
-        If Speed > 0 AndAlso plant.StartingSecondarySpeed.HasValue Then
-            Throw New ArgumentException("Use manual entries for speed upgrades on vehicles with two operating speeds.")
-        End If
 
         Dim ratings As New UpgradedRatings With {
             .Speed = Increase(plant.StartingSpeed, plant.MaximumSpeed, Speed, "Speed"),
+            .SecondarySpeed = Increase(plant.StartingSecondarySpeed, plant.MaximumSecondarySpeed, SecondarySpeed, "Secondary speed"),
             .Acceleration = Increase(plant.StartingAcceleration, plant.MaximumAcceleration, Acceleration, "Acceleration"),
             .Handling = ImproveHandling(chassis.Handling, Handling, "Handling"),
             .OnRoadHandling = ImproveHandling(chassis.OnRoadHandling, OnRoadHandling, "On-road Handling"),
@@ -48,7 +47,7 @@ Public NotInheritable Class DesignUpgrades
         design.LoadCapacityKg += LoadSteps * If(chassis.Body.GetValueOrDefault() = 0, 1D, 10D)
         Dim signatureLevels = CDec(Signature)
         Dim squared = signatureLevels * signatureLevels
-        Dim points = 2D * Speed + 25D * (CDec(Acceleration) + Handling + OnRoadHandling + OffRoadHandling) +
+        Dim points = 2D * (CDec(Speed) + SecondarySpeed) + 25D * (CDec(Acceleration) + Handling + OnRoadHandling + OffRoadHandling) +
                      CargoSteps + LoadSteps + 5D * EconomySteps + 200D * squared * squared
         Dim cargoUsed As Decimal
         Dim loadUsed As Decimal
@@ -102,6 +101,7 @@ End Class
 
 Public NotInheritable Class UpgradedRatings
     Public Property Speed As Integer?
+    Public Property SecondarySpeed As Integer?
     Public Property Acceleration As Integer?
     Public Property Handling As Integer?
     Public Property OnRoadHandling As Integer?

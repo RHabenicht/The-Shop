@@ -263,6 +263,7 @@ Public NotInheritable Class DesignForm
                               If(ratings.OnRoadHandling.HasValue, $"{ratings.OnRoadHandling}/{ratings.OffRoadHandling}", "—"))
             totals.Text &= Environment.NewLine &
                 $"Upgraded handling {handling}   Speed {If(ratings.Speed?.ToString(), "—")}   Accel {If(ratings.Acceleration?.ToString(), "—")}   Signature {If(ratings.Signature?.ToString(), "—")}"
+            If ratings.SecondarySpeed.HasValue Then totals.Text &= $"   Secondary speed {ratings.SecondarySpeed}"
             If ratings.Economy.HasValue Then totals.Text &= $"   Economy {ratings.Economy} {ratings.EconomyUnit}"
             If ratings.Depth.HasValue OrElse ratings.FuelCapacity.HasValue Then
                 totals.Text &= Environment.NewLine

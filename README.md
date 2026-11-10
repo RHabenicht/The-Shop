@@ -22,7 +22,7 @@ In the Windows editor, use **Design upgrades** to enter the number of steps. The
 
 Stock design JSON can contain the same selections. For example, `"Upgrades": {"OffRoadHandling": 1, "Acceleration": 2, "CargoSteps": 10, "LoadSteps": 3}` applies the functional upgrades from the Light Strike Vehicle example. Cargo steps add 0.2 CF each. Load steps add 10 kg, or 1 kg on Body 0 vehicles. Clear the corresponding manual capacity override before using automatic cargo or load steps. Existing designs without `Upgrades` still use their original entries.
 
-Use manual entries for Hull-rated load increases, speed upgrades on vehicles with two operating speeds, and options outside this set. Fuel expansion uses the table’s electrical load costs. Jet entries measured in bars and fuel cells measured in liters require manual entries. Fixed-wing speed upgrades apply to flight speed and preserve stall speed.
+Use manual entries for Hull-rated load increases and options outside this set. Where a power plant lists two operating speeds, the editor prices increases to each rating separately and enforces its listed maximum. Fuel expansion uses the table’s electrical load costs. Jet entries measured in bars and fuel cells measured in liters require manual entries. Fixed-wing speed upgrades apply to flight speed and preserve stall speed.
 
 ## Add catalog modifications
 

@@ -537,6 +537,25 @@ Module Program
                         retrofitMountResult.RetrofitPartsCostNuyen = 4800D AndAlso
                         retrofitMountResult.Totals.CargoRemaining = 45D AndAlso retrofitMountResult.Totals.LoadRemainingKg = 980D,
                         "Retrofitted mounts should update final ratings and use customization pricing and capacity.")
+                electronicAircraft.CatalogModifications = New List(Of ModificationSelection) From {
+                    New ModificationSelection With {.Id = "remote-small-turret-pop-up", .Quantity = 1}
+                }
+                Dim concealedMount = electronicAircraft.Calculate(sheetCatalog)
+                Require(concealedMount.Totals.CargoRemaining = 492D AndAlso
+                        concealedMount.Totals.BaseCostNuyen = 712500D AndAlso
+                        If(concealedMount.ModifiedRatings?.Signature, 3) = 3,
+                        "A pop-up turret should double its standard cargo space and retain the stowed Signature.")
+                Dim torpedoSub As New StockDesign With {
+                    .ChassisId = "attack-submarine", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "torpedo-tube-autoloader", .Quantity = 1}
+                    }
+                }
+                Dim torpedoResult = torpedoSub.Calculate(sheetCatalog)
+                Require(torpedoResult.Totals.CargoRemaining = 112D AndAlso
+                        torpedoResult.Totals.LoadRemainingKg = 699500D AndAlso
+                        torpedoResult.Totals.DesignPoints = 370500D,
+                        "Autoloaded torpedo tubes should include their loading machinery and design capacity.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

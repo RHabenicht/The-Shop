@@ -44,6 +44,7 @@ Public NotInheritable Class ModifiedRatings
     Public Property ECCM As Integer?
     Public Property ElectronicDeception As Integer?
     Public Property ElectronicCounterDeception As Integer?
+    Public Property SonarSignature As Integer?
     Public Property DippingSonar As Integer?
     Public Property RadarSignature As Integer?
     Public Property InfraredSignature As Integer?
@@ -208,12 +209,38 @@ Public Module ModificationCatalog
         New ModificationRule("drive-by-wire-speed-allocation", "Drive-by-wire Speed allocation", "percent", 10),
         New ModificationRule("drive-by-wire-acceleration-allocation", "Drive-by-wire Acceleration allocation", "percent", 10),
         New ModificationRule("drive-by-wire-load-allocation", "Drive-by-wire Load allocation", "percent", 10),
+        New ModificationRule("crewed-mini-turret-anti-aircraft", "Crewed mini turret — anti-aircraft", "mounts", Integer.MaxValue, 7D, 187.5D, 25D, 2),
+        New ModificationRule("crewed-mini-turret-pop-up", "Crewed mini turret — pop-up", "mounts", Integer.MaxValue, 12D, 125D, 25D, 2),
+        New ModificationRule("crewed-small-turret-anti-aircraft", "Crewed small turret — anti-aircraft", "mounts", Integer.MaxValue, 8D, 375.0D, 100D, 4),
+        New ModificationRule("crewed-small-turret-pop-up", "Crewed small turret — pop-up", "mounts", Integer.MaxValue, 14D, 250D, 100D, 4),
+        New ModificationRule("crewed-medium-turret-anti-aircraft", "Crewed medium turret — anti-aircraft", "mounts", Integer.MaxValue, 17D, 750.0D, 1000D, 6),
+        New ModificationRule("crewed-medium-turret-pop-up", "Crewed medium turret — pop-up", "mounts", Integer.MaxValue, 32D, 500D, 1000D, 6),
+        New ModificationRule("crewed-large-turret-anti-aircraft", "Crewed large turret — anti-aircraft", "mounts", Integer.MaxValue, 61D, 2250.0D, 6000D, 8),
+        New ModificationRule("crewed-extra-large-turret-anti-aircraft", "Crewed extra-large turret — anti-aircraft", "mounts", Integer.MaxValue, 121D, 4500.0D, 30000D, 10),
+        New ModificationRule("remote-micro-turret-anti-aircraft", "Remote micro turret — anti-aircraft", "mounts", Integer.MaxValue, 1D, 150.0D, 10D, 1),
+        New ModificationRule("remote-micro-turret-pop-up", "Remote micro turret — pop-up", "mounts", Integer.MaxValue, 1D, 100D, 10D, 1),
+        New ModificationRule("remote-mini-turret-anti-aircraft", "Remote mini turret — anti-aircraft", "mounts", Integer.MaxValue, 4D, 262.5D, 25D, 2),
+        New ModificationRule("remote-mini-turret-pop-up", "Remote mini turret — pop-up", "mounts", Integer.MaxValue, 6D, 175D, 25D, 2),
+        New ModificationRule("remote-small-turret-anti-aircraft", "Remote small turret — anti-aircraft", "mounts", Integer.MaxValue, 5D, 525.0D, 100D, 4),
+        New ModificationRule("remote-small-turret-pop-up", "Remote small turret — pop-up", "mounts", Integer.MaxValue, 8D, 350D, 100D, 4),
+        New ModificationRule("remote-medium-turret-anti-aircraft", "Remote medium turret — anti-aircraft", "mounts", Integer.MaxValue, 5D, 900.0D, 1000D, 6),
+        New ModificationRule("remote-medium-turret-pop-up", "Remote medium turret — pop-up", "mounts", Integer.MaxValue, 8D, 600D, 1000D, 6),
+        New ModificationRule("remote-large-turret-anti-aircraft", "Remote large turret — anti-aircraft", "mounts", Integer.MaxValue, 33D, 3750.0D, 8000D, 8),
+        New ModificationRule("remote-extra-large-turret-anti-aircraft", "Remote extra-large turret — anti-aircraft", "mounts", Integer.MaxValue, 65D, 7500.0D, 35000D, 10),
+        New ModificationRule("torpedo-tube-manual", "Torpedo tube with manual loading", "tubes", Integer.MaxValue, 848D, 250D, 500D),
+        New ModificationRule("torpedo-tube-autoloader", "Torpedo tube with autoloader", "tubes", Integer.MaxValue, 488D, 500D, 50500D),
+        New ModificationRule("torpedo-storage-rack", "Torpedo storage rack", "torpedoes", Integer.MaxValue, 32D),
+        New ModificationRule("internal-missile-storage", "Internal missile/rocket mount", "missiles", Integer.MaxValue),
+        New ModificationRule("internal-heavy-missile-storage", "Internal heavy missile mount", "missiles", Integer.MaxValue),
+        New ModificationRule("external-missile-mounts", "External missile/rocket mounts", "mounts", Integer.MaxValue),
+        New ModificationRule("naval-weapons-control", "Naval weapons control network", "stations", Integer.MaxValue, 100D, 5000D, 500D),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
 
     Public Function MaximumQuantity(rule As ModificationRule, chassis As StockChassis) As Integer
         Dim body = chassis.Body.GetValueOrDefault()
+        If rule.Id = "external-missile-mounts" Then Return body
         If rule.Id = "extra-entry-points" Then
             If chassis.Hull.HasValue Then Return CInt(Math.Min(Integer.MaxValue, chassis.Hull.Value * 2D))
             Return CInt(Math.Ceiling(body / 2D))
@@ -235,6 +262,14 @@ Public Module ModificationCatalog
         Select Case rule.Id
             Case "ccss-integration"
                 Return chassis.Category = "Ship"
+            Case "torpedo-tube-manual", "torpedo-tube-autoloader", "torpedo-storage-rack"
+                Return chassis.Category = "Submarine"
+            Case "naval-weapons-control"
+                Return chassis.Category = "Ship" OrElse chassis.Category = "Submarine"
+            Case "internal-missile-storage", "internal-heavy-missile-storage"
+                Return chassis.Body.HasValue OrElse chassis.Hull.HasValue
+            Case "external-missile-mounts"
+                Return chassis.Body.GetValueOrDefault() > 0
             Case "dipping-sonar"
                 Return chassis.Category = "Rotor Craft" OrElse chassis.Category = "Vectored-Thrust Aircraft"
             Case "airlock"
@@ -583,13 +618,26 @@ Public Module ModificationCatalog
                 finalRatings.InfraredSignature = signature.Value + choice.Quantity
             End If
         Next
-        Dim externalMounts = validated.Any(Function(choice) choice.Rule.Id.StartsWith("external-fixed-", StringComparison.Ordinal))
-        Dim turretPenalty = validated.Where(Function(choice) choice.Rule.Id.Contains("turret")).Sum(Function(choice) CLng(choice.Quantity))
-        If externalMounts OrElse turretPenalty > 0 Then
+        Dim fixedExternalPenalty = If(validated.Any(Function(choice) choice.Rule.Id.StartsWith("external-fixed-", StringComparison.Ordinal)), 1, 0)
+        Dim missileMounts = validated.Where(Function(choice) choice.Rule.Id = "external-missile-mounts").Select(Function(choice) choice.Quantity).SingleOrDefault()
+        Dim isAircraft = chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft"
+        Dim missilePenalty = If(isAircraft, missileMounts \ 2, If(missileMounts > 0, 1, 0))
+        Dim turretPenalty = validated.Where(Function(choice) choice.Rule.Id.Contains("turret") AndAlso Not choice.Rule.Id.EndsWith("-pop-up", StringComparison.Ordinal)).
+            Sum(Function(choice) CLng(choice.Quantity))
+        Dim signaturePenalty = fixedExternalPenalty + missilePenalty + turretPenalty
+        If signaturePenalty > 0 Then
             If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
-            finalRatings.Signature = CInt(If(finalRatings.Signature, If(upgrades?.Signature, plant.Signature)).GetValueOrDefault() - turretPenalty - If(externalMounts, 1, 0))
-            If finalRatings.RadarSignature.HasValue Then finalRatings.RadarSignature -= CInt(turretPenalty) + If(externalMounts, 1, 0)
-            If finalRatings.InfraredSignature.HasValue Then finalRatings.InfraredSignature -= CInt(turretPenalty) + If(externalMounts, 1, 0)
+            finalRatings.Signature = CInt(If(finalRatings.Signature, If(upgrades?.Signature, plant.Signature)).GetValueOrDefault() - signaturePenalty)
+            If finalRatings.RadarSignature.HasValue Then finalRatings.RadarSignature -= CInt(signaturePenalty)
+            If finalRatings.InfraredSignature.HasValue Then finalRatings.InfraredSignature -= CInt(signaturePenalty)
+        End If
+        If chassis.Category = "Submarine" Then
+            Dim sonarPenalty = validated.Where(Function(choice) choice.Rule.Id.Contains("turret")).
+                Sum(Function(choice) CLng(choice.Quantity) * If(choice.Rule.Id.Contains("extra-large"), 5, If(choice.Rule.Id.Contains("-large-"), 3, 1)))
+            If sonarPenalty > 0 Then
+                If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+                finalRatings.SonarSignature = CInt(plant.SonarSignature.GetValueOrDefault() - sonarPenalty)
+            End If
         End If
         Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount, pilot)).ToList()
         design.Additions = design.Additions.Concat(result).ToList()
@@ -884,6 +932,11 @@ Public Module ModificationCatalog
                 item.DesignPoints = plant.DesignPoints * (0.25D + 0.5D * (quantity - 1D))
             Case "drive-by-wire"
                 item.DesignPoints = chassis.DesignPoints * 0.75D * quantity
+            Case "internal-missile-storage"
+                item.CargoConsumed = 2D + 3D * quantity
+            Case "internal-heavy-missile-storage"
+                item.CargoConsumed = 8D + 50D * quantity
+                item.LoadConsumedKg = 500D
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

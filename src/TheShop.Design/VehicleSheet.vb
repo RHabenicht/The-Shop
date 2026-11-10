@@ -53,7 +53,7 @@ Public Module VehicleSheet
         If modified?.WaterSpeedMetersPerTurn.HasValue Then Row(page, "Water speed", Number(modified.WaterSpeedMetersPerTurn) & " m/turn")
         If modified?.WaterHandlingModifier.HasValue Then Row(page, "Water Handling modifier", "+" & Number(modified.WaterHandlingModifier))
         Row(page, "Acceleration", Number(If(modified?.Acceleration, If(up?.Acceleration, plant.StartingAcceleration))))
-        Row(page, "Signature / Sonar Signature", Pair(If(modified?.Signature, If(up?.Signature, plant.Signature)), plant.SonarSignature))
+        Row(page, "Signature / Sonar Signature", Pair(If(modified?.Signature, If(up?.Signature, plant.Signature)), If(modified?.SonarSignature, plant.SonarSignature)))
         If modified?.DippingSonar.HasValue Then Row(page, "Dipping sonar", Number(modified.DippingSonar))
         If modified?.ECM.HasValue Then Row(page, "ECM", Number(modified.ECM))
         If modified?.ECCM.HasValue Then Row(page, "ECCM", Number(modified.ECCM))

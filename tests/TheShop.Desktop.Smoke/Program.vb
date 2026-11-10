@@ -155,6 +155,15 @@ Module Program
                         totals.Text.Contains("Sensor 2") AndAlso totals.Text.Contains("499 CF") AndAlso
                         totals.Text.Contains("4980 kg") AndAlso totals.Text.Contains("Base ¥643,750.00"),
                         "Replacing factory sensors should charge for the selected system and report its final rating.")
+                File.WriteAllText(destination, "{""ChassisId"":""harbor-tug"",""PowerPlantId"":""diesel"",""StreetIndex"":1," &
+                                  """CatalogModifications"":[{""Id"":""sonar"",""Quantity"":2},{""Id"":""towed-array-sonar"",""Quantity"":1}]}")
+                editor.LoadDesignFile(destination)
+                editor.WriteDesignFile(destination, editor.ReadDesign())
+                editor.LoadDesignFile(destination)
+                Require(totals.Text.Contains("Sonar 2") AndAlso totals.Text.Contains("Towed-array sonar 1") AndAlso
+                        totals.Text.Contains("69 CF") AndAlso totals.Text.Contains("8250 kg") AndAlso
+                        totals.Text.Contains("Base ¥825,000.00"),
+                        "Standard sonar and towed-array sonar should price and round trip independently.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

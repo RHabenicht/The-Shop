@@ -28,6 +28,7 @@ Public NotInheritable Class ModifiedRatings
     Public Property OnRoadHandling As Integer?
     Public Property OffRoadHandling As Integer?
     Public Property Sensor As Integer?
+    Public Property Sonar As Integer?
     Public Property TowedArraySonar As Integer?
 End Class
 
@@ -35,6 +36,10 @@ Public Module ModificationCatalog
     Private ReadOnly sensorPoints As Integer() = {0, 50, 75, 100, 125, 150, 200, 300, 500, 1000, 5000}
     Private ReadOnly sensorCargo As Integer() = {0, 0, 1, 2, 2, 3, 4, 6, 10, 12, 16}
     Private ReadOnly sensorLoad As Integer() = {0, 12, 20, 25, 35, 50, 75, 110, 150, 200, 250}
+
+    Private ReadOnly sonarPoints As Integer() = {0, 50, 500, 2500, 5000, 10000, 25000, 50000, 75000, 125000, 250000}
+    Private ReadOnly sonarCargo As Integer() = {0, 4, 6, 10, 16, 50, 75, 100, 200, 300, 500}
+    Private ReadOnly sonarLoad As Integer() = {0, 120, 250, 350, 500, 750, 1000, 1250, 1500, 2000, 2500}
 
     Public ReadOnly Property Rules As IReadOnlyList(Of ModificationRule) = Array.AsReadOnly({
         New ModificationRule("airlock", "Airlock", "people per lock", Integer.MaxValue),
@@ -51,6 +56,7 @@ Public Module ModificationCatalog
         New ModificationRule("concealed-armor", "Concealed armor", "added points", Integer.MaxValue),
         New ModificationRule("bulwark", "Bulwark", "added points", Integer.MaxValue),
         New ModificationRule("sensors", "Sensor system", "rating", 10),
+        New ModificationRule("sonar", "Sonar system", "rating", 10),
         New ModificationRule("towed-array-sonar", "Towed-array sonar", "rating", 6),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -71,6 +77,9 @@ Public Module ModificationCatalog
                 Return chassis.Hull.HasValue
             Case "sensors"
                 Return chassis.Sensor.GetValueOrDefault() < rule.Maximum
+            Case "sonar"
+                Return (chassis.Category = "Ship" OrElse chassis.Category = "Submarine") AndAlso
+                    chassis.Sonar.GetValueOrDefault() < rule.Maximum
             Case "towed-array-sonar"
                 Return chassis.Category = "Ship" OrElse chassis.Category = "Submarine"
             Case "hovercraft-water-seal"
@@ -108,9 +117,12 @@ Public Module ModificationCatalog
             If rule.Id = "sensors" AndAlso choice.Quantity <= chassis.Sensor.GetValueOrDefault() Then
                 Throw New ArgumentException($"Choose a sensor rating above the factory rating of {chassis.Sensor}.")
             End If
+            If rule.Id = "sonar" AndAlso choice.Quantity <= chassis.Sonar.GetValueOrDefault() Then
+                Throw New ArgumentException($"Choose a sonar rating above the factory rating of {chassis.Sonar}.")
+            End If
             result.Add(Price(rule.Id, rule.Name, choice.Quantity, chassis))
             Select Case rule.Id
-                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "towed-array-sonar"
+                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
                     ApplyRating(finalRatings, rule.Id, choice.Quantity, chassis, upgrades)
             End Select
@@ -133,6 +145,9 @@ Public Module ModificationCatalog
         Select Case id
             Case "sensors"
                 ratings.Sensor = quantity
+                Return
+            Case "sonar"
+                ratings.Sonar = quantity
                 Return
             Case "towed-array-sonar"
                 ratings.TowedArraySonar = quantity
@@ -190,6 +205,10 @@ Public Module ModificationCatalog
                 item.DesignPoints = sensorPoints(quantity)
                 item.CargoConsumed = sensorCargo(quantity)
                 item.LoadConsumedKg = sensorLoad(quantity)
+            Case "sonar"
+                item.DesignPoints = sonarPoints(quantity)
+                item.CargoConsumed = sonarCargo(quantity)
+                item.LoadConsumedKg = sonarLoad(quantity)
             Case "towed-array-sonar"
                 item.DesignPoints = 1000D * quantity
                 item.CargoConsumed = 125D

@@ -38,6 +38,8 @@ Friend NotInheritable Class ModificationDialog
             If rule.QuantityLabel.Length > 0 Then label &= $" ({rule.QuantityLabel})"
             If rule.Id = "sensors" AndAlso chassis.Sensor.GetValueOrDefault() > 0 Then
                 label &= $" · factory {chassis.Sensor}"
+            ElseIf rule.Id = "sonar" AndAlso chassis.Sonar.GetValueOrDefault() > 0 Then
+                label &= $" · factory {chassis.Sonar}"
             End If
             If Not compatible Then label &= " · unavailable"
             Dim row = table.RowCount

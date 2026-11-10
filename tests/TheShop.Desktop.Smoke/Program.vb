@@ -657,6 +657,22 @@ Module Program
                 Dim recoilResult = electronicAircraft.Calculate(sheetCatalog)
                 Require(recoilResult.AppliedModifications.Single(Function(item) item.Name = "Gunnery recoil adjusters").DesignPoints = 80D,
                         "Uniform recoil adjustment should be priced for each eligible fixed mount and turret.")
+                Dim finBoat As New StockDesign With {
+                    .ChassisId = "skiff", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .AvailabilityClass = VehicleAvailabilityClass.Standard,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "fin-drive", .Quantity = 1}
+                    }
+                }
+                Dim finResult = finBoat.Calculate(sheetCatalog)
+                Require(finResult.ModifiedRatings.Speed.GetValueOrDefault() = 56 AndAlso
+                        finResult.Totals.CargoRemaining = 4D AndAlso finResult.Totals.LoadRemainingKg = 150D AndAlso
+                        finResult.Availability.Rating = 11D AndAlso finResult.Availability.BaseDays = 11D,
+                        "Fin drives should adjust starting performance, capacities, and Availability.")
+                editor.ClientSize = New System.Drawing.Size(780, 550)
+                Application.DoEvents()
+                Require(grid.Height > 30 AndAlso totals.Parent.ClientRectangle.Height >= 100,
+                        "The editor should retain an editable grid and scrollable results at its minimum size.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

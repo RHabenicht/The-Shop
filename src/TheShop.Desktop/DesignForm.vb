@@ -26,7 +26,7 @@ Public NotInheritable Class DesignForm
     Private ReadOnly cargo As New TextBox With {.Dock = DockStyle.Fill}
     Private ReadOnly loadOverride As New TextBox With {.Dock = DockStyle.Fill}
     Private ReadOnly startingValues As New Label With {.AutoSize = True, .Dock = DockStyle.Fill, .Padding = New Padding(0, 4, 0, 4)}
-    Private ReadOnly totals As New Label With {.Name = "totals", .AutoSize = True, .Dock = DockStyle.Fill, .Padding = New Padding(0, 4, 0, 4)}
+    Private ReadOnly totals As New Label With {.Name = "totals", .AutoSize = True, .Dock = DockStyle.Top, .Padding = New Padding(0, 4, 0, 4)}
     Private ReadOnly availabilityBox As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
     Private upgrades As DesignUpgrades
     Private catalogModifications As List(Of ModificationSelection)
@@ -44,8 +44,8 @@ Public NotInheritable Class DesignForm
     Public Sub New()
         Text = "The Shop | Rigger 3 Revised"
         AutoScaleMode = AutoScaleMode.Dpi
-        ClientSize = New Size(830, 500)
-        MinimumSize = New Size(720, 440)
+        ClientSize = New Size(900, 650)
+        MinimumSize = New Size(780, 550)
         StartPosition = FormStartPosition.CenterScreen
 
         Dim layout As New TableLayoutPanel With {.Dock = DockStyle.Fill, .ColumnCount = 1, .RowCount = 5, .Padding = New Padding(12)}
@@ -53,7 +53,7 @@ Public NotInheritable Class DesignForm
         layout.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         layout.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         layout.RowStyles.Add(New RowStyle(SizeType.Percent, 100))
-        layout.RowStyles.Add(New RowStyle(SizeType.AutoSize))
+        layout.RowStyles.Add(New RowStyle(SizeType.Absolute, 140))
         layout.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         Controls.Add(layout)
 
@@ -84,7 +84,9 @@ Public NotInheritable Class DesignForm
         additions.Columns.Add("LoadConsumedKg", "Load used (kg)")
         additions.Columns(0).FillWeight = 200
         layout.Controls.Add(additions, 0, 2)
-        layout.Controls.Add(totals, 0, 3)
+        Dim resultsPanel As New Panel With {.Dock = DockStyle.Fill, .AutoScroll = True, .BorderStyle = BorderStyle.FixedSingle}
+        resultsPanel.Controls.Add(totals)
+        layout.Controls.Add(resultsPanel, 0, 3)
 
         Dim actions As New FlowLayoutPanel With {.Dock = DockStyle.Fill, .AutoSize = True}
         AddAction(actions, "Calculate", AddressOf Calculate)

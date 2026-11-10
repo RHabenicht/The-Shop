@@ -28,6 +28,7 @@ Public NotInheritable Class DesignForm
     Private ReadOnly totals As New Label With {.Name = "totals", .AutoSize = True, .Dock = DockStyle.Fill, .Padding = New Padding(0, 4, 0, 4)}
     Private ReadOnly availabilityBox As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
     Private upgrades As DesignUpgrades
+    Private catalogModifications As List(Of ModificationSelection)
     Private legacyReference As JsonElement?
     Private ReadOnly additions As New DataGridView With {
         .Name = "additions",
@@ -84,6 +85,7 @@ Public NotInheritable Class DesignForm
         Dim actions As New FlowLayoutPanel With {.Dock = DockStyle.Fill, .AutoSize = True}
         AddAction(actions, "Calculate", AddressOf Calculate)
         AddAction(actions, "Design upgrades…", AddressOf EditUpgrades)
+        AddAction(actions, "Catalog mods…", AddressOf EditModifications)
         AddAction(actions, "Open design…", AddressOf OpenDesign)
         AddAction(actions, "Save design…", AddressOf SaveDesign)
         AddAction(actions, "Import .shp…", AddressOf ImportLegacy)
@@ -160,6 +162,7 @@ Public NotInheritable Class DesignForm
             .CargoCapacity = ReadOptional(cargo.Text, "Cargo override"),
             .LoadCapacityKg = ReadOptional(loadOverride.Text, "Load override"),
             .Upgrades = upgrades,
+            .CatalogModifications = catalogModifications,
             .LegacyReference = legacyReference,
             .AvailabilityClass = If(TypeOf availabilityBox.SelectedItem Is VehicleAvailabilityClass,
                                     CType(availabilityBox.SelectedItem, VehicleAvailabilityClass), CType(Nothing, VehicleAvailabilityClass?))
@@ -209,10 +212,24 @@ Public NotInheritable Class DesignForm
         End Using
     End Sub
 
+    Private Sub EditModifications(sender As Object, e As EventArgs)
+        Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
+        Dim plant = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant)
+        Using dialog As New ModificationDialog(catalogModifications, chassis, plant)
+            If dialog.ShowDialog(Me) = DialogResult.OK Then
+                catalogModifications = dialog.ReadSelection()
+                ClearTotals(sender, e)
+            End If
+        End Using
+    End Sub
+
     Private Sub ShowTotals(result As StockDesignResult)
         Dim totalsValue = result.Totals
         totals.Text = $"{totalsValue.DesignPoints:N} Design Points    Base ¥{totalsValue.BaseCostNuyen:N}    Street ¥{totalsValue.StreetCostNuyen:N}" &
             Environment.NewLine & $"Remaining cargo {totalsValue.CargoRemaining} CF    Remaining load {totalsValue.LoadRemainingKg} kg"
+        If result.AppliedModifications IsNot Nothing Then
+            totals.Text &= Environment.NewLine & $"{result.AppliedModifications.Count} catalog modifications applied."
+        End If
         If result.Availability IsNot Nothing Then
             totals.Text &= Environment.NewLine & $"Availability {result.Availability.Rating} / {result.Availability.BaseDays} days" &
                 If(result.Availability.PlayerAccessible, "", " (outside player reach)")
@@ -285,6 +302,7 @@ Public NotInheritable Class DesignForm
         cargo.Text = design.CargoCapacity?.ToString(CultureInfo.CurrentCulture)
         loadOverride.Text = design.LoadCapacityKg?.ToString(CultureInfo.CurrentCulture)
         upgrades = design.Upgrades
+        catalogModifications = design.CatalogModifications
         legacyReference = design.LegacyReference
         availabilityBox.SelectedItem = If(design.AvailabilityClass.HasValue, CObj(design.AvailabilityClass.GetValueOrDefault()), "Unspecified")
         additions.Rows.Clear()

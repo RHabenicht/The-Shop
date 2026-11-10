@@ -106,6 +106,22 @@ Module Program
                 editor.LoadDesignFile(destination)
                 Require(totals.Text.Contains("Depth 70 m") AndAlso totals.Text.Contains("184 kg"),
                         "Depth did not apply its rating and load costs.")
+                File.WriteAllText(destination, "{""ChassisId"":""sand-buggy"",""PowerPlantId"":""gasoline"",""StreetIndex"":2," &
+                                  """CatalogModifications"":[{""Id"":""nitrous"",""Quantity"":2}," &
+                                  "{""Id"":""crash-cage"",""Quantity"":1},{""Id"":""electronics-port"",""Quantity"":1}," &
+                                  "{""Id"":""performance-tires"",""Quantity"":4}]}")
+                editor.LoadDesignFile(destination)
+                Dim modified = editor.ReadDesign()
+                editor.WriteDesignFile(destination, modified)
+                editor.LoadDesignFile(destination)
+                Require(editor.ReadDesign().CatalogModifications.Count = 4 AndAlso
+                        totals.Text.Contains("Street ¥18,800.00") AndAlso totals.Text.Contains("2.5 CF") AndAlso totals.Text.Contains("15 kg"),
+                        "Catalog modifications did not price and round trip correctly.")
+                Using dialog As New ModificationDialog(modified.CatalogModifications, DirectCast(chassis.SelectedItem, StockChassis),
+                                                       DirectCast(powerPlant.SelectedItem, StockPowerPlant))
+                    Require(dialog.ReadSelection().Single(Function(item) item.Id = "performance-tires").Quantity = 4,
+                            "The catalog dialog did not restore the selected quantity.")
+                End Using
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

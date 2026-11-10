@@ -18,6 +18,8 @@ Public NotInheritable Class StockDesign
     Public Property LegacyReference As JsonElement?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property AvailabilityClass As VehicleAvailabilityClass?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property CatalogModifications As List(Of ModificationSelection)
 
     Public Function Calculate(catalog As IReadOnlyList(Of StockChassis)) As StockDesignResult
         Dim chassis = StockCatalog.FindById(catalog, ChassisId)
@@ -47,9 +49,11 @@ Public NotInheritable Class StockDesign
             Throw New ArgumentException($"Load capacity exceeds the catalog maximum of {powerPlant.MaximumLoadKg} kg.")
         End If
 
+        Dim modifications = ModificationCatalog.Apply(CatalogModifications, chassis, powerPlant, design)
         Dim totals = design.Calculate()
         Return New StockDesignResult With {
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
+            .AppliedModifications = modifications,
             .Availability = If(AvailabilityClass.HasValue, VehicleAvailability.Calculate(AvailabilityClass.Value, totals.BaseCostNuyen), Nothing)
         }
     End Function
@@ -189,4 +193,6 @@ Public NotInheritable Class StockDesignResult
     Public Property UpgradedRatings As UpgradedRatings
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property Availability As VehicleAvailability
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property AppliedModifications As IReadOnlyList(Of DesignAddition)
 End Class

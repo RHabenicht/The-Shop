@@ -24,6 +24,12 @@ Stock design JSON can contain the same selections. For example, `"Upgrades": {"O
 
 Use manual entries for Hull-rated options, speed upgrades on vehicles with two operating speeds, and options outside this set. Fuel expansion uses the table’s electrical load costs. Jet entries measured in bars and fuel cells measured in liters require manual entries. Fixed-wing speed upgrades apply to flight speed and preserve stall speed.
 
+## Add catalog modifications
+
+Choose **Catalog mods…** in the editor. The catalog prices airlocks for submarines, crash cages, datajack ports, electronics ports, nitrous oxide injectors, rigger adaptation, spotlights, and three types of special tires. It uses the design costs and design capacity requirements from *Rigger 3 Revised*, pp. 116, 126, 128, 130, 132, 145–146, and 154–155. Attached electronics, special installations outside this catalog, and in-play effects still require manual handling. Use one tire type and enter the number of tires. Rigger adaptation already includes a datajack port.
+
+In stock design JSON, use `"CatalogModifications": [{"Id": "nitrous", "Quantity": 2}]` for a rating-2 injector. Catalog and manual entries are both included in the capacity and price totals. Keep each modification in only one of those lists.
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

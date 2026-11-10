@@ -645,6 +645,18 @@ Module Program
                 Dim deckResult = deckVan.Calculate(sheetCatalog)
                 Require(deckResult.Totals.BaseCostNuyen = 14700D AndAlso deckResult.Totals.CargoRemaining = 40D AndAlso
                         deckResult.Totals.LoadRemainingKg = 760D, "Flight decks should include their length, catapult, and angled-deck costs.")
+                suspensionDesign.CatalogModifications.Add(New ModificationSelection With {.Id = "spare-standard-tires", .Quantity = 2})
+                Dim spareResult = suspensionDesign.Calculate(sheetCatalog)
+                Require(spareResult.Totals.CargoRemaining = 2D AndAlso spareResult.Totals.DirectCostNuyen = 2200D,
+                        "Spare tires should consume storage and purchase cost while retaining the fitted tire choice.")
+                electronicAircraft.CatalogModifications = New List(Of ModificationSelection) From {
+                    New ModificationSelection With {.Id = "external-fixed-firmpoint", .Quantity = 1},
+                    New ModificationSelection With {.Id = "remote-small-turret", .Quantity = 1},
+                    New ModificationSelection With {.Id = "gunnery-recoil-adjusters", .Quantity = 4}
+                }
+                Dim recoilResult = electronicAircraft.Calculate(sheetCatalog)
+                Require(recoilResult.AppliedModifications.Single(Function(item) item.Name = "Gunnery recoil adjusters").DesignPoints = 80D,
+                        "Uniform recoil adjustment should be priced for each eligible fixed mount and turret.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

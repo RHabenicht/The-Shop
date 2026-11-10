@@ -278,12 +278,29 @@ Public Module ModificationCatalog
         New ModificationRule("flight-deck", "Flight deck", "metres of length", Integer.MaxValue),
         New ModificationRule("flight-deck-catapult", "Flight deck catapult/arrestor wire", "", 1),
         New ModificationRule("flight-deck-angled", "Angled flight deck", "", 1),
+        New ModificationRule("partial-amenities-basic", "Partial basic amenities", "50-person groups", Integer.MaxValue, 12D, 20D, 100D),
+        New ModificationRule("partial-amenities-improved", "Partial improved amenities", "50-person groups", Integer.MaxValue, 12D, 45D, 100D),
+        New ModificationRule("partial-amenities-high", "Partial high amenities", "50-person groups", Integer.MaxValue, 12D, 70D, 100D),
+        New ModificationRule("special-machinery", "Special machinery", "CF designated", Integer.MaxValue),
+        New ModificationRule("seat-armor", "Armor for added seats", "total Armor points", Integer.MaxValue),
+        New ModificationRule("spare-standard-tires", "Spare standard tires", "tires", Integer.MaxValue),
+        New ModificationRule("spare-performance-tires", "Spare performance tires", "tires", Integer.MaxValue),
+        New ModificationRule("spare-off-road-tires", "Spare off-road tires", "tires", Integer.MaxValue),
+        New ModificationRule("spare-dual-purpose-tires", "Spare dual-purpose tires", "tires", Integer.MaxValue),
+        New ModificationRule("pistol-mount-conversion", "Pistol mount conversion", "weapons", Integer.MaxValue, 0D, 1D),
+        New ModificationRule("smg-mount-conversion", "SMG mount conversion", "weapons", Integer.MaxValue, 0D, 1D, 0.25D),
+        New ModificationRule("rifle-mount-conversion", "Rifle/shotgun/GL/LMG mount conversion", "weapons", Integer.MaxValue, 0D, 2D, 0.5D),
+        New ModificationRule("heavy-mount-conversion", "MMG/HMG/assault cannon mount conversion", "weapons", Integer.MaxValue, 0D, 3D, 1D),
+        New ModificationRule("gunnery-recoil-adjusters", "Gunnery recoil adjusters", "levels per fixed mount/turret", 12),
+        New ModificationRule("weapon-gyro-stabilization", "Weapon gyro-stabilization", "total active rating", Integer.MaxValue, 1D),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
 
     Public Function MaximumQuantity(rule As ModificationRule, chassis As StockChassis) As Integer
         Dim body = chassis.Body.GetValueOrDefault()
+        If rule.Id = "special-machinery" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
+        If rule.Id = "weapon-gyro-stabilization" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
         If rule.Id = "setup-time-reduction" Then Return CInt(Math.Ceiling((2D * body + 1D) / 2D))
         If rule.Id = "external-missile-mounts" Then Return body
         If rule.Id = "extra-entry-points" Then
@@ -449,7 +466,10 @@ Public Module ModificationCatalog
                 Return chassis.Category = "Bike" AndAlso chassis.Id <> "atv"
             Case "improved-control-surfaces"
                 Return chassis.Category = "Boat" AndAlso chassis.Handling.HasValue
-            Case "performance-tires", "off-road-tires", "dual-purpose-tires", "runflat-upgrade", "improved-suspension", "off-road-suspension"
+            Case "special-machinery", "weapon-gyro-stabilization"
+                Return chassis.Body.GetValueOrDefault() > 0
+            Case "performance-tires", "off-road-tires", "dual-purpose-tires", "runflat-upgrade", "improved-suspension", "off-road-suspension",
+                 "spare-standard-tires", "spare-performance-tires", "spare-off-road-tires", "spare-dual-purpose-tires"
                 Return chassis.Body.GetValueOrDefault() > 0 AndAlso Not chassis.IsDrone AndAlso
                     (chassis.Category = "Bike" OrElse
                     (chassis.Category = "Car" AndAlso chassis.Id <> "tracked-apc" AndAlso Not chassis.Id.EndsWith("-caterpillar", StringComparison.Ordinal)))
@@ -517,7 +537,7 @@ Public Module ModificationCatalog
         If seen.Contains("datajack-port") AndAlso seen.Contains("rigger-adaptation") Then
             Throw New ArgumentException("Rigger adaptation already includes a datajack port.")
         End If
-        If seen.Where(Function(id) id.EndsWith("-tires", StringComparison.Ordinal)).Count() > 1 Then
+        If seen.Where(Function(id) id.EndsWith("-tires", StringComparison.Ordinal) AndAlso Not id.StartsWith("spare-", StringComparison.Ordinal)).Count() > 1 Then
             Throw New ArgumentException("Select one tire type for the design.")
         End If
         If seen.Contains("vehicle-armor") AndAlso seen.Contains("concealed-armor") Then
@@ -640,7 +660,7 @@ Public Module ModificationCatalog
             finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) - 1
             finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - 1
         End If
-        Dim implicitDualPurpose = Not seen.Any(Function(id) id.EndsWith("-tires", StringComparison.Ordinal)) AndAlso
+        Dim implicitDualPurpose = Not seen.Any(Function(id) id.EndsWith("-tires", StringComparison.Ordinal) AndAlso Not id.StartsWith("spare-", StringComparison.Ordinal)) AndAlso
             (seen.Contains("improved-suspension") OrElse seen.Contains("drive-by-wire"))
         For Each choice In validated.Where(Function(item) item.Rule.Id = "improved-suspension" OrElse
                                            item.Rule.Id = "off-road-suspension" OrElse item.Rule.Id = "improved-control-surfaces")
@@ -715,6 +735,24 @@ Public Module ModificationCatalog
         If mountPoints > chassis.Body.GetValueOrDefault() Then Throw New ArgumentException("Weapon mounts exceed the vehicle's Body-based hardpoint and firmpoint limit.")
         Dim fixedAndTurretCount = validated.Where(Function(choice) choice.Rule.Id.Contains("fixed-") OrElse choice.Rule.Id.Contains("turret")).
             Sum(Function(choice) CLng(choice.Quantity))
+        If seen.Contains("gunnery-recoil-adjusters") OrElse seen.Contains("weapon-gyro-stabilization") Then
+            If fixedAndTurretCount = 0 Then Throw New ArgumentException("Weapon stabilization requires a fixed mount or turret.")
+            If seen.Contains("gunnery-recoil-adjusters") AndAlso seen.Contains("weapon-gyro-stabilization") Then Throw New ArgumentException("Gunnery recoil adjusters and gyro-stabilization are incompatible.")
+        End If
+        If seen.Contains("gunnery-recoil-adjusters") Then
+            Dim levels = validated.Single(Function(choice) choice.Rule.Id = "gunnery-recoil-adjusters").Quantity
+            For Each mount In validated.Where(Function(choice) choice.Rule.Id.Contains("fixed-") OrElse choice.Rule.Id.Contains("turret"))
+                Dim maximum = If(mount.Rule.Id.Contains("turret"),
+                    If(mount.Rule.MountPoints = 1, 4, If(mount.Rule.MountPoints = 2, 6, If(mount.Rule.MountPoints = 4, 9, 12))),
+                    If(mount.Rule.MountPoints = 1, 4, 9))
+                If levels > maximum Then Throw New ArgumentException("Recoil adjustment exceeds the limit for an installed mount.")
+            Next
+        End If
+        If seen.Contains("seat-armor") Then
+            Dim armor = validated.Single(Function(choice) choice.Rule.Id = "seat-armor").Quantity
+            Dim seats = validated.Where(Function(choice) choice.Rule.QuantityLabel = "seats").Sum(Function(choice) CLng(choice.Quantity))
+            If armor > 2D * seats Then Throw New ArgumentException("Seat armor is limited to two points per added seat. Enter factory-seat armor manually.")
+        End If
         Dim smartlinks = validated.Where(Function(choice) choice.Rule.Id.StartsWith("smartlink-integration-", StringComparison.Ordinal)).
             Sum(Function(choice) CLng(choice.Quantity))
         If smartlinks > fixedAndTurretCount Then Throw New ArgumentException("Smartlink integrations require a separate fixed mount or turret for each installation.")
@@ -776,6 +814,10 @@ Public Module ModificationCatalog
             End If
         End If
         Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount, pilot, adaptation, deckLength)).ToList()
+        If seen.Contains("gunnery-recoil-adjusters") Then
+            Dim index = validated.FindIndex(Function(choice) choice.Rule.Id = "gunnery-recoil-adjusters")
+            result(index).DesignPoints *= fixedAndTurretCount
+        End If
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
     End Function
@@ -1140,6 +1182,21 @@ Public Module ModificationCatalog
                         item.DesignPoints = deckLength * factor * 0.1D
                         item.LoadConsumedKg = If(chassis.Hull.HasValue, 20D * (deckLength + factor), deckLength * 20D)
                 End Select
+            Case "special-machinery"
+                item.CargoConsumed = quantity
+                item.LoadConsumedKg = 25D * quantity
+            Case "seat-armor"
+                item.DesignPoints = 12D * quantity
+            Case "spare-standard-tires", "spare-performance-tires", "spare-off-road-tires", "spare-dual-purpose-tires"
+                Dim rate = If(rule.Id = "spare-standard-tires", 50D,
+                              If(rule.Id = "spare-performance-tires", 75D, If(rule.Id = "spare-off-road-tires", 125D, 250D)))
+                item.DirectCostNuyen = body * rate * quantity
+                item.CargoConsumed = Math.Floor(body / 2D) * quantity
+            Case "gunnery-recoil-adjusters"
+                item.DesignPoints = 10D * quantity
+            Case "weapon-gyro-stabilization"
+                item.DesignPoints = 15D * quantity
+                item.LoadConsumedKg = quantity + 24D
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

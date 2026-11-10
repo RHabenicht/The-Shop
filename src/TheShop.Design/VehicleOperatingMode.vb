@@ -35,6 +35,15 @@ Public Module VehicleOperatingModes
                 .Notes = "No cavitation. Normal Signature is reduced by 3 against magnetic-anomaly detection."
             })
         End If
+        If DesignEnhancements.Has(selections, "weapon-gyro-stabilization") Then
+            Dim rating = selections.Single(Function(item) String.Equals(item.Id, "weapon-gyro-stabilization", StringComparison.OrdinalIgnoreCase)).Quantity
+            Dim penalty = Math.Max(0, rating - chassis.Body.GetValueOrDefault())
+            modes.Add(New VehicleOperatingMode With {
+                .Name = "Weapon gyro-stabilization active", .Speed = speed,
+                .Handling = If(modified?.Handling, If(upgrades?.Handling, chassis.Handling)) + penalty,
+                .Notes = $"Handling test modifier +{penalty} while active."
+            })
+        End If
         Return If(modes.Count = 0, Nothing, modes)
     End Function
 

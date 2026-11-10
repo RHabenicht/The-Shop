@@ -254,6 +254,7 @@ Public NotInheritable Class DesignForm
         If result.OperatingModes IsNot Nothing Then
             For Each mode In result.OperatingModes
                 totals.Text &= Environment.NewLine & $"{mode.Name}   Speed {mode.Speed}   Accel {mode.Acceleration}   Handling {mode.Handling}   Signature {mode.Signature}   Sonar Signature {mode.SonarSignature}"
+                If mode.Notes IsNot Nothing Then totals.Text &= Environment.NewLine & mode.Notes
             Next
         End If
         Dim modified = result.ModifiedRatings

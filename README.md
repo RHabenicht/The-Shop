@@ -76,6 +76,8 @@ Design enhancements include hybrid engines, smart materials, fin drives, removed
 
 Hydrofoils, ducted waterjets, and nuclear-powered electromagnetic ducted drives show their engaged ratings as operating modes. Flight decks use a length in metres, with catapult/arrestor wire and angled-deck options. Check aircraft size, runway profile, and deck length for takeoff and landing (*Rigger 3 Revised*, pp. 116–119).
 
+Partial amenities serve groups of up to 50 people. Special machinery consumes its designated space and requires a gamemaster-set markup. Armor for added seats is limited to two points per seat. Spare tires have their own storage and purchase costs. Firearm mount conversions, uniform gunnery recoil adjusters, and weapon gyro-stabilization use their design specifications. Enter weapon weights and mixed recoil-adjustment configurations separately (*Rigger 3 Revised*, pp. 118, 120, 136–137, 142, 154–155).
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

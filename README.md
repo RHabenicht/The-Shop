@@ -38,6 +38,8 @@ Magnetic-anomaly detectors are available on fixed-wing aircraft, rotor craft, an
 
 Select **Retransmission power amplifier** to set Flux for the installed retransmission units. The catalog applies the same rating to each unit and rounds cargo down per amplifier (*Rigger 3 Revised*, p. 147). Amplifiers for other devices and mixed retransmission ratings still use manual entries.
 
+Amphibious operation packages add surface-water operation to bike and car chassis (*Rigger 3 Revised*, p. 149). Level 1 requires wheels. The editor and vehicle sheet list the water speed and Handling modifier separately from land ratings. Underwater operation requires additional equipment and remains a manual design decision.
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

@@ -243,6 +243,9 @@ Public NotInheritable Class DesignForm
             If modified.OnRoadHandling.HasValue Then values.Add($"Final Handling {modified.OnRoadHandling}/{modified.OffRoadHandling}")
             If modified.Sensor.HasValue Then values.Add($"Sensor {modified.Sensor}")
             If modified.Sonar.HasValue Then values.Add($"Sonar {modified.Sonar}")
+            If modified.WaterSpeed.HasValue Then values.Add($"Water Speed rating {modified.WaterSpeed}")
+            If modified.WaterSpeedMetersPerTurn.HasValue Then values.Add($"Water speed {modified.WaterSpeedMetersPerTurn} m/turn")
+            If modified.WaterHandlingModifier.HasValue Then values.Add($"Water Handling modifier +{modified.WaterHandlingModifier}")
             If modified.TowedArraySonar.HasValue Then values.Add($"Towed-array sonar {modified.TowedArraySonar}")
             totals.Text &= Environment.NewLine & String.Join("   ", values)
         End If

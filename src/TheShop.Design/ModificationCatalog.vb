@@ -33,6 +33,9 @@ Public NotInheritable Class ModifiedRatings
     Public Property Sensor As Integer?
     Public Property Sonar As Integer?
     Public Property TowedArraySonar As Integer?
+    Public Property WaterSpeed As Integer?
+    Public Property WaterSpeedMetersPerTurn As Integer?
+    Public Property WaterHandlingModifier As Integer?
 End Class
 
 Public Module ModificationCatalog
@@ -82,6 +85,7 @@ Public Module ModificationCatalog
         New ModificationRule("sensors", "Sensor system", "rating", 10),
         New ModificationRule("sonar", "Sonar system", "rating", 10),
         New ModificationRule("towed-array-sonar", "Towed-array sonar", "rating", 6),
+        New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
 
@@ -111,6 +115,8 @@ Public Module ModificationCatalog
                     chassis.Sonar.GetValueOrDefault() < rule.Maximum
             Case "towed-array-sonar"
                 Return chassis.Category = "Ship" OrElse chassis.Category = "Submarine"
+            Case "amphibious-operation"
+                Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
             Case "hovercraft-water-seal"
                 Return chassis.Category = "Hovercraft"
             Case "nitrous"
@@ -149,9 +155,15 @@ Public Module ModificationCatalog
             If rule.Id = "sonar" AndAlso choice.Quantity <= chassis.Sonar.GetValueOrDefault() Then
                 Throw New ArgumentException($"Choose a sonar rating above the factory rating of {chassis.Sonar}.")
             End If
+            If rule.Id = "amphibious-operation" AndAlso choice.Quantity = 1 AndAlso
+                (chassis.Id = "tracked-apc" OrElse chassis.Id = "micro-crawler" OrElse
+                 chassis.Id.EndsWith("-tracked-crawler", StringComparison.Ordinal) OrElse
+                 chassis.Id.EndsWith("-caterpillar", StringComparison.Ordinal)) Then
+                Throw New ArgumentException("A level 1 amphibious operation package requires wheels.")
+            End If
             validated.Add((rule, choice.Quantity))
             Select Case rule.Id
-                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar"
+                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
                     ApplyRating(finalRatings, rule.Id, choice.Quantity, chassis, upgrades)
             End Select
@@ -187,6 +199,14 @@ Public Module ModificationCatalog
                 Return
             Case "towed-array-sonar"
                 ratings.TowedArraySonar = quantity
+                Return
+            Case "amphibious-operation"
+                ratings.WaterHandlingModifier = If(quantity = 1, 2, 0)
+                If quantity = 1 Then
+                    ratings.WaterSpeedMetersPerTurn = 15
+                Else
+                    ratings.WaterSpeed = If(quantity = 2, 30, 45)
+                End If
                 Return
             Case "bulwark"
                 ratings.Bulwark = chassis.Bulwark.GetValueOrDefault() + quantity
@@ -272,6 +292,16 @@ Public Module ModificationCatalog
                 item.DesignPoints = 1000D * quantity
                 item.CargoConsumed = 125D
                 item.LoadConsumedKg = 1500D
+            Case "amphibious-operation"
+                Select Case quantity
+                    Case 1
+                        item.DesignPoints = 25D
+                    Case 2
+                        item.DesignPoints = 80D
+                    Case 3
+                        item.DesignPoints = 200D
+                        item.CargoConsumed = 2D
+                End Select
             Case "hovercraft-water-seal"
                 item.DesignPoints = body * 5D
         End Select

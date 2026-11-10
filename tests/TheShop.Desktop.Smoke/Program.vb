@@ -204,6 +204,22 @@ Module Program
                 VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
                 Require(File.ReadAllText(sheetPath).Contains("7 Flux per unit"),
                         "The vehicle sheet should report amplified retransmission Flux.")
+                Dim waterSpeeds = {"Water speed 15 m/turn", "Water Speed rating 30", "Water Speed rating 45"}
+                Dim amphibiousCosts = {"Base ¥3,400.00", "Base ¥5,600.00", "Base ¥10,400.00"}
+                For level As Integer = 1 To 3
+                    File.WriteAllText(destination, "{""ChassisId"":""sand-buggy"",""PowerPlantId"":""gasoline"",""StreetIndex"":1," &
+                                      $"""CatalogModifications"":[{{""Id"":""amphibious-operation"",""Quantity"":{level}}}]}}")
+                    editor.LoadDesignFile(destination)
+                    editor.WriteDesignFile(destination, editor.ReadDesign())
+                    editor.LoadDesignFile(destination)
+                    Require(totals.Text.Contains(waterSpeeds(level - 1)) AndAlso totals.Text.Contains(amphibiousCosts(level - 1)) AndAlso
+                            totals.Text.Contains(If(level = 3, "2 CF", "4 CF")) AndAlso
+                            totals.Text.Contains($"Water Handling modifier +{If(level = 1, 2, 0)}"),
+                            $"Amphibious level {level} did not apply the listed water ratings and costs.")
+                Next
+                VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
+                Require(File.ReadAllText(sheetPath).Contains("<td>Water Speed rating</td><td>45</td>"),
+                        "The vehicle sheet should report amphibious water speed separately.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

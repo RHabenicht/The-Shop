@@ -49,6 +49,9 @@ Public Module VehicleSheet
         If plant.StartingStallSpeed.HasValue Then speedText = Number(plant.StartingStallSpeed) & " / " & speedText & " (stall / flight)"
         If plant.StartingSecondarySpeed.HasValue Then speedText &= " / " & Number(plant.StartingSecondarySpeed) & " (paired operating ratings)"
         Row(page, "Speed", speedText)
+        If modified?.WaterSpeed.HasValue Then Row(page, "Water Speed rating", Number(modified.WaterSpeed))
+        If modified?.WaterSpeedMetersPerTurn.HasValue Then Row(page, "Water speed", Number(modified.WaterSpeedMetersPerTurn) & " m/turn")
+        If modified?.WaterHandlingModifier.HasValue Then Row(page, "Water Handling modifier", "+" & Number(modified.WaterHandlingModifier))
         Row(page, "Acceleration", Number(If(up?.Acceleration, plant.StartingAcceleration)))
         Row(page, "Signature / Sonar Signature", Pair(If(up?.Signature, plant.Signature), plant.SonarSignature))
         Row(page, "Sensor / Sonar", Pair(If(modified?.Sensor, chassis.Sensor), If(modified?.Sonar, chassis.Sonar)))

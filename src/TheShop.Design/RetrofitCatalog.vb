@@ -11,6 +11,12 @@ Public NotInheritable Class RetrofitQuote
     End Property
 End Class
 
+Public NotInheritable Class InstalledRetrofit
+    Public Property Name As String
+    Public Property Quantity As Integer
+    Public Property Quote As RetrofitQuote
+End Class
+
 Public Module RetrofitCatalog
     Private ReadOnly supported As New HashSet(Of String)(StringComparer.Ordinal) From {
         "crane", "winch", "medical-clinic", "valkyrie-module", "roll-bar",
@@ -19,6 +25,37 @@ Public Module RetrofitCatalog
         "ejection-bucket-seat", "reinforced-ejection-bucket-seat", "cabin-gas-seal", "cabin-water-seal",
         "engine-water-seal", "life-support", "hovercraft-water-seal", "gridlink"
     }
+
+    Friend Function Apply(selections As IReadOnlyList(Of ModificationSelection), designSelections As IReadOnlyList(Of ModificationSelection),
+                          chassis As StockChassis, plant As StockPowerPlant, upgrades As UpgradedRatings,
+                          totals As DesignTotals) As IReadOnlyList(Of InstalledRetrofit)
+        If selections Is Nothing OrElse selections.Count = 0 Then Return Nothing
+        Dim entries As New List(Of InstalledRetrofit)
+        Dim combined As New List(Of ModificationSelection)
+        If designSelections IsNot Nothing Then combined.AddRange(designSelections)
+        Dim seen As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+        For Each selection In selections
+            If selection Is Nothing Then Throw New ArgumentException("An installed retrofit cannot be null.")
+            Dim rule = ModificationCatalog.Rules.SingleOrDefault(Function(candidate) String.Equals(candidate.Id, selection.Id, StringComparison.OrdinalIgnoreCase))
+            If rule Is Nothing OrElse Not seen.Add(rule.Id) Then Throw New ArgumentException("An installed retrofit is unknown or repeated.")
+            entries.Add(New InstalledRetrofit With {.Name = rule.Name, .Quantity = selection.Quantity,
+                .Quote = Quote(rule, selection.Quantity, chassis, plant)})
+            combined.Add(New ModificationSelection With {.Id = rule.Id, .Quantity = selection.Quantity})
+        Next
+        Dim merged = combined.GroupBy(Function(item) item.Id, StringComparer.OrdinalIgnoreCase).
+            Select(Function(group) New ModificationSelection With {
+                .Id = group.Key, .Quantity = CInt(group.Sum(Function(item) CLng(item.Quantity)))
+            }).ToList()
+        Dim validationRatings As ModifiedRatings = Nothing
+        ModificationCatalog.Apply(merged, chassis, plant, New VehicleDesign With {.Additions = New List(Of DesignAddition)},
+                                  upgrades, validationRatings)
+        Dim cargo = totals.CargoRemaining - entries.Sum(Function(item) item.Quote.CargoConsumed)
+        Dim load = totals.LoadRemainingKg - entries.Sum(Function(item) item.Quote.LoadConsumedKg)
+        If cargo < 0D OrElse load < 0D Then Throw New ArgumentException("Installed retrofits exceed the vehicle's available cargo or load.")
+        totals.CargoRemaining = cargo
+        totals.LoadRemainingKg = load
+        Return entries
+    End Function
 
     Public Function AvailableRules(chassis As StockChassis, plant As StockPowerPlant) As IReadOnlyList(Of ModificationRule)
         Return ModificationCatalog.Rules.Where(Function(rule) supported.Contains(rule.Id) AndAlso

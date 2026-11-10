@@ -405,6 +405,35 @@ Module Program
                             quoteText.Contains("13 CF") AndAlso quoteText.Contains("680 kg"),
                             "The retrofit dialog should use customization costs and remaining capacity.")
                 End Using
+                Dim retrofittedVan As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .InstalledRetrofits = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "crane", .Quantity = 1000},
+                        New ModificationSelection With {.Id = "electronics-port", .Quantity = 1}
+                    }
+                }
+                editor.WriteDesignFile(destination, retrofittedVan)
+                editor.LoadDesignFile(destination)
+                editor.WriteDesignFile(destination, editor.ReadDesign())
+                editor.LoadDesignFile(destination)
+                Dim installedResult = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(editor.ReadDesign().InstalledRetrofits.Count = 2 AndAlso
+                        installedResult.RetrofitPartsCostNuyen = 5000D AndAlso
+                        installedResult.Totals.BaseCostNuyen = 9500D AndAlso
+                        installedResult.Totals.CargoRemaining = 13D AndAlso installedResult.Totals.LoadRemainingKg = 680D,
+                        "Installed retrofits should preserve their parts cost and use customization capacity after reopening.")
+                VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
+                Require(File.ReadAllText(sheetPath).Contains("Crane (installed retrofit)") AndAlso
+                        File.ReadAllText(sheetPath).Contains("Installed retrofit parts total"),
+                        "Installed retrofit equipment and costs should appear on the vehicle sheet.")
+                retrofittedVan.InstalledRetrofits.Add(New ModificationSelection With {.Id = "medical-clinic", .Quantity = 1})
+                Dim excessRetrofitRejected = False
+                Try
+                    retrofittedVan.Calculate(sheetCatalog)
+                Catch ex As ArgumentException When ex.Message.Contains("exceed")
+                    excessRetrofitRejected = True
+                End Try
+                Require(excessRetrofitRejected, "Installed retrofits should reject capacity overflows.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

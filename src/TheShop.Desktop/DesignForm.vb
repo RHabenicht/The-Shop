@@ -30,6 +30,7 @@ Public NotInheritable Class DesignForm
     Private ReadOnly availabilityBox As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
     Private upgrades As DesignUpgrades
     Private catalogModifications As List(Of ModificationSelection)
+    Private installedRetrofits As List(Of ModificationSelection)
     Private legacyReference As JsonElement?
     Private ReadOnly additions As New DataGridView With {
         .Name = "additions",
@@ -89,6 +90,7 @@ Public NotInheritable Class DesignForm
         AddAction(actions, "Design upgrades…", AddressOf EditUpgrades)
         AddAction(actions, "Catalog mods…", AddressOf EditModifications)
         AddAction(actions, "Retrofit quote…", AddressOf ShowRetrofitQuote)
+        AddAction(actions, "Installed retrofits…", AddressOf EditInstalledRetrofits)
         AddAction(actions, "Open design…", AddressOf OpenDesign)
         AddAction(actions, "Save design…", AddressOf SaveDesign)
         AddAction(actions, "Export HTML…", AddressOf ExportHtml)
@@ -168,6 +170,7 @@ Public NotInheritable Class DesignForm
             .LoadCapacityKg = ReadOptional(loadOverride.Text, "Load override"),
             .Upgrades = upgrades,
             .CatalogModifications = catalogModifications,
+            .InstalledRetrofits = installedRetrofits,
             .LegacyReference = legacyReference,
             .AvailabilityClass = If(TypeOf availabilityBox.SelectedItem Is VehicleAvailabilityClass,
                                     CType(availabilityBox.SelectedItem, VehicleAvailabilityClass), CType(Nothing, VehicleAvailabilityClass?))
@@ -235,6 +238,9 @@ Public NotInheritable Class DesignForm
         If result.AppliedModifications IsNot Nothing Then
             totals.Text &= Environment.NewLine & $"{result.AppliedModifications.Count} catalog modifications applied."
         End If
+        If result.InstalledRetrofits IsNot Nothing Then
+            totals.Text &= Environment.NewLine & $"Installed retrofit parts ¥{result.RetrofitPartsCostNuyen:N2}"
+        End If
         Dim modified = result.ModifiedRatings
         If modified IsNot Nothing Then
             Dim values As New List(Of String)
@@ -288,7 +294,34 @@ Public NotInheritable Class DesignForm
             Dim totals = ReadDesign().Calculate(catalog).Totals
             Using dialog As New RetrofitQuoteDialog(DirectCast(chassisBox.SelectedItem, StockChassis),
                                                      DirectCast(powerPlantBox.SelectedItem, StockPowerPlant), totals)
-                dialog.ShowDialog(Me)
+                If dialog.ShowDialog(Me) = DialogResult.OK Then
+                    Dim design = ReadDesign()
+                    design.InstalledRetrofits = New List(Of ModificationSelection)(If(installedRetrofits, New List(Of ModificationSelection)))
+                    Dim current = design.InstalledRetrofits.SingleOrDefault(Function(item) String.Equals(item.Id, dialog.Selection.Id, StringComparison.OrdinalIgnoreCase))
+                    If current Is Nothing Then
+                        design.InstalledRetrofits.Add(dialog.Selection)
+                    Else
+                        current = New ModificationSelection With {.Id = current.Id, .Quantity = current.Quantity + dialog.Selection.Quantity}
+                        design.InstalledRetrofits(design.InstalledRetrofits.FindIndex(Function(item) String.Equals(item.Id, current.Id, StringComparison.OrdinalIgnoreCase))) = current
+                    End If
+                    DisplayDesign(design)
+                End If
+            End Using
+        Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
+            ShowError(ex)
+        End Try
+    End Sub
+
+    Private Sub EditInstalledRetrofits(sender As Object, e As EventArgs)
+        Try
+            Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
+            Dim plant = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant)
+            Using dialog As New ModificationDialog(installedRetrofits, chassis, plant, RetrofitCatalog.AvailableRules(chassis, plant), "Installed retrofits")
+                If dialog.ShowDialog(Me) = DialogResult.OK Then
+                    Dim design = ReadDesign()
+                    design.InstalledRetrofits = dialog.ReadSelection()?.ToList()
+                    DisplayDesign(design)
+                End If
             End Using
         Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
             ShowError(ex)
@@ -356,6 +389,7 @@ Public NotInheritable Class DesignForm
         loadOverride.Text = design.LoadCapacityKg?.ToString(CultureInfo.CurrentCulture)
         upgrades = design.Upgrades
         catalogModifications = design.CatalogModifications
+        installedRetrofits = design.InstalledRetrofits
         legacyReference = design.LegacyReference
         availabilityBox.SelectedItem = If(design.AvailabilityClass.HasValue, CObj(design.AvailabilityClass.GetValueOrDefault()), "Unspecified")
         additions.Rows.Clear()

@@ -22,6 +22,8 @@ Public NotInheritable Class StockDesign
     Public Property AvailabilityClass As VehicleAvailabilityClass?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property CatalogModifications As List(Of ModificationSelection)
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property InstalledRetrofits As List(Of ModificationSelection)
 
     Public Function Calculate(catalog As IReadOnlyList(Of StockChassis)) As StockDesignResult
         Dim chassis = StockCatalog.FindById(catalog, ChassisId)
@@ -54,9 +56,10 @@ Public NotInheritable Class StockDesign
         Dim modifiedRatings As ModifiedRatings = Nothing
         Dim modifications = ModificationCatalog.Apply(CatalogModifications, chassis, powerPlant, design, ratings, modifiedRatings)
         Dim totals = design.Calculate()
+        Dim retrofits = RetrofitCatalog.Apply(InstalledRetrofits, CatalogModifications, chassis, powerPlant, ratings, totals)
         Return New StockDesignResult With {
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
-            .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings,
+            .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits,
             .Availability = If(AvailabilityClass.HasValue, VehicleAvailability.Calculate(AvailabilityClass.Value, totals.BaseCostNuyen), Nothing)
         }
     End Function
@@ -200,4 +203,11 @@ Public NotInheritable Class StockDesignResult
     Public Property AppliedModifications As IReadOnlyList(Of DesignAddition)
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property ModifiedRatings As ModifiedRatings
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property InstalledRetrofits As IReadOnlyList(Of InstalledRetrofit)
+    Public ReadOnly Property RetrofitPartsCostNuyen As Decimal
+        Get
+            Return If(InstalledRetrofits?.Sum(Function(item) item.Quote.StreetPartsCostNuyen), 0D)
+        End Get
+    End Property
 End Class

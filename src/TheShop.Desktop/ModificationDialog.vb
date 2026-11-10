@@ -7,8 +7,9 @@ Friend NotInheritable Class ModificationDialog
 
     Private ReadOnly quantities As New List(Of (Rule As ModificationRule, Input As NumericUpDown))
 
-    Public Sub New(current As IReadOnlyList(Of ModificationSelection), chassis As StockChassis, plant As StockPowerPlant)
-        Text = "Catalog modifications"
+    Public Sub New(current As IReadOnlyList(Of ModificationSelection), chassis As StockChassis, plant As StockPowerPlant,
+                   Optional rules As IReadOnlyList(Of ModificationRule) = Nothing, Optional caption As String = "Catalog modifications")
+        Text = caption
         StartPosition = FormStartPosition.CenterParent
         AutoScaleMode = AutoScaleMode.Dpi
         ClientSize = New Size(580, 500)
@@ -30,7 +31,7 @@ Friend NotInheritable Class ModificationDialog
         table.SetColumnSpan(explanation, 2)
         table.RowCount = 1
 
-        For Each rule In ModificationCatalog.Rules
+        For Each rule In If(rules, ModificationCatalog.Rules)
             Dim selected = current?.SingleOrDefault(Function(choice) String.Equals(choice.Id, rule.Id, StringComparison.OrdinalIgnoreCase))
             Dim value = If(selected?.Quantity, 0)
             Dim compatible = ModificationCatalog.IsCompatible(rule, chassis, plant)

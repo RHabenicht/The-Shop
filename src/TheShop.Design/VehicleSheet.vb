@@ -96,6 +96,13 @@ Public Module VehicleSheet
                 Row(page, rule.Name, item.Quantity.ToString(CultureInfo.InvariantCulture) & " " & rule.QuantityLabel)
             Next
         End If
+        If result.InstalledRetrofits IsNot Nothing Then
+            For Each item In result.InstalledRetrofits
+                Row(page, item.Name & " (installed retrofit)",
+                    $"{item.Quantity}; parts ¥{Number(item.Quote.StreetPartsCostNuyen)}; {item.Quote.CargoConsumed} CF; {item.Quote.LoadConsumedKg} kg; Availability {item.Quote.Availability}")
+            Next
+            Row(page, "Installed retrofit parts total", "¥" & Number(result.RetrofitPartsCostNuyen))
+        End If
         For Each item In design.Additions
             Row(page, item.Name, $"{Number(item.DesignPoints)} DP; ¥{Number(item.DirectCostNuyen)} direct; {Number(item.CargoConsumed)} CF; {Number(item.LoadConsumedKg)} kg")
         Next

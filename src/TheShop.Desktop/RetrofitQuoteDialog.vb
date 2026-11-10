@@ -5,6 +5,8 @@ Imports TheShop.Design
 Friend NotInheritable Class RetrofitQuoteDialog
     Inherits Form
 
+    Public ReadOnly Property Selection As ModificationSelection
+
     Public Sub New(chassis As StockChassis, plant As StockPowerPlant, totals As DesignTotals)
         Text = "Retrofit parts quote"
         StartPosition = FormStartPosition.CenterParent
@@ -24,17 +26,20 @@ Friend NotInheritable Class RetrofitQuoteDialog
         Dim quantity As New NumericUpDown With {.Name = "retrofitQuantity", .Minimum = 1, .Maximum = Integer.MaxValue, .Value = 1}
         Dim quantityLabel As New Label With {.AutoSize = True}
         Dim output As New Label With {.Name = "retrofitOutput", .AutoSize = True, .MinimumSize = New Size(360, 0)}
-        Dim closeButton As New Button With {.Text = "Close", .DialogResult = DialogResult.OK}
+        Dim closeButton As New Button With {.Text = "Close", .DialogResult = DialogResult.Cancel}
+        Dim installButton As New Button With {.Name = "installRetrofit", .Text = "Install", .Enabled = False}
         layout.Controls.Add(options)
         layout.Controls.Add(quantityLabel)
         layout.Controls.Add(quantity)
         layout.Controls.Add(output)
+        layout.Controls.Add(installButton)
         layout.Controls.Add(closeButton)
         CancelButton = closeButton
 
         Dim refresh As Action = Sub()
                                     Dim rule = TryCast(options.SelectedItem, ModificationRule)
                                     If rule Is Nothing Then
+                                        installButton.Enabled = False
                                         output.Text = "No catalog retrofits are available for this vehicle."
                                         Return
                                     End If
@@ -45,8 +50,15 @@ Friend NotInheritable Class RetrofitQuoteDialog
                                         $"Street parts cost ¥{result.StreetPartsCostNuyen:N2} (SI {result.StreetIndex}){Environment.NewLine}" &
                                         $"Availability {result.Availability}{Environment.NewLine}" &
                                         $"Remaining cargo {cargo:0.##} CF   Remaining load {load:0.##} kg"
+                                    installButton.Enabled = cargo >= 0D AndAlso load >= 0D
                                     If cargo < 0D OrElse load < 0D Then output.Text &= Environment.NewLine & "Exceeds available capacity."
                                 End Sub
+        AddHandler installButton.Click,
+            Sub(sender, e)
+                Dim rule = DirectCast(options.SelectedItem, ModificationRule)
+                _Selection = New ModificationSelection With {.Id = rule.Id, .Quantity = CInt(quantity.Value)}
+                DialogResult = DialogResult.OK
+            End Sub
         AddHandler quantity.ValueChanged, Sub(sender, e) refresh()
         AddHandler options.SelectedIndexChanged,
             Sub(sender, e)

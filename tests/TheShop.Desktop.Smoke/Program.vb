@@ -571,6 +571,32 @@ Module Program
                         "Auxiliary engines should use their listed cost, half-speed ratings, and the lower engine Load limit.")
                 VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
                 Require(File.ReadAllText(sheetPath).Contains("Auxiliary engine"), "The vehicle sheet should include the alternate engine.")
+                remoteVan.CatalogModifications = New List(Of ModificationSelection) From {
+                    New ModificationSelection With {.Id = "robotic-pilot", .Quantity = 3},
+                    New ModificationSelection With {.Id = "remote-control-interface", .Quantity = 1},
+                    New ModificationSelection With {.Id = "sensors", .Quantity = 1},
+                    New ModificationSelection With {.Id = "improved-neural-network", .Quantity = 2},
+                    New ModificationSelection With {.Id = "fuzzy-logic", .Quantity = 1},
+                    New ModificationSelection With {.Id = "multi-object-manipulation", .Quantity = 2},
+                    New ModificationSelection With {.Id = "battletac-ivis", .Quantity = 1},
+                    New ModificationSelection With {.Id = "robotic-reflexes", .Quantity = 2}
+                }
+                editor.WriteDesignFile(destination, remoteVan)
+                editor.LoadDesignFile(destination)
+                Dim robotResult = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(robotResult.ModifiedRatings.RoboticPilot.GetValueOrDefault() = 3 AndAlso
+                        robotResult.ModifiedRatings.AdaptationPool.GetValueOrDefault() = 5 AndAlso
+                        robotResult.ModifiedRatings.RoboticReflexes.GetValueOrDefault() = 2 AndAlso
+                        robotResult.Totals.BaseCostNuyen = 399500D,
+                        "Robot programming should calculate Pilot, Adaptation Pool, prerequisites, and dependent costs.")
+                electronicAircraft.CatalogModifications = New List(Of ModificationSelection) From {
+                    New ModificationSelection With {.Id = "living-amenities-high", .Quantity = 2},
+                    New ModificationSelection With {.Id = "living-amenities-people-space", .Quantity = 2}
+                }
+                Dim amenities = electronicAircraft.Calculate(sheetCatalog)
+                Require(amenities.Totals.BaseCostNuyen = 670000D AndAlso amenities.Totals.CargoRemaining = 314D AndAlso
+                        amenities.Totals.LoadRemainingKg = 4500D,
+                        "Living amenities and reserved People Space should be counted separately.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

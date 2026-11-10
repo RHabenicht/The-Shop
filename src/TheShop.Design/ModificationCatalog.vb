@@ -52,6 +52,9 @@ Public NotInheritable Class ModifiedRatings
     Public Property Signature As Integer?
     Public Property Speed As Integer?
     Public Property Economy As Decimal?
+    Public Property RoboticPilot As Integer?
+    Public Property AdaptationPool As Integer?
+    Public Property RoboticReflexes As Integer?
     Public Property Pilot As Integer?
     Public Property Autonav As Integer?
     Public Property WaterSpeed As Integer?
@@ -234,6 +237,27 @@ Public Module ModificationCatalog
         New ModificationRule("internal-heavy-missile-storage", "Internal heavy missile mount", "missiles", Integer.MaxValue),
         New ModificationRule("external-missile-mounts", "External missile/rocket mounts", "mounts", Integer.MaxValue),
         New ModificationRule("naval-weapons-control", "Naval weapons control network", "stations", Integer.MaxValue, 100D, 5000D, 500D),
+        New ModificationRule("robotic-pilot", "Robotic-pilot advanced programming", "rating", 5),
+        New ModificationRule("robotic-reflexes", "Robotic reflexes", "levels", 3),
+        New ModificationRule("improved-neural-network", "Improved neural network algorithms", "levels", 5),
+        New ModificationRule("fuzzy-logic", "Fuzzy logic augmentation", "levels", 5),
+        New ModificationRule("multi-object-manipulation", "Multi-object manipulation", "levels", 10),
+        New ModificationRule("living-amenities-basic", "Basic living amenities", "people", Integer.MaxValue, 12D, 40D, 100D),
+        New ModificationRule("living-amenities-improved", "Improved living amenities", "people", Integer.MaxValue, 12D, 0D, 100D),
+        New ModificationRule("living-amenities-high", "High living amenities", "people", Integer.MaxValue, 12D, 0D, 100D),
+        New ModificationRule("living-amenities-people-space", "Living amenities People Space", "people", Integer.MaxValue),
+        New ModificationRule("workshop-equipment", "Workshop equipment space", "shops", Integer.MaxValue, 52D, 0D, 250D),
+        New ModificationRule("vehicle-facility", "Vehicle facility space", "facilities", Integer.MaxValue, 500D, 250D, 1000D),
+        New ModificationRule("electronics-facility", "Computer/electronics facility space", "facilities", Integer.MaxValue, 200D, 250D, 1000D),
+        New ModificationRule("other-facility", "Other facility space", "facilities", Integer.MaxValue, 300D, 250D, 1000D),
+        New ModificationRule("electronics-work-space", "Computer/electronics People Space", "technicians", Integer.MaxValue, 108D, 0D, 200D),
+        New ModificationRule("weapons-work-space", "Weaponsmith People Space", "weaponsmiths", Integer.MaxValue, 512D, 0D, 250D),
+        New ModificationRule("enchanting-work-space", "Enchanting People Space", "magicians", Integer.MaxValue),
+        New ModificationRule("ritual-work-space", "Ritual People Space", "magicians", Integer.MaxValue),
+        New ModificationRule("medical-full-patient-space", "Clinic People Space — patient", "patients", Integer.MaxValue, 64D, 0D, 150D),
+        New ModificationRule("medical-full-medtech-space", "Clinic People Space — medtech", "medtechs", Integer.MaxValue, 96D, 0D, 150D),
+        New ModificationRule("medical-ambulance-patient-space", "Ambulance People Space — patient", "patients", Integer.MaxValue, 36D, 0D, 100D),
+        New ModificationRule("medical-ambulance-medtech-space", "Ambulance People Space — medtech", "medtechs", Integer.MaxValue, 48D, 0D, 100D),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -370,6 +394,8 @@ Public Module ModificationCatalog
                 Return chassis.Body.GetValueOrDefault() > 0 AndAlso plant.Id <> "unpowered"
             Case "drive-by-wire", "drive-by-wire-speed-allocation", "drive-by-wire-acceleration-allocation", "drive-by-wire-load-allocation"
                 Return chassis.Body.HasValue AndAlso plant.StartingSpeed.HasValue AndAlso Not plant.StartingSecondarySpeed.HasValue AndAlso plant.Id <> "unpowered"
+            Case "robotic-pilot", "robotic-reflexes", "improved-neural-network", "fuzzy-logic", "multi-object-manipulation"
+                Return plant.Id <> "unpowered"
             Case "amphibious-operation"
                 Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
             Case "hovercraft-water-seal"
@@ -432,7 +458,7 @@ Public Module ModificationCatalog
             End If
             validated.Add((rule, choice.Quantity))
             Select Case rule.Id
-                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation", "autonav", "advanced-drone-pilot", "ecm", "eccm", "electronic-deception", "electronic-counter-deception", "dipping-sonar"
+                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation", "autonav", "advanced-drone-pilot", "ecm", "eccm", "electronic-deception", "electronic-counter-deception", "dipping-sonar", "robotic-pilot", "robotic-reflexes"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
                     ApplyRating(finalRatings, rule.Id, choice.Quantity, chassis, plant, upgrades)
             End Select
@@ -464,6 +490,12 @@ Public Module ModificationCatalog
         End If
         If seen.Contains("cabin-overpressure") AndAlso Not hasCabinSeal Then
             Throw New ArgumentException("Cabin over-pressurization requires a cabin seal.")
+        End If
+        If seen.Contains("robotic-pilot") AndAlso seen.Contains("advanced-drone-pilot") Then
+            Throw New ArgumentException("A vehicle can use robotic-pilot or advanced drone-pilot programming.")
+        End If
+        If seen.Contains("robotic-pilot") AndAlso Not chassis.IsDrone AndAlso Not seen.Contains("remote-control-interface") Then
+            Throw New ArgumentException("Robotic-pilot programming requires a drone chassis or remote-control interface.")
         End If
         If seen.Contains("remote-control-interface") Then
             If sensorRating = 0 Then Throw New ArgumentException("A remote-control interface requires sensors.")
@@ -599,6 +631,18 @@ Public Module ModificationCatalog
             Throw New ArgumentException("A crewed ground vehicle requires roll bars for turret installation.")
         End If
         Dim pilot = If(finalRatings?.Pilot, chassis.Pilot.GetValueOrDefault())
+        Dim robotPilot = If(finalRatings?.RoboticPilot, 0)
+        Dim neural = validated.Where(Function(choice) choice.Rule.Id = "improved-neural-network").Select(Function(choice) choice.Quantity).SingleOrDefault()
+        Dim adaptation = robotPilot + neural
+        For Each robotOption In validated.Where(Function(choice) {"robotic-reflexes", "improved-neural-network", "fuzzy-logic", "multi-object-manipulation"}.Contains(choice.Rule.Id))
+            If robotPilot = 0 Then Throw New ArgumentException("Robot options require robotic-pilot advanced programming.")
+            Dim limit = If(robotOption.Rule.Id = "multi-object-manipulation", adaptation, If(robotOption.Rule.Id = "robotic-reflexes", 3, robotPilot))
+            If robotOption.Quantity > limit Then Throw New ArgumentException("The robot option exceeds its Pilot or Adaptation Pool limit.")
+        Next
+        If seen.Contains("multi-object-manipulation") AndAlso Not seen.Contains("battletac-ivis") Then
+            Throw New ArgumentException("Multi-object manipulation requires a BattleTac IVIS receiver.")
+        End If
+        If robotPilot > 0 Then finalRatings.AdaptationPool = adaptation
         If (seen.Contains("autosoft-interpretation") OrElse seen.Contains("battletac-fddm") OrElse seen.Contains("battletac-ivis")) AndAlso pilot < 1 Then
             Throw New ArgumentException("Drone software systems require a Pilot rating or remote-control interface.")
         End If
@@ -639,7 +683,7 @@ Public Module ModificationCatalog
                 finalRatings.SonarSignature = CInt(plant.SonarSignature.GetValueOrDefault() - sonarPenalty)
             End If
         End If
-        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount, pilot)).ToList()
+        Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount, pilot, adaptation)).ToList()
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
     End Function
@@ -655,6 +699,13 @@ Public Module ModificationCatalog
                 Return
             Case "towed-array-sonar"
                 ratings.TowedArraySonar = quantity
+                Return
+            Case "robotic-pilot"
+                ratings.RoboticPilot = quantity
+                ratings.Pilot = quantity
+                Return
+            Case "robotic-reflexes"
+                ratings.RoboticReflexes = quantity
                 Return
             Case "dipping-sonar"
                 ratings.DippingSonar = quantity
@@ -705,7 +756,7 @@ Public Module ModificationCatalog
     End Sub
 
     Private Function Price(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant,
-                           sensorRating As Integer, retransmissionUnits As Integer, armCount As Integer, pilot As Integer) As DesignAddition
+                           sensorRating As Integer, retransmissionUnits As Integer, armCount As Integer, pilot As Integer, adaptation As Integer) As DesignAddition
         Dim body = CDec(chassis.Body.GetValueOrDefault())
         Dim item As New DesignAddition With {.Name = rule.Name, .CargoConsumed = rule.CargoPerUnit * quantity,
             .DesignPoints = rule.PointsPerUnit * quantity, .LoadConsumedKg = rule.LoadPerUnit * quantity}
@@ -937,6 +988,25 @@ Public Module ModificationCatalog
             Case "internal-heavy-missile-storage"
                 item.CargoConsumed = 8D + 50D * quantity
                 item.LoadConsumedKg = 500D
+            Case "robotic-pilot"
+                Dim rating = CDec(quantity)
+                item.DesignPoints = rating * rating * rating * 50D
+            Case "robotic-reflexes"
+                item.DesignPoints = 100D * quantity
+            Case "improved-neural-network"
+                item.DesignPoints = CDec(pilot) * pilot * 25D * quantity
+            Case "fuzzy-logic", "multi-object-manipulation"
+                item.DesignPoints = adaptation * 100D * quantity
+            Case "living-amenities-improved"
+                item.DesignPoints = 50D + 40D * quantity
+            Case "living-amenities-high"
+                item.DesignPoints = 100D + 40D * quantity
+            Case "living-amenities-people-space"
+                item.CargoConsumed = 150D + 6D * quantity
+                item.LoadConsumedKg = 150D * quantity
+            Case "enchanting-work-space", "ritual-work-space"
+                item.CargoConsumed = 500D + 64D * quantity
+                item.LoadConsumedKg = If(rule.Id = "enchanting-work-space", 250D, 100D) * quantity
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

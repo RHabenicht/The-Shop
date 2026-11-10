@@ -70,6 +70,8 @@ Turret variants include anti-aircraft and pop-up configurations. Pop-up turrets 
 
 Choose **Auxiliary engine…** to select an alternate engine from the chassis’s compatible power plants. Its speed and acceleration ratings are half the normal ratings. The design uses the lower starting and maximum Load values of the two engines and charges the auxiliary engine’s listed Design Points, space, and installation weight (*Rigger 3 Revised*, p. 116).
 
+Robot options include robotic-pilot programming, robotic reflexes, improved neural networks, fuzzy logic, and multi-object manipulation. Costs and limits use the final Pilot rating and Adaptation Pool. Robotic programming replaces drone-pilot programming. Amenities, workshop and facility equipment space, and reserved People Space have separate entries. Add tool and facility purchase prices as manual costs (*Rigger 3 Revised*, pp. 119–121).
+
 ## Availability
 
 Select an Availability class in the editor to apply the p. 113 formula. The calculator rounds base price divided by ¥20,000 up, applies a minimum of two, then adds the class modifier to the rating and lead time. This follows the written formula. The worked security vehicle example omits the modifier. Street Index stays an independent input.

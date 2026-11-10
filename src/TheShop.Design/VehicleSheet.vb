@@ -72,6 +72,9 @@ Public Module VehicleSheet
             If engine.Economy.HasValue Then Row(page, "Auxiliary Economy", Number(engine.Economy) & " " & engine.EconomyUnit)
             If engine.FuelCapacity.HasValue Then Row(page, "Auxiliary fuel", Number(engine.FuelCapacity) & " " & engine.FuelUnit)
         End If
+        If modified?.RoboticPilot.HasValue Then Row(page, "Robotic Pilot", Number(modified.RoboticPilot))
+        If modified?.AdaptationPool.HasValue Then Row(page, "Adaptation Pool", Number(modified.AdaptationPool))
+        If modified?.RoboticReflexes.HasValue Then Row(page, "Robotic reflexes", Number(modified.RoboticReflexes))
         Row(page, "Autonav / Pilot", Pair(If(modified?.Autonav, chassis.Autonav), If(modified?.Pilot, chassis.Pilot)))
         Row(page, "Available cargo (CF)", Number(totals.CargoRemaining))
         Row(page, "Available load (kg)", Number(totals.LoadRemainingKg))

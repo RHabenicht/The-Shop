@@ -597,6 +597,29 @@ Module Program
                 Require(amenities.Totals.BaseCostNuyen = 670000D AndAlso amenities.Totals.CargoRemaining = 314D AndAlso
                         amenities.Totals.LoadRemainingKg = 4500D,
                         "Living amenities and reserved People Space should be counted separately.")
+                Dim hybridVan As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .Upgrades = New DesignUpgrades With {.EconomySteps = 2},
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "hybrid-engine", .Quantity = 1}
+                    }
+                }
+                Dim hybridResult = hybridVan.Calculate(sheetCatalog)
+                Require(hybridResult.ModifiedRatings.Acceleration.GetValueOrDefault() = 2 AndAlso
+                        hybridResult.ModifiedRatings.Signature.GetValueOrDefault() = 3 AndAlso
+                        hybridResult.ModifiedRatings.Economy.GetValueOrDefault() = 8.8D AndAlso
+                        hybridResult.Totals.CargoRemaining = 42D AndAlso hybridResult.Totals.LoadRemainingKg = 500D AndAlso
+                        hybridResult.Totals.BaseCostNuyen = 11375D,
+                        "Hybrid engines should change their starting ratings before functional improvements.")
+                hybridVan.CatalogModifications = New List(Of ModificationSelection) From {
+                    New ModificationSelection With {.Id = "smart-materials", .Quantity = 1}
+                }
+                hybridVan.Upgrades = New DesignUpgrades With {.Speed = 120}
+                Dim smartMaterialResult = hybridVan.Calculate(sheetCatalog)
+                Require(smartMaterialResult.ModifiedRatings.Speed.GetValueOrDefault() = 200 AndAlso
+                        smartMaterialResult.Totals.BaseCostNuyen = 43500D AndAlso
+                        StockCatalog.FindById(sheetCatalog, "van").PowerPlants.Single(Function(item) item.Id = "diesel").MaximumSpeed.GetValueOrDefault() = 175,
+                        "Smart materials should raise limits without mutating the shared catalog.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

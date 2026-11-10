@@ -52,6 +52,9 @@ Public NotInheritable Class ModifiedRatings
     Public Property Signature As Integer?
     Public Property Speed As Integer?
     Public Property Economy As Decimal?
+    Public Property TakeoffLandingProfile As String
+    Public Property SetupBreakdownMinutes As Integer?
+    Public Property StructuralAgility As Integer?
     Public Property RoboticPilot As Integer?
     Public Property AdaptationPool As Integer?
     Public Property RoboticReflexes As Integer?
@@ -258,12 +261,24 @@ Public Module ModificationCatalog
         New ModificationRule("medical-full-medtech-space", "Clinic People Space — medtech", "medtechs", Integer.MaxValue, 96D, 0D, 150D),
         New ModificationRule("medical-ambulance-patient-space", "Ambulance People Space — patient", "patients", Integer.MaxValue, 36D, 0D, 100D),
         New ModificationRule("medical-ambulance-medtech-space", "Ambulance People Space — medtech", "medtechs", Integer.MaxValue, 48D, 0D, 100D),
+        New ModificationRule("hybrid-engine", "Hybrid engine", "", 1),
+        New ModificationRule("smart-materials", "Smart materials", "", 1, 0D, 100D),
+        New ModificationRule("fin-drive", "Fin drive", "", 1),
+        New ModificationRule("removed-manual-controls", "Removed manual controls", "", 1, 0D, 50D),
+        New ModificationRule("setup-breakdown", "Setup/breakdown capability", "", 1),
+        New ModificationRule("setup-time-reduction", "Setup/breakdown time reduction", "minutes", Integer.MaxValue),
+        New ModificationRule("special-storage", "Special storage area", "CF designated", Integer.MaxValue),
+        New ModificationRule("structural-agility", "Structural agility", "levels", 3),
+        New ModificationRule("tailhook", "Tailhook system", "", 1),
+        New ModificationRule("stol-profile", "STOL takeoff/landing profile", "", 1, 0D, 250D),
+        New ModificationRule("vstol-profile", "VSTOL takeoff/landing profile", "", 1, 0D, 400D),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
 
     Public Function MaximumQuantity(rule As ModificationRule, chassis As StockChassis) As Integer
         Dim body = chassis.Body.GetValueOrDefault()
+        If rule.Id = "setup-time-reduction" Then Return CInt(Math.Ceiling((2D * body + 1D) / 2D))
         If rule.Id = "external-missile-mounts" Then Return body
         If rule.Id = "extra-entry-points" Then
             If chassis.Hull.HasValue Then Return CInt(Math.Min(Integer.MaxValue, chassis.Hull.Value * 2D))
@@ -396,6 +411,20 @@ Public Module ModificationCatalog
                 Return chassis.Body.HasValue AndAlso plant.StartingSpeed.HasValue AndAlso Not plant.StartingSecondarySpeed.HasValue AndAlso plant.Id <> "unpowered"
             Case "robotic-pilot", "robotic-reflexes", "improved-neural-network", "fuzzy-logic", "multi-object-manipulation"
                 Return plant.Id <> "unpowered"
+            Case "hybrid-engine"
+                Return {"Bike", "Boat", "Car", "Special Vehicle"}.Contains(chassis.Category) AndAlso
+                    {"gasoline", "diesel", "methane"}.Contains(plant.Id) AndAlso plant.StartingAcceleration.GetValueOrDefault() >= 0
+            Case "fin-drive"
+                Return (chassis.Category = "Boat" OrElse chassis.Category = "Submarine") AndAlso
+                    chassis.Body.GetValueOrDefault() >= 1 AndAlso chassis.Body.GetValueOrDefault() <= 4
+            Case "removed-manual-controls"
+                Return Not chassis.IsDrone AndAlso plant.Id <> "unpowered"
+            Case "setup-breakdown", "setup-time-reduction"
+                Return chassis.Body.HasValue AndAlso chassis.Body.Value <= If(chassis.IsDrone, 3, 2)
+            Case "structural-agility", "smart-materials"
+                Return chassis.Body.HasValue AndAlso plant.Id <> "unpowered"
+            Case "tailhook", "stol-profile", "vstol-profile"
+                Return chassis.Category = "Fixed-Wing Aircraft" AndAlso chassis.Body.GetValueOrDefault() > 0
             Case "amphibious-operation"
                 Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
             Case "hovercraft-water-seal"
@@ -420,6 +449,14 @@ Public Module ModificationCatalog
                           ByRef finalRatings As ModifiedRatings) As IReadOnlyList(Of DesignAddition)
         If selections Is Nothing OrElse selections.Count = 0 Then Return Nothing
         If design.Additions Is Nothing Then Throw New ArgumentException("Additions must be an array.")
+        If DesignEnhancements.Has(selections, "hybrid-engine") OrElse DesignEnhancements.Has(selections, "fin-drive") OrElse DesignEnhancements.Has(selections, "smart-materials") Then
+            finalRatings = New ModifiedRatings With {
+                .Speed = If(upgrades?.Speed, plant.StartingSpeed),
+                .Acceleration = If(upgrades?.Acceleration, plant.StartingAcceleration),
+                .Signature = If(upgrades?.Signature, plant.Signature),
+                .Economy = If(upgrades?.Economy, If(plant.StartingEconomyKmPerLiter, If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar)))
+            }
+        End If
         Dim seen As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
         Dim validated As New List(Of (Rule As ModificationRule, Quantity As Integer))
 
@@ -553,6 +590,42 @@ Public Module ModificationCatalog
                     design.LoadCapacityKg = value
             End Select
         Next
+        If seen.Contains("smart-materials") AndAlso seen.Contains("fin-drive") Then Throw New ArgumentException("Fin drive already uses smart materials and cannot add the smart-materials option.")
+        If seen.Contains("stol-profile") AndAlso seen.Contains("vstol-profile") Then Throw New ArgumentException("Select one improved takeoff/landing profile.")
+        If seen.Contains("removed-manual-controls") Then
+            If Not (seen.Contains("datajack-port") OrElse seen.Contains("rigger-adaptation") OrElse seen.Contains("valkyrie-module")) Then
+                Throw New ArgumentException("Removed manual controls require a datajack port or rigger adaptation.")
+            End If
+            design.CargoCapacity += 2D
+            design.LoadCapacityKg += 10D
+        End If
+        If seen.Contains("setup-time-reduction") AndAlso Not seen.Contains("setup-breakdown") Then Throw New ArgumentException("Time reduction requires setup/breakdown capability.")
+        If seen.Contains("setup-breakdown") AndAlso design.CargoCapacity > chassis.MaximumCargo / 2D Then Throw New ArgumentException("Setup/breakdown capability halves the chassis maximum cargo.")
+        If seen.Contains("setup-breakdown") Then
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            Dim reduction = validated.Where(Function(choice) choice.Rule.Id = "setup-time-reduction").Select(Function(choice) choice.Quantity).SingleOrDefault()
+            finalRatings.SetupBreakdownMinutes = chassis.Body.GetValueOrDefault() * 2 + 1 - reduction
+        End If
+        If seen.Contains("stol-profile") OrElse seen.Contains("vstol-profile") Then
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            finalRatings.TakeoffLandingProfile = If(seen.Contains("vstol-profile"), "VSTOL", "STOL")
+        End If
+        If seen.Contains("structural-agility") Then
+            Dim agility = validated.Single(Function(choice) choice.Rule.Id = "structural-agility").Quantity
+            Dim driveByWire = validated.Where(Function(choice) choice.Rule.Id = "drive-by-wire").Select(Function(choice) choice.Quantity).SingleOrDefault()
+            If agility > driveByWire Then Throw New ArgumentException("Structural Agility cannot exceed the drive-by-wire level.")
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            finalRatings.StructuralAgility = agility
+        End If
+        If seen.Contains("special-storage") Then
+            Dim storage = validated.Single(Function(choice) choice.Rule.Id = "special-storage").Quantity
+            If storage > design.CargoCapacity Then Throw New ArgumentException("Designated storage exceeds the vehicle's available cargo volume.")
+        End If
+        If seen.Contains("smart-materials") Then
+            finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) - 1
+            finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) - 1
+            finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - 1
+        End If
         Dim implicitDualPurpose = Not seen.Any(Function(id) id.EndsWith("-tires", StringComparison.Ordinal)) AndAlso
             (seen.Contains("improved-suspension") OrElse seen.Contains("drive-by-wire"))
         For Each choice In validated.Where(Function(item) item.Rule.Id = "improved-suspension" OrElse
@@ -1007,6 +1080,26 @@ Public Module ModificationCatalog
             Case "enchanting-work-space", "ritual-work-space"
                 item.CargoConsumed = 500D + 64D * quantity
                 item.LoadConsumedKg = If(rule.Id = "enchanting-work-space", 250D, 100D) * quantity
+            Case "hybrid-engine"
+                item.DesignPoints = plant.DesignPoints * 0.25D
+                item.CargoConsumed = 6D
+                item.LoadConsumedKg = plant.StartingLoadKg / 2D
+            Case "fin-drive"
+                item.DesignPoints = body * body * 100D
+                item.CargoConsumed = body - 1D
+                item.LoadConsumedKg = plant.StartingLoadKg / 2D
+            Case "setup-breakdown", "setup-time-reduction"
+                item.DesignPoints = body * 5D * quantity
+            Case "special-storage"
+                item.DesignPoints = If(quantity < 10, 3D, If(quantity < 100, 6D, If(quantity < 1000, 9D, 12D)))
+                item.CargoConsumed = Math.Ceiling(quantity / 10D)
+                item.LoadConsumedKg = quantity / 10D
+            Case "structural-agility"
+                item.DesignPoints = body * 150D * quantity
+            Case "tailhook"
+                item.DesignPoints = chassis.DesignPoints * 0.1D
+                item.CargoConsumed = body / 2D
+                item.LoadConsumedKg = body * 125D
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

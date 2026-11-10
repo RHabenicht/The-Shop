@@ -35,7 +35,13 @@ Public NotInheritable Class StockDesign
             Throw New ArgumentException($"Power plant '{PowerPlantId}' is unavailable for '{chassis.Id}' in this catalog.")
         End If
 
+        powerPlant = DesignEnhancements.PreparePlant(chassis, powerPlant, CatalogModifications)
         Dim auxiliary = AuxiliaryEngine.Resolve(AuxiliaryPowerPlantId, chassis)
+        If auxiliary IsNot Nothing Then
+            Dim sharedEnhancements = CatalogModifications?.Where(Function(item) item IsNot Nothing AndAlso
+                Not String.Equals(item.Id, "hybrid-engine", StringComparison.OrdinalIgnoreCase)).ToArray()
+            auxiliary = DesignEnhancements.PreparePlant(chassis, auxiliary, sharedEnhancements)
+        End If
         Dim maximumLoad = If(auxiliary Is Nothing, powerPlant.MaximumLoadKg, Math.Min(powerPlant.MaximumLoadKg, auxiliary.MaximumLoadKg))
         Dim startingLoad = If(auxiliary Is Nothing, powerPlant.StartingLoadKg, Math.Min(powerPlant.StartingLoadKg, auxiliary.StartingLoadKg))
         Dim cargo = If(CargoCapacity, chassis.StartingCargo)
@@ -146,6 +152,9 @@ Public NotInheritable Class StockChassis
 End Class
 
 Public NotInheritable Class StockPowerPlant
+    Friend Function Copy() As StockPowerPlant
+        Return DirectCast(MemberwiseClone(), StockPowerPlant)
+    End Function
     <JsonIgnore>
     Public ReadOnly Property EconomyUnit As String
         Get

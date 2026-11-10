@@ -101,6 +101,8 @@ Public NotInheritable Class StockChassis
     Public Property Handling As Integer?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property PeopleSpaceCf As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property MaximumPeopleSpaceCf As Decimal?
     Public Property StartingCargo As Decimal
     Public Property MaximumCargo As Decimal
     Public Property PowerPlants As StockPowerPlant()
@@ -112,15 +114,20 @@ Public NotInheritable Class StockPowerPlant
     Public Property DesignPoints As Decimal
     Public Property StartingLoadKg As Decimal
     Public Property MaximumLoadKg As Decimal
-    Public Property StartingSpeed As Integer
-    Public Property MaximumSpeed As Integer
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property StartingSpeed As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property MaximumSpeed As Integer?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property StartingStallSpeed As Integer?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property MaximumStallSpeed As Integer?
-    Public Property StartingAcceleration As Integer
-    Public Property MaximumAcceleration As Integer
-    Public Property Signature As Integer
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property StartingAcceleration As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property MaximumAcceleration As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Signature As Integer?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property SonarSignature As Integer?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
@@ -141,6 +148,8 @@ Public NotInheritable Class StockPowerPlant
     Public Property BatteryPowerFactors As Decimal?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property FuelCellPowerFactors As Decimal?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property RocketPowerFactors As Decimal?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property FuelBars As Decimal?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>

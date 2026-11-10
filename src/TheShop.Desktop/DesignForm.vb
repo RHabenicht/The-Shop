@@ -119,15 +119,16 @@ Public NotInheritable Class DesignForm
         Dim chassis = TryCast(chassisBox.SelectedItem, StockChassis)
         Dim plant = TryCast(powerPlantBox.SelectedItem, StockPowerPlant)
         If chassis IsNot Nothing AndAlso plant IsNot Nothing Then
-            Dim handling = If(chassis.Handling.HasValue, chassis.Handling.ToString(), $"{chassis.OnRoadHandling}/{chassis.OffRoadHandling}")
-            Dim speed = If(plant.StartingStallSpeed.HasValue, $"{plant.StartingStallSpeed}/{plant.StartingSpeed}", plant.StartingSpeed.ToString())
+            Dim handling = If(chassis.Handling.HasValue, chassis.Handling.ToString(),
+                              If(chassis.OnRoadHandling.HasValue, $"{chassis.OnRoadHandling}/{chassis.OffRoadHandling}", "—"))
+            Dim speed = If(plant.StartingStallSpeed.HasValue, $"{plant.StartingStallSpeed}/{plant.StartingSpeed}", If(plant.StartingSpeed?.ToString(), "—"))
             If plant.StartingSecondarySpeed.HasValue Then
                 speed = If(chassis.Category = "Ship", $"{plant.StartingSpeed} ({plant.StartingSecondarySpeed})",
                            $"{plant.StartingSpeed}/{plant.StartingSecondarySpeed}")
             End If
             Dim protection = If(chassis.Hull.HasValue, $"Hull {chassis.Hull}   Bulwark {chassis.Bulwark}",
                                 $"Body {chassis.Body}   Armor {chassis.Armor}")
-            startingValues.Text = $"Handling {handling}   {protection}   Speed {speed}   Accel {plant.StartingAcceleration}" &
+            startingValues.Text = $"Handling {handling}   {protection}   Speed {speed}   Accel {If(plant.StartingAcceleration?.ToString(), "—")}" &
                 Environment.NewLine & $"Starting cargo {chassis.StartingCargo} CF   Starting load {plant.StartingLoadKg} kg   Chassis markup {chassis.Markup}   Blank overrides use starting values."
         End If
         ClearTotals(sender, e)

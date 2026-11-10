@@ -57,7 +57,7 @@ Module Program
                 File.WriteAllText(destination, "{""ChassisId"":""airliner"",""PowerPlantId"":""jet-propeller"",""StreetIndex"":1}")
                 editor.LoadDesignFile(destination)
                 Dim aircraft = DirectCast(powerPlant.SelectedItem, StockPowerPlant)
-                Require(aircraft.StartingStallSpeed.GetValueOrDefault() = 135 AndAlso aircraft.StartingSpeed = 320 AndAlso
+                Require(aircraft.StartingStallSpeed.GetValueOrDefault() = 135 AndAlso aircraft.StartingSpeed.GetValueOrDefault() = 320 AndAlso
                         totals.Text.Contains("Base ¥625,000.00"), "The airliner did not retain both speed ratings or its price.")
                 File.WriteAllText(destination, "{""ChassisId"":""attack-submarine"",""PowerPlantId"":""nuclear"",""StreetIndex"":1}")
                 editor.LoadDesignFile(destination)
@@ -66,7 +66,13 @@ Module Program
                 Require(submarine.Hull.GetValueOrDefault() = 5 AndAlso Not submarine.Body.HasValue AndAlso
                         reactor.StartingSecondarySpeed.GetValueOrDefault() = 35 AndAlso
                         totals.Text.Contains("Base ¥300,000,000.00"), "The submarine did not retain Hull, secondary speed, or price.")
-                Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, and submarine designs.")
+                File.WriteAllText(destination, "{""ChassisId"":""light-axle-trailer"",""PowerPlantId"":""unpowered"",""StreetIndex"":1}")
+                editor.LoadDesignFile(destination)
+                Dim trailer = DirectCast(powerPlant.SelectedItem, StockPowerPlant)
+                Require(Not trailer.StartingSpeed.HasValue AndAlso Not trailer.StartingAcceleration.HasValue AndAlso
+                        totals.Text.Contains("Base ¥1,500.00") AndAlso totals.Text.Contains("150 kg"),
+                        "The trailer should have its chassis load rating and no propulsion ratings.")
+                Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally
             folder.Delete(recursive:=True)

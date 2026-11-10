@@ -327,6 +327,19 @@ Module Program
                         armResult.AppliedModifications(0).Name.Contains("Strength 19 per arm") AndAlso
                         armResult.Totals.LoadRemainingKg = 620D AndAlso armResult.Totals.CargoRemaining = 44D,
                         "Arm enhancements should be calculated for each installed arm.")
+                Dim sealedVan As New StockDesign With {
+                    .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
+                    .CatalogModifications = New List(Of ModificationSelection) From {
+                        New ModificationSelection With {.Id = "cabin-overpressure", .Quantity = 1},
+                        New ModificationSelection With {.Id = "cabin-water-seal", .Quantity = 1},
+                        New ModificationSelection With {.Id = "engine-water-seal", .Quantity = 1},
+                        New ModificationSelection With {.Id = "life-support", .Quantity = 2}
+                    }
+                }
+                editor.WriteDesignFile(destination, sealedVan)
+                editor.LoadDesignFile(destination)
+                Require(totals.Text.Contains("Base ¥52,000.00") AndAlso totals.Text.Contains("45 CF") AndAlso
+                        totals.Text.Contains("940 kg"), "Cabin equipment did not apply the listed costs and capacities.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

@@ -111,6 +111,13 @@ Public Module ModificationCatalog
         New ModificationRule("drone-rack-body-1", "Body 1 drone rack", "racks", Integer.MaxValue, 2D),
         New ModificationRule("drone-rack-body-2", "Body 2 drone rack", "racks", Integer.MaxValue, 7D),
         New ModificationRule("drone-rack-body-3", "Body 3 drone rack", "racks", Integer.MaxValue, 13D),
+        New ModificationRule("cabin-gas-seal", "Cabin gas seal", "", 1),
+        New ModificationRule("cabin-water-seal", "Cabin water seal", "", 1),
+        New ModificationRule("engine-water-seal", "Engine water seal", "", 1),
+        New ModificationRule("cabin-overpressure", "Cabin over-pressurization", "", 1),
+        New ModificationRule("life-support", "Life support", "10 person-hour blocks", Integer.MaxValue),
+        New ModificationRule("roll-bar", "Roll bar", "", 1),
+        New ModificationRule("suncell", "SunCell", "", 1),
         New ModificationRule("amphibious-operation", "Amphibious operation package", "level", 3),
         New ModificationRule("hovercraft-water-seal", "Hovercraft water seal", "", 1)
     })
@@ -170,6 +177,17 @@ Public Module ModificationCatalog
                 Return MaximumQuantity(rule, chassis) > 0
             Case "drone-rack-body-0", "drone-rack-body-1", "drone-rack-body-2", "drone-rack-body-3"
                 Return chassis.Body.GetValueOrDefault() > 0
+            Case "cabin-gas-seal", "cabin-water-seal", "cabin-overpressure"
+                Return chassis.Body.HasValue AndAlso chassis.Category <> "Bike" AndAlso Not chassis.IsDrone AndAlso chassis.Id <> "sand-buggy"
+            Case "engine-water-seal"
+                Return chassis.Body.HasValue AndAlso chassis.Category <> "Bike" AndAlso
+                    chassis.Id <> "sand-buggy" AndAlso plant.Id <> "unpowered"
+            Case "life-support"
+                Return Not chassis.IsDrone AndAlso chassis.Category <> "Bike"
+            Case "roll-bar"
+                Return Not chassis.IsDrone AndAlso chassis.Category = "Car"
+            Case "suncell"
+                Return chassis.Category <> "Bike" AndAlso plant.Id.StartsWith("electric-", StringComparison.Ordinal)
             Case "amphibious-operation"
                 Return chassis.Category = "Bike" OrElse chassis.Category = "Car"
             Case "hovercraft-water-seal"
@@ -242,6 +260,12 @@ Public Module ModificationCatalog
             Throw New ArgumentException("A retransmission power amplifier requires a retransmission unit.")
         End If
         Dim sensorRating = If(finalRatings?.Sensor, chassis.Sensor.GetValueOrDefault())
+        If seen.Contains("cabin-gas-seal") AndAlso seen.Contains("cabin-water-seal") Then
+            Throw New ArgumentException("Select one cabin seal.")
+        End If
+        If seen.Contains("cabin-overpressure") AndAlso Not (seen.Contains("cabin-gas-seal") OrElse seen.Contains("cabin-water-seal")) Then
+            Throw New ArgumentException("Cabin over-pressurization requires a cabin seal.")
+        End If
         Dim armCount = validated.Where(Function(choice) choice.Rule.Id = "mechanical-arm").
             Select(Function(choice) choice.Quantity).SingleOrDefault()
         If seen.Contains("mechanical-arm-strength") AndAlso armCount = 0 Then
@@ -421,6 +445,22 @@ Public Module ModificationCatalog
             Case "drone-rack-body-0", "drone-rack-body-1", "drone-rack-body-2", "drone-rack-body-3"
                 item.DesignPoints = body * 12D * quantity
                 item.LoadConsumedKg = 45D * quantity
+            Case "cabin-gas-seal"
+                item.DesignPoints = body * 3D
+            Case "cabin-water-seal"
+                item.DesignPoints = body * 10D
+            Case "engine-water-seal"
+                item.DesignPoints = body * 15D
+            Case "cabin-overpressure"
+                item.DesignPoints = body * 75D
+                item.CargoConsumed = 1D
+                item.LoadConsumedKg = 10D
+            Case "life-support"
+                item.DesignPoints = 5D + 10D * quantity
+                item.CargoConsumed = quantity
+                item.LoadConsumedKg = 25D * quantity
+            Case "suncell"
+                item.DesignPoints = 5D
             Case "amphibious-operation"
                 Select Case quantity
                     Case 1

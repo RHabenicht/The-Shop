@@ -38,7 +38,7 @@ Magnetic-anomaly detectors are available on fixed-wing aircraft, rotor craft, an
 
 Select **Retransmission power amplifier** to set Flux for the installed retransmission units. The catalog applies the same rating to each unit and rounds cargo down per amplifier (*Rigger 3 Revised*, p. 147). Amplifiers for other devices and mixed retransmission ratings still use manual entries.
 
-Amphibious operation packages add surface-water operation to bike and car chassis (*Rigger 3 Revised*, p. 149). Level 1 requires wheels. The editor and vehicle sheet list the water speed and Handling modifier separately from land ratings. Underwater operation requires additional equipment and remains a manual design decision.
+Amphibious operation packages add surface-water operation to bike and car chassis (*Rigger 3 Revised*, p. 149). Level 1 requires wheels. The editor and vehicle sheet list the water speed and Handling modifier separately from land ratings. The package describes surface-water performance. Assess underwater operating limits separately.
 
 The anti-theft catalog includes improved security at ratings 3–10, the electric system, and proximity alerts (*Rigger 3 Revised*, pp. 149–150). Enter the final security rating. Proximity alerts require either factory sensors or a sensor system selected in the current design.
 
@@ -47,6 +47,8 @@ For a crane, enter its lifting capacity in kilograms. The catalog limits the rat
 The equipment catalog includes winches, generators for trailers, barges and rail cars, medical clinics, Valkyrie modules, and added standard, reinforced, folding, and ejection seats (*Rigger 3 Revised*, pp. 151–155). Enter winch pulling capacity in kilograms and seat counts as additional seats. Existing seating and clinic People Space are determined separately.
 
 Aircraft floats apply their speed and economy adjustments after design upgrades. The drone rack entries are sized for Body 0–3 assembled aerial drones. Rack weight is charged at design time, and carried drone weight is payload. A mechanical arm starts at Body squared in Strength. An enhancement applies the selected increase to every installed arm (*Rigger 3 Revised*, pp. 62, 151–152). Use manual entries for mixed arm enhancements.
+
+Cabin and engine seals, cabin over-pressurization, and life support are available as separate options. Enter life support in blocks of ten person-hours. Check that the design has a suitable sealed cabin and that its entry points, engine air supply, and depth limits suit the intended operation. Roll bars and SunCell solar power are also available (*Rigger 3 Revised*, pp. 126, 132–133).
 
 ## Availability
 

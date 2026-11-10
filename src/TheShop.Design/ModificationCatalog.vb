@@ -844,10 +844,6 @@ Public Module ModificationCatalog
             Dim index = validated.FindIndex(Function(choice) choice.Rule.Id = "gunnery-recoil-adjusters")
             result(index).DesignPoints *= fixedAndTurretCount
         End If
-        If validated.Any(Function(choice) choice.Rule.Id.StartsWith("ammo-bin-", StringComparison.Ordinal)) Then
-            Dim index = validated.FindIndex(Function(choice) choice.Rule.Id.StartsWith("ammo-bin-", StringComparison.Ordinal))
-            result(index).LoadConsumedKg = fixedAndTurretCount
-        End If
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
     End Function

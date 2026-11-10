@@ -738,8 +738,8 @@ Module Program
                     New ModificationSelection With {.Id = "ammo-bin-small-arms", .Quantity = 10}
                 }
                 Dim ammoResult = electronicAircraft.Calculate(sheetCatalog)
-                Require(ammoResult.Totals.CargoRemaining = 497.5D AndAlso ammoResult.Totals.LoadRemainingKg = 4978D,
-                        "Ammo bins should use 0.2 CF blocks and the per-mount installation load.")
+                Require(ammoResult.Totals.CargoRemaining = 497.5D AndAlso ammoResult.Totals.LoadRemainingKg = 4980D,
+                        "Design-time ammunition bins should use their cargo blocks without the customization-only installation weight.")
                 Console.WriteLine("Windows editor passed component selection, calculation, save, overwrite, and reopen for ground, marine, aircraft, submarine, and unpowered designs.")
             End Using
         Finally

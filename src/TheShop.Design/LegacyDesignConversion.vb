@@ -16,8 +16,8 @@ Public Module LegacyDesignConversion
         For Each item In reference.GetProperty("Modifications").EnumerateArray()
             Dim name = item.GetProperty("Name").GetString()
             Dim level = item.GetProperty("Level").GetInt32()
-            Dim matches = ModificationCatalog.Rules.Where(Function(rule) supported.Contains(rule.Id) AndAlso
-                String.Equals(rule.Name, name, StringComparison.OrdinalIgnoreCase)).ToArray()
+            Dim matches = ModificationCatalog.Rules.Where(Function(candidate) supported.Contains(candidate.Id) AndAlso
+                String.Equals(candidate.Name, name, StringComparison.OrdinalIgnoreCase)).ToArray()
             If matches.Length <> 1 OrElse level < 1 Then
                 result.LegacyImportNotes.Add($"Review manually: {name} (legacy level {level}).")
                 Continue For

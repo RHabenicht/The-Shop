@@ -324,6 +324,7 @@ Public Module ModificationCatalog
 
     Public Function MaximumQuantity(rule As ModificationRule, chassis As StockChassis) As Integer
         Dim body = VehicleScale.MountBudget(chassis)
+        If rule.Id = "ablative-armor" Then Return CInt(Math.Min(3D, Math.Max(0D, Math.Floor((body - chassis.Armor.GetValueOrDefault()) / 2D))))
         If rule.Id = "personal-armor" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
         If rule.Id = "external-cargo-mounts" Then Return CInt(Math.Min(Integer.MaxValue, Math.Floor(chassis.StartingCargo)))
         If rule.Id = "special-machinery" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
@@ -381,7 +382,9 @@ Public Module ModificationCatalog
                 Return Not chassis.IsDrone AndAlso chassis.Category <> "Bike"
             Case "datajack-port", "rigger-adaptation"
                 Return Not chassis.IsDrone AndAlso chassis.Id <> "semiballistic" AndAlso chassis.Id <> "suborbital"
-            Case "personal-armor", "ablative-armor", "vehicle-armor"
+            Case "ablative-armor"
+                Return chassis.Body.GetValueOrDefault() > 0 AndAlso Not chassis.Category.Contains("Aircraft") AndAlso chassis.Category <> "Rotor Craft"
+            Case "personal-armor", "vehicle-armor"
                 Return chassis.Body.GetValueOrDefault() > 0
             Case "concealed-armor"
                 Return chassis.Body.GetValueOrDefault() > 0 AndAlso chassis.Armor.GetValueOrDefault() = 0
@@ -506,7 +509,7 @@ Public Module ModificationCatalog
                 Return chassis.Category = "Boat" AndAlso chassis.Handling.HasValue
             Case "special-machinery", "weapon-gyro-stabilization"
                 Return chassis.Body.GetValueOrDefault() > 0
-            Case "performance-tires", "off-road-tires", "dual-purpose-tires", "runflat-upgrade", "improved-suspension", "off-road-suspension",
+            Case "standard-tires", "performance-tires", "off-road-tires", "dual-purpose-tires", "runflat-upgrade", "improved-suspension", "off-road-suspension",
                  "spare-standard-tires", "spare-performance-tires", "spare-off-road-tires", "spare-dual-purpose-tires"
                 Return chassis.Body.GetValueOrDefault() > 0 AndAlso Not chassis.IsDrone AndAlso
                     (chassis.Category = "Bike" OrElse
@@ -846,7 +849,8 @@ Public Module ModificationCatalog
             finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) + pairs \ 2
         End If
         Dim fixedExternalPenalty = If(validated.Any(Function(choice) choice.Rule.Id.StartsWith("external-fixed-", StringComparison.Ordinal)), 1, 0)
-        Dim missileMounts = validated.Where(Function(choice) choice.Rule.Id.StartsWith("external-missile-mounts", StringComparison.Ordinal)).Select(Function(choice) choice.Quantity).SingleOrDefault()
+        Dim missileMounts = validated.Where(Function(choice) choice.Rule.Id.StartsWith("external-missile-mounts", StringComparison.Ordinal)).Select(Function(choice) choice.Quantity).Sum()
+        If missileMounts > VehicleScale.RuleBody(chassis) Then Throw New ArgumentException("External ordnance mounts exceed the vehicle mounting budget.")
         Dim isAircraft = chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft"
         Dim missilePenalty = If(isAircraft, missileMounts \ 2, If(missileMounts > 0, 1, 0))
         Dim turretPenalty = validated.Where(Function(choice) choice.Rule.Id.Contains("turret") AndAlso Not choice.Rule.Id.EndsWith("-pop-up", StringComparison.Ordinal)).

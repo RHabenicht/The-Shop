@@ -94,7 +94,8 @@ Public NotInheritable Class StockDesign
         Dim totals = design.Calculate()
         Dim retrofits = RetrofitCatalog.Apply(InstalledRetrofits, CatalogModifications, chassis, powerPlant, ratings, totals, validationCargo, validationLoad, modifiedRatings)
         Dim externalCargo = If(retrofits?.Sum(Function(item) item.Quote.ExternalCargoCapacity), 0D)
-        Dim availability = If(AvailabilityClass.HasValue, VehicleAvailability.Calculate(AvailabilityClass.Value, totals.BaseCostNuyen), Nothing)
+        Dim resolvedClass = EffectiveClass()
+        Dim availability = If(resolvedClass.HasValue, VehicleAvailability.Calculate(resolvedClass.Value, totals.BaseCostNuyen), Nothing)
         If availability IsNot Nothing AndAlso DesignEnhancements.Has(CatalogModifications, "fin-drive") Then
             availability.Rating += 4D
             availability.BaseDays += 4D
@@ -104,13 +105,25 @@ Public NotInheritable Class StockDesign
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
             .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits, .AuxiliaryEngine = AuxiliaryEngine.Ratings(auxiliary),
             .ExternalCargoCapacity = externalCargo, .OperatingModes = VehicleOperatingModes.Build(RetrofitCatalog.CombinedSelections(CatalogModifications, InstalledRetrofits), powerPlant, chassis, ratings, modifiedRatings, externalCargo),
-            .Availability = availability, .EffectiveStreetIndex = design.StreetIndex, .ConfiguredRetrofitListCost = configuredListCost, .ConfiguredRetrofitStreetCost = configuredStreetCost, .EngineStress = EngineStress
+            .Availability = availability, .EffectiveStreetIndex = design.StreetIndex, .ConfiguredRetrofitListCost = configuredListCost, .ConfiguredRetrofitStreetCost = configuredStreetCost, .EngineStress = EngineStress, .EffectiveAvailabilityClass = resolvedClass
         }
+    End Function
+
+    Private Function EffectiveClass() As VehicleAvailabilityClass?
+        Dim result = AvailabilityClass
+        Dim required As VehicleAvailabilityClass? = Nothing
+        If DesignEnhancements.Has(CatalogModifications, "smart-armor") OrElse DesignEnhancements.Has(CatalogModifications, "radar-absorbent-materials") OrElse DesignEnhancements.Has(InstalledRetrofits, "radar-absorbent-materials") Then
+            required = VehicleAvailabilityClass.Military
+        ElseIf DesignEnhancements.Has(InstalledRetrofits, "ablative-armor") Then
+            required = VehicleAvailabilityClass.Security
+        End If
+        If required.HasValue AndAlso (Not result.HasValue OrElse result.Value < required.Value) Then Return required
+        Return result
     End Function
 
     Private Function BookStreetIndex() As Decimal
         Dim index = 1D
-        Select Case AvailabilityClass.GetValueOrDefault()
+        Select Case EffectiveClass().GetValueOrDefault()
             Case VehicleAvailabilityClass.Luxury, VehicleAvailabilityClass.Security
                 index = 2D
             Case VehicleAvailabilityClass.Military
@@ -280,6 +293,7 @@ Public NotInheritable Class StockDesignResult
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property InstalledRetrofits As IReadOnlyList(Of InstalledRetrofit)
     Public Property EngineStress As Integer?
+    Public Property EffectiveAvailabilityClass As VehicleAvailabilityClass?
     Public Property ConfiguredRetrofitListCost As Decimal
     Public Property ConfiguredRetrofitStreetCost As Decimal
     Public Property EffectiveStreetIndex As Decimal

@@ -26,6 +26,7 @@ Public NotInheritable Class FuelExpansionRule
             Return New FuelExpansionRule(electrical.Value, 5D, "PF", 2D, 0D, 1D)
         End If
         If plant.Id = "electric-fuel-cell" AndAlso plant.FuelLiters.HasValue Then
+            If Not chassis.Hull.HasValue AndAlso chassis.Body.GetValueOrDefault() = 0 Then Return New FuelExpansionRule(0D, 1D, "PF", 20D, 0D, 0.2D, separate:=True)
             Return New FuelExpansionRule(0D, 5D, "PF", 2D, 0D, 1D, separate:=True)
         End If
         If plant.Id = "jet-turbine" AndAlso plant.FuelBars.HasValue Then

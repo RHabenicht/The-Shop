@@ -323,6 +323,7 @@ Public NotInheritable Class DesignForm
             If modified.TowedArraySonar.HasValue Then values.Add($"Towed-array sonar {modified.TowedArraySonar}")
             totals.Text &= Environment.NewLine & String.Join("   ", values)
         End If
+        If result.EffectiveAvailabilityClass.HasValue Then totals.Text &= Environment.NewLine & $"Effective vehicle class {result.EffectiveAvailabilityClass}"
         If result.Availability IsNot Nothing Then
             totals.Text &= Environment.NewLine & $"Availability {result.Availability.Rating} / {result.Availability.BaseDays} days" &
                 If(result.Availability.PlayerAccessible, "", " (outside player reach)")

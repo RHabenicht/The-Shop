@@ -107,6 +107,7 @@ Public Module VehicleSheet
         Row(page, "Street Index", Number(result.EffectiveStreetIndex))
         If design.SpecialtyClass <> VehicleSpecialtyClass.None Then Row(page, "Specialty class", design.SpecialtyClass.ToString())
         Row(page, "Street price", "¥" & Number(totals.StreetCostNuyen))
+        If result.EffectiveAvailabilityClass.HasValue Then Row(page, "Effective vehicle class", result.EffectiveAvailabilityClass.ToString())
         If result.Availability IsNot Nothing Then
             Row(page, "Availability", $"{Number(result.Availability.Rating)} / {Number(result.Availability.BaseDays)} days")
         End If

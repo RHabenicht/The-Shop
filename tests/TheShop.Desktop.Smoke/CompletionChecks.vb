@@ -21,6 +21,10 @@ Friend Module CompletionChecks
         armor.CatalogModifications = armor.InstalledRetrofits
         armor.InstalledRetrofits = Nothing
         MustReject(Sub() armor.Calculate(catalog), "Ablative armor must be unavailable during manufacture.")
+        Dim military = MakeVan()
+        military.CatalogModifications = Choices(("radar-absorbent-materials", 1))
+        Check(military.Calculate(catalog).EffectiveStreetIndex = 3D AndAlso military.Calculate(catalog).EffectiveAvailabilityClass.GetValueOrDefault() = VehicleAvailabilityClass.Military,
+              "Radar materials must select the printed military pricing class when no final Street Index override exists.")
         Dim hull As New StockDesign With {.ChassisId = "attack-submarine", .PowerPlantId = "diesel", .Upgrades = New DesignUpgrades With {.LoadSteps = 2}}
         Dim unmodifiedHull As New StockDesign With {.ChassisId = "attack-submarine", .PowerPlantId = "diesel"}
         Check(hull.Calculate(catalog).Totals.LoadRemainingKg = unmodifiedHull.Calculate(catalog).Totals.LoadRemainingKg + 20D, "Hull-rated load must use the large-vehicle increment.")
@@ -67,6 +71,10 @@ Friend Module CompletionChecks
               "Individual retrofit amplifiers must use the customization rounding and parts Street Index.")
         Dim quote = RetrofitCatalog.Quote(ModificationCatalog.Rules.Single(Function(rule) rule.Id = "improved-suspension"), 1, van, diesel, listCost:=20000D)
         Check(quote.PartsCostNuyen = 2000D AndAlso quote.StreetPartsCostNuyen.GetValueOrDefault() = 4000D, "Percentage retrofit prices must use list cost before Street Index.")
+        Dim nitrousTime = RetrofitCatalog.Quote(ModificationCatalog.Rules.Single(Function(rule) rule.Id = "nitrous"), 2, van, diesel)
+        Check(nitrousTime.InstallationBaseHours.GetValueOrDefault() = 49D AndAlso nitrousTime.SourcePage = 126, "Nitrous installation must use the printed level + 47 hours formula.")
+        Dim wireTime = RetrofitCatalog.Quote(ModificationCatalog.Rules.Single(Function(rule) rule.Id = "drive-by-wire"), 2, van, diesel)
+        Check(wireTime.InstallationBaseHours.GetValueOrDefault() = 640D, "Drive-by-wire installation must use Body × 160 hours and list its three tests.")
         MustReject(Sub() RetrofitCatalog.Quote(ModificationCatalog.Rules.Single(Function(rule) rule.Id = "nitrous"), 6, van, diesel), "Customization nitrous is limited to 5 even though manufacture allows 6.")
         Dim mountedRetro = MakeVan()
         mountedRetro.InstalledRetrofits = Choices(("mechanical-arm", 1))

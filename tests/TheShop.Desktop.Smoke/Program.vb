@@ -689,6 +689,7 @@ Module Program
                 Require(File.ReadAllText(sheetPath).Contains("Review manually: Unknown option"),
                         "Legacy conversion review notes should appear on the vehicle sheet.")
                 LegacyConversionChecks.Run(folder.FullName, sheetCatalog)
+                CompletionChecks.Run(folder.FullName, sheetCatalog)
                 Dim sensorRefit As New StockDesign With {
                     .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
                     .CatalogModifications = New List(Of ModificationSelection) From {

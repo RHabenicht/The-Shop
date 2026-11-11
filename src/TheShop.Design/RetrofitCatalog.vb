@@ -40,13 +40,14 @@ Public Module RetrofitCatalog
         Dim entries As New List(Of InstalledRetrofit)
         Dim combined As New List(Of ModificationSelection)
         If designSelections IsNot Nothing Then combined.AddRange(designSelections)
+        Dim quoteContext = combined.Concat(selections).ToArray()
         Dim seen As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
         For Each selection In selections
             If selection Is Nothing Then Throw New ArgumentException("An installed retrofit cannot be null.")
             Dim rule = ModificationCatalog.Rules.SingleOrDefault(Function(candidate) String.Equals(candidate.Id, selection.Id, StringComparison.OrdinalIgnoreCase))
             If rule Is Nothing OrElse Not seen.Add(rule.Id) Then Throw New ArgumentException("An installed retrofit is unknown or repeated.")
             entries.Add(New InstalledRetrofit With {.Name = rule.Name, .Quantity = selection.Quantity,
-                .Quote = Quote(rule, selection.Quantity, chassis, plant, selection.StreetIndexOverride)})
+                .Quote = Quote(rule, selection.Quantity, chassis, plant, selection.StreetIndexOverride, totals.BaseCostNuyen, quoteContext)})
             combined.Add(New ModificationSelection With {.Id = rule.Id, .Quantity = selection.Quantity})
         Next
         Dim groups = combined.GroupBy(Function(item) item.Id, StringComparer.OrdinalIgnoreCase).ToArray()
@@ -54,7 +55,7 @@ Public Module RetrofitCatalog
             Dim rule = ModificationCatalog.Rules.Single(Function(candidate) String.Equals(candidate.Id, group.Key, StringComparison.OrdinalIgnoreCase))
             If IsReplacementRating(rule.Id) Then
                 If group.Last().Quantity <= group.First().Quantity Then Throw New ArgumentException($"Choose a higher replacement rating for '{rule.Name}'.")
-            ElseIf Not {"units", "seats", "ports", "sets", "racks", "mounts", "10 person-hour blocks"}.Contains(rule.QuantityLabel) Then
+            ElseIf Not {"units", "seats", "ports", "sets", "racks", "mounts", "10 person-hour blocks", "added points", "points", "levels"}.Contains(rule.QuantityLabel) Then
                 Throw New ArgumentException($"'{rule.Name}' is already present in the design.")
             End If
         Next
@@ -62,10 +63,13 @@ Public Module RetrofitCatalog
                 .Id = group.Key, .Quantity = If(IsReplacementRating(group.Key), group.Last().Quantity, CInt(group.Sum(Function(item) CLng(item.Quantity))))
             }).ToList()
         Dim validationRatings As ModifiedRatings = Nothing
-        ModificationCatalog.Apply(merged, chassis, plant, New VehicleDesign With {.Additions = New List(Of DesignAddition), .CargoCapacity = validationCargo, .LoadCapacityKg = validationLoad},
-                                  upgrades, validationRatings)
-        Dim cargo = totals.CargoRemaining - entries.Sum(Function(item) item.Quote.CargoConsumed)
-        Dim load = totals.LoadRemainingKg - entries.Sum(Function(item) item.Quote.LoadConsumedKg)
+        Dim baseline As New VehicleDesign With {.Additions = New List(Of DesignAddition), .CargoCapacity = validationCargo, .LoadCapacityKg = validationLoad}
+        Dim baselineRatings As ModifiedRatings = Nothing
+        ModificationCatalog.Apply(designSelections, chassis, plant, baseline, upgrades, baselineRatings)
+        Dim validation As New VehicleDesign With {.Additions = New List(Of DesignAddition), .CargoCapacity = validationCargo, .LoadCapacityKg = validationLoad}
+        ModificationCatalog.Apply(merged, chassis, plant, validation, upgrades, validationRatings, True)
+        Dim cargo = totals.CargoRemaining + validation.CargoCapacity - baseline.CargoCapacity - entries.Sum(Function(item) item.Quote.CargoConsumed)
+        Dim load = totals.LoadRemainingKg + validation.LoadCapacityKg - baseline.LoadCapacityKg - entries.Sum(Function(item) item.Quote.LoadConsumedKg)
         If cargo < 0D OrElse load < 0D Then Throw New ArgumentException("Installed retrofits exceed the vehicle's available cargo or load.")
         finalRatings = validationRatings
         totals.CargoRemaining = cargo
@@ -75,9 +79,18 @@ Public Module RetrofitCatalog
 
     Public ReadOnly Property Rules As IReadOnlyList(Of ModificationRule)
         Get
-            Return ModificationCatalog.Rules.Where(Function(rule) supported.Contains(rule.Id)).ToArray()
+            Return ModificationCatalog.Rules.Where(Function(rule) (supported.Contains(rule.Id) OrElse ExtendedRetrofits.Contains(rule.Id))).ToArray()
         End Get
     End Property
+
+    Public Function MaximumQuantity(rule As ModificationRule, chassis As StockChassis) As Integer
+        Return If(rule.Id = "nitrous", Math.Min(5, ModificationCatalog.MaximumQuantity(rule, chassis)), ModificationCatalog.MaximumQuantity(rule, chassis))
+    End Function
+
+    Public Function CombinedSelections(design As IReadOnlyList(Of ModificationSelection), installed As IReadOnlyList(Of ModificationSelection)) As IReadOnlyList(Of ModificationSelection)
+        Return If(design, Array.Empty(Of ModificationSelection)()).Concat(If(installed, Array.Empty(Of ModificationSelection)())).GroupBy(Function(item) item.Id, StringComparer.OrdinalIgnoreCase).
+            Select(Function(group) New ModificationSelection With {.Id = group.Key, .Quantity = If(IsReplacementRating(group.Key), group.Last().Quantity, CInt(group.Sum(Function(item) CLng(item.Quantity))))}).ToArray()
+    End Function
 
     Private Function IsReplacementRating(id As String) As Boolean
         Return {"sensors", "sonar", "ecm", "eccm", "electronic-deception", "electronic-counter-deception", "improved-anti-theft-security", "autonav", "advanced-drone-pilot", "robotic-pilot"}.Contains(id.ToLowerInvariant())
@@ -89,30 +102,42 @@ Public Module RetrofitCatalog
     End Function
 
     Public Function AvailableRules(chassis As StockChassis, plant As StockPowerPlant) As IReadOnlyList(Of ModificationRule)
-        Return ModificationCatalog.Rules.Where(Function(rule) supported.Contains(rule.Id) AndAlso
-            Compatible(rule, chassis, plant)).ToArray()
+        Return ModificationCatalog.Rules.Where(Function(rule) (supported.Contains(rule.Id) OrElse ExtendedRetrofits.Contains(rule.Id)) AndAlso
+            Compatible(rule, chassis, plant) AndAlso ModificationCatalog.MaximumQuantity(rule, chassis) >= 1).ToArray()
     End Function
 
     Public Function Quote(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant,
-                          Optional streetIndexOverride As Decimal? = Nothing) As RetrofitQuote
-        Dim result = BaseQuote(rule, quantity, chassis, plant)
+                          Optional streetIndexOverride As Decimal? = Nothing, Optional listCost As Decimal? = Nothing,
+                          Optional context As IReadOnlyList(Of ModificationSelection) = Nothing) As RetrofitQuote
+        Dim result = BaseQuote(rule, quantity, chassis, plant, If(listCost, (chassis.DesignPoints + plant.DesignPoints) * chassis.Markup * 100D), context)
         If streetIndexOverride.HasValue Then
             If streetIndexOverride.Value <= 0D Then Throw New ArgumentException("A retrofit Street Index must be positive.")
             result.StreetIndex = streetIndexOverride.Value
         End If
+        If Not streetIndexOverride.HasValue AndAlso (rule.Id = "anti-theft-electric-system" OrElse rule.Id = "proximity-alert") Then
+            Dim security = If(context, Array.Empty(Of ModificationSelection)()).LastOrDefault(Function(item) item.Id = "improved-anti-theft-security")
+            If security IsNot Nothing Then
+                Dim systemQuote = BaseQuote(ModificationCatalog.Rules.Single(Function(item) item.Id = security.Id), security.Quantity, chassis, plant, If(listCost, 0D), context)
+                result.StreetIndex = systemQuote.StreetIndex
+                result.Availability = systemQuote.Availability
+            ElseIf Not streetIndexOverride.HasValue Then
+                result.StreetIndex = 1D
+            End If
+        End If
         Return result
     End Function
 
-    Private Function BaseQuote(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant) As RetrofitQuote
-        If Not supported.Contains(rule.Id) OrElse Not Compatible(rule, chassis, plant) Then
+    Private Function BaseQuote(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant, listCost As Decimal, context As IReadOnlyList(Of ModificationSelection)) As RetrofitQuote
+        If Not (supported.Contains(rule.Id) OrElse ExtendedRetrofits.Contains(rule.Id)) OrElse Not Compatible(rule, chassis, plant) Then
             Throw New ArgumentException("This retrofit is unavailable for the selected vehicle.")
         End If
-        If quantity < 1 OrElse quantity > ModificationCatalog.MaximumQuantity(rule, chassis) Then
+        If quantity < 1 OrElse quantity > MaximumQuantity(rule, chassis) Then
             Throw New ArgumentException("The retrofit quantity or rating is outside the allowed range.")
         End If
 
+        If ExtendedRetrofits.Contains(rule.Id) Then Return ExtendedRetrofits.Quote(rule, quantity, chassis, plant, listCost, context)
         If ElectronicRetrofits.Contains(rule.Id) Then Return ElectronicRetrofits.Quote(rule.Id, quantity)
-        Dim body = CDec(chassis.Body.GetValueOrDefault())
+        Dim body = VehicleScale.RuleBody(chassis)
         Select Case rule.Id
             Case "crane"
                 Return BuildQuote(2D * quantity, 2D, "6 / 14 days", 35D, body * 80D)
@@ -193,14 +218,14 @@ Public Module RetrofitCatalog
             Case "autonav"
                 Dim prices = {0D, 500D, 1000D, 5000D, 15000D}
                 Dim indices = {0D, 1D, 1D, 1.5D, 2D}
-                Dim availability = {"", "2 / 90 hours", "3 / 6 days", "3 / 8 days", "6 / 14 days"}
+                Dim availability = {"", "2 / 96 hours", "3 / 6 days", "4 / 8 days", "6 / 14 days"}
                 Return BuildQuote(prices(quantity), indices(quantity), availability(quantity), 0D, 0D)
             Case "advanced-drone-pilot"
                 Dim prices = {0D, 0D, 5000D, 25000D, 500000D, 2500000D}
                 Return BuildQuote(prices(quantity), If(quantity = 5, CType(Nothing, Decimal?), If(quantity = 4, 4D, 2D)),
                                   If(quantity = 5, "14 / 70 days", If(quantity = 4, "10 / 35 days", "6 / 14 days")), 0D, 0D)
             Case "external-cargo-mounts"
-                Dim result = BuildQuote(250D * quantity, 1D, "4 / 72 hours", 0D, 0D)
+                Dim result = BuildQuote(250D * quantity, 1D, "3 / 24 hours", 0D, 0D)
                 result.ExternalCargoCapacity = quantity
                 Return result
             Case Else

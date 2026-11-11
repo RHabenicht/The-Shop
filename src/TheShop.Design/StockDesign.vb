@@ -29,6 +29,10 @@ Public NotInheritable Class StockDesign
     Public Property CatalogModifications As List(Of ModificationSelection)
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property InstalledRetrofits As List(Of ModificationSelection)
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property Payload As List(Of VehiclePayloadItem)
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property EquipmentSettings As List(Of EquipmentSetting)
 
     Public Function Calculate(catalog As IReadOnlyList(Of StockChassis)) As StockDesignResult
         Dim chassis = StockCatalog.FindById(catalog, ChassisId)
@@ -49,6 +53,9 @@ Public NotInheritable Class StockDesign
         Dim startingLoad = If(auxiliary Is Nothing, powerPlant.StartingLoadKg, Math.Min(powerPlant.StartingLoadKg, auxiliary.StartingLoadKg))
         Dim cargo = If(CargoCapacity, chassis.StartingCargo)
         Dim load = If(LoadCapacityKg, startingLoad)
+        Dim configuredListCost As Decimal
+        Dim configuredStreetCost As Decimal
+        Dim payloadAdditions = VehiclePayload.Additions(Me, chassis, configuredListCost, configuredStreetCost)
         Dim design As New VehicleDesign With {
             .ChassisDesignPoints = chassis.DesignPoints,
             .PowerPlantDesignPoints = powerPlant.DesignPoints,
@@ -57,7 +64,7 @@ Public NotInheritable Class StockDesign
             .LoadCapacityKg = load,
             .StreetIndex = If(StreetIndex, BookStreetIndex()),
             .MarkupAdjustment = MarkupAdjustment,
-            .Additions = Additions
+            .Additions = If(Additions, New List(Of DesignAddition)).Concat(payloadAdditions).ToList()
         }
         If auxiliary IsNot Nothing Then
             Dim size = CDec(If(chassis.Hull, chassis.Body).GetValueOrDefault())
@@ -68,7 +75,8 @@ Public NotInheritable Class StockDesign
                     .LoadConsumedKg = maximumLoad * 0.1D}
             }
         End If
-        Dim ratings = Upgrades?.Apply(chassis, powerPlant, design, CargoCapacity, LoadCapacityKg)
+        Dim ratings = If(Upgrades, New DesignUpgrades()).Apply(chassis, powerPlant, design, CargoCapacity, LoadCapacityKg,
+            DesignEnhancements.Has(CatalogModifications, "engine-water-seal") AndAlso (chassis.IsDrone OrElse DesignEnhancements.Has(CatalogModifications, "cabin-water-seal")))
         If design.CargoCapacity > chassis.MaximumCargo Then
             Throw New ArgumentException($"Cargo capacity exceeds the catalog maximum of {chassis.MaximumCargo} CF.")
         End If
@@ -92,8 +100,8 @@ Public NotInheritable Class StockDesign
         Return New StockDesignResult With {
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
             .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits, .AuxiliaryEngine = AuxiliaryEngine.Ratings(auxiliary),
-            .ExternalCargoCapacity = externalCargo, .OperatingModes = VehicleOperatingModes.Build(CatalogModifications, powerPlant, chassis, ratings, modifiedRatings, externalCargo),
-            .Availability = availability, .EffectiveStreetIndex = design.StreetIndex
+            .ExternalCargoCapacity = externalCargo, .OperatingModes = VehicleOperatingModes.Build(RetrofitCatalog.CombinedSelections(CatalogModifications, InstalledRetrofits), powerPlant, chassis, ratings, modifiedRatings, externalCargo),
+            .Availability = availability, .EffectiveStreetIndex = design.StreetIndex, .ConfiguredRetrofitListCost = configuredListCost, .ConfiguredRetrofitStreetCost = configuredStreetCost
         }
     End Function
 
@@ -268,16 +276,18 @@ Public NotInheritable Class StockDesignResult
     Public Property AuxiliaryEngine As AuxiliaryEngineRatings
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property InstalledRetrofits As IReadOnlyList(Of InstalledRetrofit)
+    Public Property ConfiguredRetrofitListCost As Decimal
+    Public Property ConfiguredRetrofitStreetCost As Decimal
     Public Property EffectiveStreetIndex As Decimal
     Public ReadOnly Property RetrofitListPartsCostNuyen As Decimal
         Get
-            Return If(InstalledRetrofits?.Sum(Function(item) item.Quote.PartsCostNuyen), 0D)
+            Return If(InstalledRetrofits?.Sum(Function(item) item.Quote.PartsCostNuyen), 0D) + ConfiguredRetrofitListCost
         End Get
     End Property
     Public ReadOnly Property RetrofitPartsCostNuyen As Decimal?
         Get
             If InstalledRetrofits IsNot Nothing AndAlso InstalledRetrofits.Any(Function(item) Not item.Quote.StreetPartsCostNuyen.HasValue) Then Return Nothing
-            Return If(InstalledRetrofits?.Sum(Function(item) item.Quote.StreetPartsCostNuyen.GetValueOrDefault()), 0D)
+            Return If(InstalledRetrofits?.Sum(Function(item) item.Quote.StreetPartsCostNuyen.GetValueOrDefault()), 0D) + ConfiguredRetrofitStreetCost
         End Get
     End Property
 End Class

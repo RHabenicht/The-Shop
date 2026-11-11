@@ -35,6 +35,8 @@ End Class
 
 Public NotInheritable Class ModifiedRatings
     Public Property Armor As Integer?
+    Public Property PersonalArmor As Integer?
+    Public Property AblativeArmor As Integer?
     Public Property Bulwark As Integer?
     Public Property Handling As Integer?
     Public Property OnRoadHandling As Integer?
@@ -125,6 +127,11 @@ Public Module ModificationCatalog
         New ModificationRule("performance-tires", "Performance tires", "tires", Integer.MaxValue),
         New ModificationRule("off-road-tires", "Off-road tires", "tires", Integer.MaxValue),
         New ModificationRule("dual-purpose-tires", "Dual-purpose tires", "tires", Integer.MaxValue),
+        New ModificationRule("personal-armor", "Personal ballistic vehicle armor", "points", Integer.MaxValue),
+        New ModificationRule("ablative-armor", "Ablative armor (retrofit only)", "levels", 3),
+        New ModificationRule("standard-tires", "Standard tires", "tires", Integer.MaxValue),
+        New ModificationRule("power-amplifier", "Power amplifier", "added Flux", 10),
+        New ModificationRule("ring-mount-door-gun", "Aircraft door gun ring mount", "mounts", Integer.MaxValue, 16D, 10D, 25D, 2),
         New ModificationRule("vehicle-armor", "Vehicle armor", "added points", Integer.MaxValue),
         New ModificationRule("concealed-armor", "Concealed armor", "added points", Integer.MaxValue),
         New ModificationRule("bulwark", "Bulwark", "added points", Integer.MaxValue),
@@ -238,6 +245,13 @@ Public Module ModificationCatalog
         New ModificationRule("remote-medium-turret-pop-up", "Remote medium turret — pop-up", "mounts", Integer.MaxValue, 8D, 600D, 1000D, 6),
         New ModificationRule("remote-large-turret-anti-aircraft", "Remote large turret — anti-aircraft", "mounts", Integer.MaxValue, 33D, 3750.0D, 8000D, 8),
         New ModificationRule("remote-extra-large-turret-anti-aircraft", "Remote extra-large turret — anti-aircraft", "mounts", Integer.MaxValue, 65D, 7500.0D, 35000D, 10),
+        New ModificationRule("crewed-mini-turret-anti-aircraft-pop-up", "Crewed mini turret — anti-aircraft and pop-up", "mounts", Integer.MaxValue, 14D, 187.5D, 25D, 2),
+        New ModificationRule("crewed-small-turret-anti-aircraft-pop-up", "Crewed small turret — anti-aircraft and pop-up", "mounts", Integer.MaxValue, 16D, 375.0D, 100D, 4),
+        New ModificationRule("crewed-medium-turret-anti-aircraft-pop-up", "Crewed medium turret — anti-aircraft and pop-up", "mounts", Integer.MaxValue, 34D, 750.0D, 1000D, 6),
+        New ModificationRule("remote-micro-turret-anti-aircraft-pop-up", "Remote micro turret — anti-aircraft and pop-up", "mounts", Integer.MaxValue, 2D, 150.0D, 10D, 1),
+        New ModificationRule("remote-mini-turret-anti-aircraft-pop-up", "Remote mini turret — anti-aircraft and pop-up", "mounts", Integer.MaxValue, 8D, 262.5D, 25D, 2),
+        New ModificationRule("remote-small-turret-anti-aircraft-pop-up", "Remote small turret — anti-aircraft and pop-up", "mounts", Integer.MaxValue, 10D, 525.0D, 100D, 4),
+        New ModificationRule("remote-medium-turret-anti-aircraft-pop-up", "Remote medium turret — anti-aircraft and pop-up", "mounts", Integer.MaxValue, 10D, 900.0D, 1000D, 6),
         New ModificationRule("torpedo-tube-manual", "Torpedo tube with manual loading", "tubes", Integer.MaxValue, 848D, 250D, 500D),
         New ModificationRule("torpedo-tube-autoloader", "Torpedo tube with autoloader", "tubes", Integer.MaxValue, 488D, 500D, 50500D),
         New ModificationRule("torpedo-storage-rack", "Torpedo storage rack", "torpedoes", Integer.MaxValue, 32D),
@@ -308,7 +322,8 @@ Public Module ModificationCatalog
     })
 
     Public Function MaximumQuantity(rule As ModificationRule, chassis As StockChassis) As Integer
-        Dim body = chassis.Body.GetValueOrDefault()
+        Dim body = VehicleScale.MountBudget(chassis)
+        If rule.Id = "personal-armor" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
         If rule.Id = "external-cargo-mounts" Then Return CInt(Math.Min(Integer.MaxValue, Math.Floor(chassis.StartingCargo)))
         If rule.Id = "special-machinery" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
         If rule.Id = "weapon-gyro-stabilization" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
@@ -327,8 +342,9 @@ Public Module ModificationCatalog
     End Function
 
     Public Function IsCompatible(rule As ModificationRule, chassis As StockChassis, plant As StockPowerPlant) As Boolean
+        If rule.Id = "ring-mount-door-gun" Then Return chassis.Category = "Rotor Craft" AndAlso Not chassis.IsDrone AndAlso VehicleScale.MountBudget(chassis) >= 2
         If rule.MountPoints > 0 Then
-            If chassis.Body.GetValueOrDefault() < rule.MountPoints OrElse chassis.Category = "Bike" Then Return False
+            If VehicleScale.MountBudget(chassis) < rule.MountPoints OrElse chassis.Category = "Bike" Then Return False
             If rule.Id = "ring-mount" AndAlso (chassis.IsDrone OrElse chassis.Category = "Rotor Craft") Then Return False
             If rule.Id.StartsWith("crewed-", StringComparison.Ordinal) AndAlso chassis.IsDrone Then Return False
             Return True
@@ -362,7 +378,7 @@ Public Module ModificationCatalog
                 Return Not chassis.IsDrone AndAlso chassis.Category <> "Bike"
             Case "datajack-port", "rigger-adaptation"
                 Return Not chassis.IsDrone AndAlso chassis.Id <> "semiballistic" AndAlso chassis.Id <> "suborbital"
-            Case "vehicle-armor"
+            Case "personal-armor", "ablative-armor", "vehicle-armor"
                 Return chassis.Body.GetValueOrDefault() > 0
             Case "concealed-armor"
                 Return chassis.Body.GetValueOrDefault() > 0 AndAlso chassis.Armor.GetValueOrDefault() = 0
@@ -499,7 +515,7 @@ Public Module ModificationCatalog
 
     Friend Function Apply(selections As IReadOnlyList(Of ModificationSelection), chassis As StockChassis, plant As StockPowerPlant,
                           design As VehicleDesign, upgrades As UpgradedRatings,
-                          ByRef finalRatings As ModifiedRatings) As IReadOnlyList(Of DesignAddition)
+                          ByRef finalRatings As ModifiedRatings, Optional customization As Boolean = False) As IReadOnlyList(Of DesignAddition)
         If selections Is Nothing OrElse selections.Count = 0 Then Return Nothing
         If design.Additions Is Nothing Then Throw New ArgumentException("Additions must be an array.")
         If DesignEnhancements.Has(selections, "hybrid-engine") OrElse DesignEnhancements.Has(selections, "fin-drive") OrElse DesignEnhancements.Has(selections, "smart-materials") Then
@@ -522,6 +538,7 @@ Public Module ModificationCatalog
                 Throw New ArgumentException($"'{rule.Name}' is unavailable for this chassis or power plant.")
             End If
             Dim maximum = MaximumQuantity(rule, chassis)
+            If rule.Id = "ablative-armor" AndAlso Not customization Then Throw New ArgumentException("Ablative armor can only be added as a retrofit.")
             If choice.Quantity < 1 OrElse choice.Quantity > maximum Then
                 Throw New ArgumentException($"'{rule.Name}' requires a quantity from 1 to {maximum}.")
             End If
@@ -548,7 +565,18 @@ Public Module ModificationCatalog
             End If
             validated.Add((rule, choice.Quantity))
             Select Case rule.Id
-                Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation", "autonav", "advanced-drone-pilot", "ecm", "eccm", "electronic-deception", "electronic-counter-deception", "dipping-sonar", "robotic-pilot", "robotic-reflexes"
+                Case "personal-armor"
+                item.DesignPoints = 5D * quantity
+                item.LoadConsumedKg = body * 2D * quantity
+            Case "ablative-armor"
+                item.LoadConsumedKg = body * 100D
+            Case "standard-tires"
+                item.DirectCostNuyen = body * 50D * quantity
+            Case "power-amplifier"
+                item.DesignPoints = 5D * quantity
+                item.CargoConsumed = Math.Floor(quantity * 0.25D)
+                item.LoadConsumedKg = quantity
+            Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation", "autonav", "advanced-drone-pilot", "ecm", "eccm", "electronic-deception", "electronic-counter-deception", "dipping-sonar", "robotic-pilot", "robotic-reflexes"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
                     ApplyRating(finalRatings, rule.Id, choice.Quantity, chassis, plant, upgrades)
             End Select
@@ -636,7 +664,7 @@ Public Module ModificationCatalog
                     If value > maximum Then Throw New ArgumentException("Engine customization exceeds the increased Acceleration maximum.")
                     finalRatings.Acceleration = CInt(value)
                 Case "engine-customization-load"
-                    Dim increment = chassis.Body.GetValueOrDefault() * 50D
+                    Dim increment = VehicleScale.RuleBody(chassis) * 50D
                     Dim maximum = Math.Max(design.LoadCapacityKg + increment, Math.Ceiling(plant.MaximumLoadKg * 1.75D))
                     Dim value = design.LoadCapacityKg + increment * levels
                     If value > maximum Then Throw New ArgumentException("Engine customization exceeds the increased Load maximum.")
@@ -751,7 +779,7 @@ Public Module ModificationCatalog
         End If
         If seen.Contains("ducted-waterjet") AndAlso seen.Contains("emd-drive") Then Throw New ArgumentException("Select one ducted waterjet drive.")
         Dim mountPoints = validated.Sum(Function(choice) CLng(choice.Rule.MountPoints) * choice.Quantity)
-        If mountPoints > chassis.Body.GetValueOrDefault() Then Throw New ArgumentException("Weapon mounts exceed the vehicle's Body-based hardpoint and firmpoint limit.")
+        If mountPoints + validated.Where(Function(choice) choice.Rule.Id = "naval-weapons-control").Sum(Function(choice) CLng(choice.Quantity) * 2) > VehicleScale.MountBudget(chassis) Then Throw New ArgumentException("Weapon mounts exceed the vehicle's Body-based hardpoint and firmpoint limit.")
         Dim fixedAndTurretCount = validated.Where(Function(choice) choice.Rule.Id.Contains("fixed-") OrElse choice.Rule.Id.Contains("turret")).
             Sum(Function(choice) CLng(choice.Quantity))
         If seen.Contains("gunnery-recoil-adjusters") OrElse seen.Contains("weapon-gyro-stabilization") Then
@@ -851,6 +879,18 @@ Public Module ModificationCatalog
             Dim customization = validated.Where(Function(choice) choice.Rule.Id.StartsWith("engine-customization-", StringComparison.Ordinal)).Sum(Function(choice) CLng(choice.Quantity))
             If masking > customization Then Throw New ArgumentException("Active thermal masking requires at least as many engine customization levels.")
         End If
+        If seen.Contains("personal-armor") Then
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            finalRatings.PersonalArmor = validated.Single(Function(choice) choice.Rule.Id = "personal-armor").Quantity
+        End If
+        If seen.Contains("ablative-armor") Then
+            If chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft" OrElse seen.Contains("chameleon-paint") Then Throw New ArgumentException("Ablative armor cannot be installed on aircraft or with chameleon paint.")
+            Dim levels = validated.Single(Function(choice) choice.Rule.Id = "ablative-armor").Quantity
+            Dim armor = If(finalRatings?.Armor, chassis.Armor.GetValueOrDefault())
+            If armor + 2D * levels > chassis.Body.GetValueOrDefault() Then Throw New ArgumentException("Ablative armor cannot raise total armor above Body.")
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            finalRatings.AblativeArmor = levels * 2
+        End If
         Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount, pilot, adaptation, deckLength)).ToList()
         If seen.Contains("gunnery-recoil-adjusters") Then
             Dim index = validated.FindIndex(Function(choice) choice.Rule.Id = "gunnery-recoil-adjusters")
@@ -934,7 +974,7 @@ Public Module ModificationCatalog
 
     Private Function Price(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant,
                            sensorRating As Integer, retransmissionUnits As Integer, armCount As Integer, pilot As Integer, adaptation As Integer, deckLength As Integer) As DesignAddition
-        Dim body = CDec(chassis.Body.GetValueOrDefault())
+        Dim body = VehicleScale.RuleBody(chassis)
         Dim item As New DesignAddition With {.Name = rule.Name, .CargoConsumed = rule.CargoPerUnit * quantity,
             .DesignPoints = rule.PointsPerUnit * quantity, .LoadConsumedKg = rule.LoadPerUnit * quantity}
         Select Case rule.Id
@@ -985,6 +1025,17 @@ Public Module ModificationCatalog
                 item.DirectCostNuyen = 125D * body * quantity
             Case "dual-purpose-tires"
                 item.DirectCostNuyen = 250D * body * quantity
+            Case "personal-armor"
+                item.DesignPoints = 5D * quantity
+                item.LoadConsumedKg = body * 2D * quantity
+            Case "ablative-armor"
+                item.LoadConsumedKg = body * 100D
+            Case "standard-tires"
+                item.DirectCostNuyen = body * 50D * quantity
+            Case "power-amplifier"
+                item.DesignPoints = 5D * quantity
+                item.CargoConsumed = Math.Floor(quantity * 0.25D)
+                item.LoadConsumedKg = quantity
             Case "vehicle-armor", "concealed-armor"
                 item.DesignPoints = 50D * quantity
                 item.LoadConsumedKg = 5D * body * body * quantity

@@ -13,11 +13,10 @@ Public NotInheritable Class DesignUpgrades
     Public Property DepthSteps As Integer
 
     Friend Function Apply(chassis As StockChassis, plant As StockPowerPlant, design As VehicleDesign,
-                          cargoOverride As Decimal?, loadOverride As Decimal?) As UpgradedRatings
+                          cargoOverride As Decimal?, loadOverride As Decimal?, Optional underwater As Boolean = False) As UpgradedRatings
         Dim steps = {Speed, SecondarySpeed, Acceleration, Handling, OnRoadHandling, OffRoadHandling, CargoSteps, LoadSteps, Signature, EconomySteps, FuelSteps, DepthSteps}
         If steps.Any(Function(value) value < 0) Then Throw New ArgumentException("Upgrade steps cannot be negative.")
-        If steps.All(Function(value) value = 0) Then Return Nothing
-        If chassis.Hull.HasValue AndAlso LoadSteps > 0 Then Throw New ArgumentException("Use manual entries for Hull-rated load increases.")
+        If steps.All(Function(value) value = 0) AndAlso Not underwater Then Return Nothing
         If design.Additions Is Nothing Then Throw New ArgumentException("Additions must be an array.")
         If (CargoSteps > 0 AndAlso cargoOverride.HasValue) OrElse (LoadSteps > 0 AndAlso loadOverride.HasValue) Then
             Throw New ArgumentException("Clear the matching capacity override before applying an automatic cargo or load upgrade.")
@@ -44,15 +43,22 @@ Public NotInheritable Class DesignUpgrades
         End If
 
         design.CargoCapacity += CargoSteps * 0.2D
-        design.LoadCapacityKg += LoadSteps * If(chassis.Body.GetValueOrDefault() = 0, 1D, 10D)
+        design.LoadCapacityKg += LoadSteps * If(Not chassis.Hull.HasValue AndAlso chassis.Body.GetValueOrDefault() = 0, 1D, 10D)
         Dim signatureLevels = CDec(Signature)
         Dim squared = signatureLevels * signatureLevels
         Dim points = 2D * (CDec(Speed) + SecondarySpeed) + 25D * (CDec(Acceleration) + Handling + OnRoadHandling + OffRoadHandling) +
                      CargoSteps + LoadSteps + 5D * EconomySteps + 200D * squared * squared
         Dim cargoUsed As Decimal
         Dim loadUsed As Decimal
+        Dim startingDepth = chassis.StartingDepth
+        Dim maximumDepth = chassis.MaximumDepth
+        If underwater AndAlso Not startingDepth.HasValue Then
+            startingDepth = (chassis.Body.GetValueOrDefault() * 10 + 100) * If(chassis.IsDrone, 3, 1)
+            maximumDepth = startingDepth * 2
+        End If
+        If startingDepth.HasValue Then ratings.Depth = startingDepth
         If DepthSteps > 0 Then
-            ratings.Depth = Increase(chassis.StartingDepth, chassis.MaximumDepth, 10 * DepthSteps, "Depth")
+            ratings.Depth = Increase(startingDepth, maximumDepth, 10 * DepthSteps, "Depth")
             points += 2D * DepthSteps
             Dim size = CDec(If(chassis.Hull, chassis.Body).GetValueOrDefault())
             Dim hullFactor = If(chassis.Hull.HasValue, 100D * size * size, 1D)
@@ -62,8 +68,13 @@ Public NotInheritable Class DesignUpgrades
         If FuelSteps > 0 Then
             Dim fuel = FuelExpansionRule.ForPlant(chassis, plant)
             If fuel Is Nothing Then Throw New ArgumentException("Fuel expansion is unavailable for this power plant and unit.")
-            ratings.FuelCapacity = fuel.StartingCapacity + fuel.Amount * FuelSteps
-            ratings.FuelUnit = fuel.Unit
+            If fuel.SeparateCapacity Then
+                ratings.AdditionalFuelCapacity = fuel.Amount * FuelSteps
+                ratings.AdditionalFuelUnit = fuel.Unit
+            Else
+                ratings.FuelCapacity = fuel.StartingCapacity + fuel.Amount * FuelSteps
+                ratings.FuelUnit = fuel.Unit
+            End If
             points += fuel.Points * FuelSteps
             cargoUsed += fuel.Cargo * FuelSteps
             loadUsed += fuel.Load * FuelSteps
@@ -110,6 +121,8 @@ Public NotInheritable Class UpgradedRatings
     Public Property Economy As Decimal?
     Public Property EconomyUnit As String
     Public Property Depth As Integer?
+    Public Property AdditionalFuelCapacity As Decimal?
+    Public Property AdditionalFuelUnit As String
     Public Property FuelCapacity As Decimal?
     Public Property FuelUnit As String
     Public Property TakeoffLandingDistanceMultiplier As Decimal?

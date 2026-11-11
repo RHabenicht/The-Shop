@@ -7,7 +7,7 @@ Friend NotInheritable Class RetrofitQuoteDialog
 
     Public ReadOnly Property Selection As ModificationSelection
 
-    Public Sub New(chassis As StockChassis, plant As StockPowerPlant, totals As DesignTotals)
+    Public Sub New(chassis As StockChassis, plant As StockPowerPlant, totals As DesignTotals, Optional context As IReadOnlyList(Of ModificationSelection) = Nothing)
         Text = "Retrofit parts quote"
         StartPosition = FormStartPosition.CenterParent
         AutoSize = True
@@ -49,7 +49,7 @@ Friend NotInheritable Class RetrofitQuoteDialog
                                         output.Text = "No catalog retrofits are available for this vehicle."
                                         Return
                                     End If
-                                    Dim result = RetrofitCatalog.Quote(rule, CInt(quantity.Value), chassis, plant, If(customIndex.Checked, CType(streetIndex.Value, Decimal?), Nothing))
+                                    Dim result = RetrofitCatalog.Quote(rule, CInt(quantity.Value), chassis, plant, If(customIndex.Checked, CType(streetIndex.Value, Decimal?), Nothing), totals.BaseCostNuyen, context)
                                     Dim cargo = totals.CargoRemaining - result.CargoConsumed
                                     Dim load = totals.LoadRemainingKg - result.LoadConsumedKg
                                     Dim streetCost = If(result.StreetPartsCostNuyen.HasValue,
@@ -84,7 +84,7 @@ Friend NotInheritable Class RetrofitQuoteDialog
                     updating = True
                     Try
                         quantity.Minimum = 1D
-                        quantity.Maximum = ModificationCatalog.MaximumQuantity(rule, chassis)
+                        quantity.Maximum = RetrofitCatalog.MaximumQuantity(rule, chassis)
                         quantity.Minimum = If(rule.Id = "improved-anti-theft-security", 3D, If(rule.Id = "advanced-drone-pilot", 2D, 1D))
                         quantity.Enabled = quantity.Maximum > quantity.Minimum
                         quantityLabel.Text = If(rule.QuantityLabel.Length = 0, "Quantity", rule.QuantityLabel)

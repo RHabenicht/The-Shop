@@ -90,11 +90,14 @@ Public Module VehicleSheet
         Dim fuel = If(modified?.FuelCapacity, If(up?.FuelCapacity, If(plant.FuelLiters, If(plant.FuelBars, If(plant.BatteryPowerFactors, If(plant.FuelCellPowerFactors, plant.RocketPowerFactors))))))
         Dim fuelUnit = If(modified?.FuelUnit, If(up?.FuelUnit, If(plant.FuelLiters.HasValue, "L", If(plant.FuelBars.HasValue, "bars", "PF"))))
         If fuel.HasValue Then Row(page, "Fuel capacity", Number(fuel) & " " & fuelUnit)
+        If up?.AdditionalFuelCapacity.HasValue Then Row(page, "Additional fuel storage", $"{Number(up.AdditionalFuelCapacity)} {up.AdditionalFuelUnit}; source tables use different units, so capacities are retained separately without an assumed conversion.")
         Dim economy = If(modified?.Economy, If(up?.Economy, If(plant.StartingEconomyKmPerLiter, If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar))))
         If economy.HasValue Then Row(page, "Economy", Number(economy) & " " & plant.EconomyUnit)
         If If(modified?.TakeoffLandingProfile, chassis.TakeoffLandingProfile) IsNot Nothing Then Row(page, "Takeoff / landing", If(modified?.TakeoffLandingProfile, chassis.TakeoffLandingProfile))
         If modified?.SetupBreakdownMinutes.HasValue Then Row(page, "Setup/breakdown time (minutes)", Number(modified.SetupBreakdownMinutes))
         If modified?.StructuralAgility.HasValue Then Row(page, "Structural Agility", Number(modified.StructuralAgility))
+        If modified?.PersonalArmor.HasValue Then Row(page, "Personal ballistic armor", Number(modified.PersonalArmor))
+        If modified?.AblativeArmor.HasValue Then Row(page, "Ablative armor bonus (not hardened)", Number(modified.AblativeArmor))
         If up?.TakeoffLandingDistanceMultiplier.HasValue Then Row(page, "Takeoff / landing distance multiplier", Number(up.TakeoffLandingDistanceMultiplier))
         page.Append("</tbody></table><h2>Cost and availability</h2><table><tbody>")
         Row(page, "Design Points", Number(totals.DesignPoints))
@@ -137,6 +140,18 @@ Public Module VehicleSheet
             Row(page, "Installed retrofit street parts total", If(result.RetrofitPartsCostNuyen.HasValue,
                 "¥" & Number(result.RetrofitPartsCostNuyen), "Pending GM review (unlisted Street Index)"))
         End If
+        If design.Payload IsNot Nothing Then
+            For Each item In design.Payload
+                Row(page, item.Name & " (payload)", $"{item.Quantity}; {item.UnitWeightKg * item.Quantity} kg; {item.UnitCargoCf * item.Quantity} CF; list ¥{item.UnitCostNuyen * item.Quantity:N2}")
+                If Not String.IsNullOrWhiteSpace(item.WeaponClass) Then Row(page, $"{item.MountId} #{item.MountNumber}", $"{item.WeaponClass}; {item.Direction}; {VehiclePayload.Arc(item.MountId)}")
+            Next
+        End If
+        If design.EquipmentSettings IsNot Nothing Then
+            For Each setting In design.EquipmentSettings
+                Row(page, setting.Component & " (individual)", $"{setting.Target} #{setting.Instance}; rating {setting.Rating}")
+            Next
+        End If
+        If result.ConfiguredRetrofitListCost > 0D Then Row(page, "Individual equipment retrofit parts", $"List ¥{result.ConfiguredRetrofitListCost:N2}; street ¥{result.ConfiguredRetrofitStreetCost:N2}")
         For Each item In design.Additions
             Row(page, item.Name, $"{Number(item.DesignPoints)} DP; ¥{Number(item.DirectCostNuyen)} direct; {Number(item.CargoConsumed)} CF; {Number(item.LoadConsumedKg)} kg")
         Next

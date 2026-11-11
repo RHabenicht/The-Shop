@@ -29,6 +29,8 @@ Public NotInheritable Class DesignForm
     Private ReadOnly totals As New Label With {.Name = "totals", .AutoSize = True, .Dock = DockStyle.Top, .Padding = New Padding(0, 4, 0, 4)}
     Private ReadOnly availabilityBox As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
     Private ReadOnly specialtyBox As New ComboBox With {.Name = "specialtyClass", .DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
+    Private payload As List(Of VehiclePayloadItem)
+    Private equipmentSettings As List(Of EquipmentSetting)
     Private upgrades As DesignUpgrades
     Private catalogModifications As List(Of ModificationSelection)
     Private installedRetrofits As List(Of ModificationSelection)
@@ -99,6 +101,7 @@ Public NotInheritable Class DesignForm
         AddAction(actions, "Design upgrades…", AddressOf EditUpgrades)
         AddAction(actions, "Catalog mods…", AddressOf EditModifications)
         AddAction(actions, "Auxiliary engine…", AddressOf EditAuxiliaryEngine)
+        AddAction(actions, "Payload / equipment…", AddressOf EditPayload)
         AddAction(actions, "Retrofit quote…", AddressOf ShowRetrofitQuote)
         AddAction(actions, "Installed retrofits…", AddressOf EditInstalledRetrofits)
         AddAction(actions, "Open design…", AddressOf OpenDesign)
@@ -173,6 +176,7 @@ Public NotInheritable Class DesignForm
         Dim design As New StockDesign With {
             .ChassisId = DirectCast(chassisBox.SelectedItem, StockChassis).Id,
             .PowerPlantId = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant).Id,
+            .Payload = payload, .EquipmentSettings = equipmentSettings,
             .StreetIndex = ReadOptional(streetIndex.Text, "Street Index"),
             .SpecialtyClass = CType(specialtyBox.SelectedItem, VehicleSpecialtyClass),
             .Name = If(String.IsNullOrWhiteSpace(vehicleName.Text), Nothing, vehicleName.Text),
@@ -221,11 +225,7 @@ Public NotInheritable Class DesignForm
     Private Sub EditUpgrades(sender As Object, e As EventArgs)
         Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
         Dim plant = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant)
-        If chassis.Hull.HasValue AndAlso upgrades Is Nothing Then
-            ShowError(New ArgumentException("Use manual entries for Hull-rated vehicle options."))
-            Return
-        End If
-        Using dialog As New UpgradeDialog(upgrades, chassis, plant)
+        Using dialog As New UpgradeDialog(upgrades, chassis, plant, DesignEnhancements.Has(catalogModifications, "engine-water-seal") AndAlso (chassis.IsDrone OrElse DesignEnhancements.Has(catalogModifications, "cabin-water-seal")))
             If dialog.ShowDialog(Me) = DialogResult.OK Then
                 upgrades = dialog.Selection
                 ClearTotals(sender, e)
@@ -248,6 +248,9 @@ Public NotInheritable Class DesignForm
         Dim totalsValue = result.Totals
         totals.Text = $"{totalsValue.DesignPoints:N} Design Points    Base ¥{totalsValue.BaseCostNuyen:N}    Street ¥{totalsValue.StreetCostNuyen:N}" &
             Environment.NewLine & $"Street Index {result.EffectiveStreetIndex}    Remaining cargo {totalsValue.CargoRemaining} CF    Remaining load {totalsValue.LoadRemainingKg} kg"
+        If result.UpgradedRatings?.AdditionalFuelCapacity.HasValue Then totals.Text &= Environment.NewLine & $"Additional fuel storage {result.UpgradedRatings.AdditionalFuelCapacity} {result.UpgradedRatings.AdditionalFuelUnit}; original tank units retained."
+        If result.ModifiedRatings?.PersonalArmor.HasValue Then totals.Text &= Environment.NewLine & $"Personal ballistic armor {result.ModifiedRatings.PersonalArmor}"
+        If result.ModifiedRatings?.AblativeArmor.HasValue Then totals.Text &= Environment.NewLine & $"Ablative armor bonus {result.ModifiedRatings.AblativeArmor} (not hardened)"
         If result.AppliedModifications IsNot Nothing Then
             totals.Text &= Environment.NewLine & $"{result.AppliedModifications.Count} catalog modifications applied."
         End If
@@ -338,6 +341,21 @@ Public NotInheritable Class DesignForm
         End Try
     End Sub
 
+    Private Sub EditPayload(sender As Object, e As EventArgs)
+        Using dialog As New PayloadDialog(payload, equipmentSettings)
+            If dialog.ShowDialog(Me) = DialogResult.OK Then
+                Try
+                    Dim design = ReadDesign()
+                    design.Payload = dialog.Payload
+                    design.EquipmentSettings = dialog.Settings
+                    DisplayDesign(design)
+                Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
+                    ShowError(ex)
+                End Try
+            End If
+        End Using
+    End Sub
+
     Private Sub EditAuxiliaryEngine(sender As Object, e As EventArgs)
         Try
             Using dialog As New AuxiliaryEngineDialog(auxiliaryPowerPlantId, DirectCast(chassisBox.SelectedItem, StockChassis))
@@ -354,9 +372,11 @@ Public NotInheritable Class DesignForm
 
     Private Sub ShowRetrofitQuote(sender As Object, e As EventArgs)
         Try
-            Dim totals = ReadDesign().Calculate(catalog).Totals
+            Dim quoteDesign = ReadDesign()
+            Dim totals = quoteDesign.Calculate(catalog).Totals
+            Dim quoteContext = If(quoteDesign.CatalogModifications, New List(Of ModificationSelection)).Concat(If(quoteDesign.InstalledRetrofits, New List(Of ModificationSelection))).ToArray()
             Using dialog As New RetrofitQuoteDialog(DirectCast(chassisBox.SelectedItem, StockChassis),
-                                                     DirectCast(powerPlantBox.SelectedItem, StockPowerPlant), totals)
+                                                     DirectCast(powerPlantBox.SelectedItem, StockPowerPlant), totals, quoteContext)
                 If dialog.ShowDialog(Me) = DialogResult.OK Then
                     Dim design = ReadDesign()
                     design.InstalledRetrofits = New List(Of ModificationSelection)(If(installedRetrofits, New List(Of ModificationSelection)))
@@ -443,6 +463,8 @@ Public NotInheritable Class DesignForm
         powerPlantBox.SelectedItem = chassis.PowerPlants.Single(Function(plant) plant.Id = result.PowerPlantId)
         streetIndex.Text = design.StreetIndex?.ToString(CultureInfo.CurrentCulture)
         specialtyBox.SelectedItem = design.SpecialtyClass
+        payload = design.Payload
+        equipmentSettings = design.EquipmentSettings
         vehicleName.Text = design.Name
         markup.Text = design.MarkupAdjustment.ToString(CultureInfo.CurrentCulture)
         cargo.Text = design.CargoCapacity?.ToString(CultureInfo.CurrentCulture)

@@ -223,8 +223,7 @@ Public Module LegacyDesignConversion
             Case "Turret"
                 Dim size = mapping.Id.Split("-"c)(1)
                 Dim variants = all.Where(Function(entry) entry.Mapping.Kind = "TurretVariant" AndAlso entry.Mapping.Id = size).ToArray()
-                If variants.Length > 1 Then Throw New ArgumentException("Combined pop-up and anti-aircraft turret variants need a combined revised specification.")
-                AddSelection(design, mapping.Id & If(variants.Length = 1, "-" & variants(0).Mapping.TurretStyle, ""), quantity)
+                AddSelection(design, mapping.Id & If(variants.Length > 1, "-anti-aircraft-pop-up", If(variants.Length = 1, "-" & variants(0).Mapping.TurretStyle, "")), quantity)
                 Return
             Case "TurretVariant"
                 If Not all.Any(Function(entry) entry.Mapping.Kind = "Turret" AndAlso entry.Mapping.Id.Contains("-" & mapping.Id & "-")) Then Throw New ArgumentException("A turret variant has no saved base turret.")

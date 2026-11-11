@@ -7,7 +7,7 @@ Friend NotInheritable Class UpgradeDialog
 
     Public ReadOnly Property Selection As New DesignUpgrades
 
-    Public Sub New(current As DesignUpgrades, chassis As StockChassis, plant As StockPowerPlant)
+    Public Sub New(current As DesignUpgrades, chassis As StockChassis, plant As StockPowerPlant, Optional underwater As Boolean = False)
         Text = "Design upgrades"
         StartPosition = FormStartPosition.CenterParent
         AutoScaleMode = AutoScaleMode.Dpi
@@ -31,18 +31,18 @@ Friend NotInheritable Class UpgradeDialog
         AddSteps(table, "On-road Handling −1 (25 DP)", current.OnRoadHandling, Sub(n) Selection.OnRoadHandling = n, chassis.OnRoadHandling.HasValue)
         AddSteps(table, "Off-road Handling −1 (25 DP)", current.OffRoadHandling, Sub(n) Selection.OffRoadHandling = n, chassis.OffRoadHandling.HasValue)
         AddSteps(table, "Cargo +0.2 CF (1 DP)", current.CargoSteps, Sub(n) Selection.CargoSteps = n, chassis.MaximumCargo > chassis.StartingCargo)
-        Dim kg = If(chassis.Body.GetValueOrDefault() = 0, 1, 10)
-        AddSteps(table, $"Load +{kg} kg (1 DP)", current.LoadSteps, Sub(n) Selection.LoadSteps = n, Not chassis.Hull.HasValue AndAlso plant.MaximumLoadKg > plant.StartingLoadKg)
+        Dim kg = If(Not chassis.Hull.HasValue AndAlso chassis.Body.GetValueOrDefault() = 0, 1, 10)
+        AddSteps(table, $"Load +{kg} kg (1 DP)", current.LoadSteps, Sub(n) Selection.LoadSteps = n, plant.MaximumLoadKg > plant.StartingLoadKg)
         AddSteps(table, "Signature +1 (200 × levels⁴ DP, GM limit)", current.Signature, Sub(n) Selection.Signature = n, plant.Signature.HasValue)
 
         AddSteps(table, "Economy +5% of starting rating (5 DP)", current.EconomySteps, Sub(n) Selection.EconomySteps = n,
                  plant.EconomyUnit IsNot Nothing)
 
         Dim fuel = FuelExpansionRule.ForPlant(chassis, plant)
-        Dim fuelLabel = If(fuel Is Nothing, "Fuel capacity", $"Fuel +{fuel?.Amount} {fuel?.Unit} ({fuel?.Points} DP)")
+        Dim fuelLabel = If(fuel Is Nothing, "Fuel capacity", $"{If(fuel.SeparateCapacity, "Additional fuel storage", "Fuel")} +{fuel?.Amount} {fuel?.Unit} ({fuel?.Points} DP)")
         AddSteps(table, fuelLabel, current.FuelSteps, Sub(n) Selection.FuelSteps = n, fuel IsNot Nothing)
         AddSteps(table, "Depth +10 m (2 DP plus load)", current.DepthSteps, Sub(n) Selection.DepthSteps = n,
-                 chassis.StartingDepth.HasValue)
+                 chassis.StartingDepth.HasValue OrElse underwater)
 
         Dim buttons As New FlowLayoutPanel With {.AutoSize = True, .Dock = DockStyle.Fill}
         Dim apply As New Button With {.Text = "Apply", .DialogResult = DialogResult.OK}

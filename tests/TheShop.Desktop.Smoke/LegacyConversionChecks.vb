@@ -34,18 +34,27 @@ Friend Module LegacyConversionChecks
               engineResult.OperatingModes.Single(Function(item) item.Name = "Thermal masking venting").Signature.GetValueOrDefault() = 2 AndAlso
               engineResult.OperatingModes.Single(Function(item) item.Name = "Active thermal masking level 2").Notes.Contains("50 minutes"),
               "Thermal masking must use revised customization cost and report active and venting modes.")
+        Dim obsoleteBudget = Convert(folder, catalog, "Van", "diesel", "Rigger2,99,Engine Customization", "Rigger2,2,Active Thermal Masking", "Rigger2,1,Engine Customization: Speed", "Rigger2,1,Engine Customization: Acceleration")
+        Check(obsoleteBudget.Calculate(catalog).Totals.BaseCostNuyen = engineResult.Totals.BaseCostNuyen AndAlso
+              obsoleteBudget.CatalogModifications.Count = 3 AndAlso obsoleteBudget.LegacyImportNotes.Any(Function(note) note.StartsWith("Removed from active design: Engine Customization", StringComparison.Ordinal)),
+              "The superseded aggregate engine budget must not change prices or block independent revised customizations.")
+        Dim obsoleteOnly = Convert(folder, catalog, "Van", "diesel", "Rigger2,99,Engine Customization", "Rigger2,0,Convertible Top", "Quality,3,Master Workmanship")
+        Check(obsoleteOnly.CatalogModifications Is Nothing AndAlso obsoleteOnly.Additions.Count = 0 AndAlso obsoleteOnly.Calculate(catalog).Totals.BaseCostNuyen = 9500D AndAlso
+              obsoleteOnly.LegacyImportNotes.All(Function(note) note.StartsWith("Removed from active design:", StringComparison.Ordinal)),
+              "Obsolete and unsupported options must not survive as active calculations or manual fallback additions.")
         Dim turret = Convert(folder, catalog, "Van", "diesel", "Rigger2,0,Turrets: Pop-Up (micro)", "Rigger2,1,""Turrets, Remote (micro)""", "Rigger2,0,Roll Bars")
         Check(turret.CatalogModifications.Any(Function(item) item.Id = "remote-micro-turret-pop-up") AndAlso
               Not turret.CatalogModifications.Any(Function(item) item.Id = "remote-micro-turret"),
               "Turret variants must replace the base turret instead of charging for both.")
         Dim recoil = Convert(folder, catalog, "Van", "diesel", "Rigger2,4,Gunnery Recoil Adjusters (fixed firm)", "Rigger2,2,""Fixed mount, ext Firmpoint""")
-        Check(recoil.Additions.Single().DesignPoints = 80D, "Targeted recoil adjusters must retain mount count and revised per-level pricing.")
+        Check(recoil.EquipmentSettings.Count = 2 AndAlso recoil.Calculate(catalog).Totals.DesignPoints = 195D, "Targeted recoil adjusters must retain mount count and revised per-level pricing.")
         Dim arms = Convert(folder, catalog, "Van", "diesel", "Rigger2,1,Mechanical Arm #1", "Rigger2,0,Mechanical Arm #2")
-        Check(arms.CatalogModifications.Single(Function(item) item.Id = "mechanical-arm").Quantity = 2 AndAlso arms.Additions.Count = 1 AndAlso
-              arms.Additions.Single().Name.Contains("Strength 17"), "Separate arms must retain their different enhancement levels.")
+        Check(arms.CatalogModifications.Single(Function(item) item.Id = "mechanical-arm").Quantity = 2 AndAlso arms.EquipmentSettings.Count = 1 AndAlso
+              arms.EquipmentSettings.Single().Rating = 1 AndAlso arms.Calculate(catalog).Totals.DesignPoints = 1135D, "Separate arms must retain their different enhancement levels.")
         Dim mixed = Convert(folder, catalog, "Van", "diesel", "Rigger2,999,Bench Seats", "Rigger2,2,Nitrous Oxide Injectors", "Quality,1,Lemon")
         Check(mixed.CatalogModifications.Count = 1 AndAlso mixed.CatalogModifications.Single().Id = "nitrous" AndAlso
-              mixed.LegacyImportNotes.Where(Function(note) note.StartsWith("Review", StringComparison.Ordinal)).Count() = 2,
+              mixed.LegacyImportNotes.Where(Function(note) note.StartsWith("Review", StringComparison.Ordinal)).Count() = 1 AndAlso
+              mixed.LegacyImportNotes.Any(Function(note) note.StartsWith("Removed from active design: Lemon", StringComparison.Ordinal)),
               "Invalid revised equipment and homebrew must be reported without losing independent valid options.")
         Dim ambiguous = Convert(folder, catalog, "Van", "diesel", "Rigger2,2,Medical-Treatment Gear", "Rigger2,8,Drone Rack")
         Check(ambiguous.CatalogModifications Is Nothing AndAlso ambiguous.LegacyImportNotes.Count = 2,
@@ -55,8 +64,13 @@ Friend Module LegacyConversionChecks
         Dim matched = LegacyDesignConversion.FindComponents(componentReference, catalog)
         Check(matched.Chassis.Id = "subcompact" AndAlso matched.Plant.Id = "electric-battery", "Old component aliases must resolve to revised components instead of the editor's current selection.")
         Dim amplifier = Convert(folder, catalog, "Van", "diesel", "Rigger2,4,Power Amplifiers", "Rigger2,0,Convertible Top")
-        Check(amplifier.Additions.Sum(Function(item) item.DesignPoints) = 20D AndAlso amplifier.Additions.Sum(Function(item) item.CargoConsumed) = 1D AndAlso
-              amplifier.Additions.Sum(Function(item) item.LoadConsumedKg) = 4D, "Generic amplifiers must use the revised table without assuming a retransmission unit.")
+        Check(amplifier.Additions.Count = 0 AndAlso amplifier.Calculate(catalog).AppliedModifications.Single().DesignPoints = 20D AndAlso amplifier.Calculate(catalog).AppliedModifications.Single().CargoConsumed = 1D AndAlso
+              amplifier.Calculate(catalog).AppliedModifications.Single().LoadConsumedKg = 4D, "Generic amplifiers must use the revised table without assuming a retransmission unit.")
+        Dim removedPricesPath = Path.Combine(folder, "obsolete-prices.shp")
+        File.WriteAllLines(removedPricesPath, {"Shop v1.40", "Obsolete prices", "Rigger2,Van", "Rigger2,Diesel", "Bench", "Open", "0,0,0.5,0,4"})
+        Dim removedPrices = LegacyDesignConversion.CreateDesign(LegacyVehicleReader.Read(removedPricesPath), "van", "diesel", catalog)
+        Check(removedPrices.MarkupAdjustment = 0D AndAlso Not removedPrices.StreetIndex.HasValue AndAlso removedPrices.Calculate(catalog).Totals.BaseCostNuyen = 9500D,
+              "Superseded unusual and special price modifiers must not enter revised vehicle pricing.")
         Dim destination = Path.Combine(folder, "converted-round-trip.json")
         File.WriteAllText(destination, JsonSerializer.Serialize(engine))
         Dim reopened = JsonSerializer.Deserialize(Of StockDesign)(File.ReadAllText(destination))

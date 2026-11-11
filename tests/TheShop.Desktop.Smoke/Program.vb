@@ -686,7 +686,7 @@ Module Program
                         converted.LegacyReference.Value.GetProperty("Modifications").GetArrayLength() = 3,
                         "Recognized legacy options should be repriced while unsupported source entries remain available for review.")
                 VehicleSheet.Write(sheetPath, converted, sheetCatalog)
-                Require(File.ReadAllText(sheetPath).Contains("Review manually: Unknown option"),
+                Require(File.ReadAllText(sheetPath).Contains("Removed from active design: Unknown option"),
                         "Legacy conversion review notes should appear on the vehicle sheet.")
                 LegacyConversionChecks.Run(folder.FullName, sheetCatalog)
                 CompletionChecks.Run(folder.FullName, sheetCatalog)

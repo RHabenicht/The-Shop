@@ -80,7 +80,7 @@ Public Module LegacyDesignConversion
             End If
             If markups.GetProperty("Luxury").GetDouble() > 0 Then baseDesign.AvailabilityClass = VehicleAvailabilityClass.Luxury
             If markups.GetProperty("Unusual").GetDouble() <> 0 OrElse markups.GetProperty("Special").GetDouble() <> 0 Then
-                baseDesign.LegacyImportNotes.Add("Review manually: Old unusual/special price modifiers were not carried into revised pricing.")
+                baseDesign.LegacyImportNotes.Add("Removed from active design: Obsolete unusual/special price modifiers. Revised pricing is recalculated without them.")
             End If
         End If
         Dim entries As New List(Of Entry)
@@ -93,10 +93,14 @@ Public Module LegacyDesignConversion
                     .Name = name, .Id = rule.Id, .Kind = "Catalog", .Flag = rule.Maximum = 1 AndAlso rule.QuantityLabel = ""}
             End If
             Dim level = item.GetProperty("Level").GetInt32()
-            If mapping Is Nothing OrElse level < 0 Then
-                baseDesign.LegacyImportNotes.Add($"Review manually: {name} (legacy level {level}). No unambiguous revised conversion.")
-            ElseIf mapping.Kind = "Unresolved" Then
-                baseDesign.LegacyImportNotes.Add($"Review manually: {name}. {mapping.Reason}")
+            If mapping Is Nothing Then
+                baseDesign.LegacyImportNotes.Add($"Removed from active design: {name} (source level {level}). No Rigger 3 Revised equivalent.")
+            ElseIf mapping.Kind = "Removed" Then
+                baseDesign.LegacyImportNotes.Add($"Removed from active design: {name}. {mapping.Reason}")
+            ElseIf level < 0 Then
+                baseDesign.LegacyImportNotes.Add($"Review source specification: {name} has an invalid source level {level}; no modification was applied.")
+            ElseIf mapping.Kind = "NeedsSpecification" Then
+                baseDesign.LegacyImportNotes.Add($"Revised replacement needs specification: {name}. {mapping.Reason} The old rule is not applied.")
             Else
                 entries.Add(New Entry With {.Name = name, .Level = level, .Mapping = mapping})
             End If
@@ -167,7 +171,7 @@ Public Module LegacyDesignConversion
         If item.Mapping.Kind.StartsWith("Turret", StringComparison.Ordinal) OrElse item.Mapping.Kind = "Smartlink" OrElse item.Mapping.Kind = "Recoil" OrElse
            id.Contains("mount") OrElse id = "roll-bar" OrElse id = "weapon-gyro-stabilization" Then Return "weapons"
         If id.StartsWith("drive-by-wire", StringComparison.Ordinal) OrElse id = "structural-agility" Then Return "drive-by-wire"
-        If id.StartsWith("engine-customization", StringComparison.Ordinal) OrElse id = "active-thermal-masking" OrElse item.Mapping.Kind = "EngineBudget" Then Return "engine"
+        If id.StartsWith("engine-customization", StringComparison.Ordinal) OrElse id = "active-thermal-masking" Then Return "engine"
         If id = "rigger-adaptation" OrElse id = "datajack-port" Then Return "rigger-interface"
         If id.Contains("seat") Then Return "seating"
         If id.Contains("seal") OrElse id = "cabin-overpressure" OrElse id = "life-support" Then Return "seals"
@@ -216,10 +220,6 @@ Public Module LegacyDesignConversion
                 If item.Level < 1 OrElse item.Level > 2 Then Throw New ArgumentException("Smartlink grade must be 1 or 2.")
                 AddSelection(design, "smartlink-integration-" & item.Level, 1)
                 Return
-            Case "EngineBudget"
-                Dim allocated = all.Where(Function(entry) entry.Mapping.Id.StartsWith("engine-customization-", StringComparison.Ordinal)).Sum(Function(entry) CLng(entry.Level))
-                If allocated <> item.Level Then Throw New ArgumentException("The old engine customization total does not match its saved Speed, Acceleration and Load allocation.")
-                Return
             Case "Turret"
                 Dim size = mapping.Id.Split("-"c)(1)
                 Dim variants = all.Where(Function(entry) entry.Mapping.Kind = "TurretVariant" AndAlso entry.Mapping.Id = size).ToArray()
@@ -229,24 +229,18 @@ Public Module LegacyDesignConversion
                 If Not all.Any(Function(entry) entry.Mapping.Kind = "Turret" AndAlso entry.Mapping.Id.Contains("-" & mapping.Id & "-")) Then Throw New ArgumentException("A turret variant has no saved base turret.")
                 Return
             Case "Arm"
-                Dim body = chassis.Body.GetValueOrDefault()
-                If item.Level > ModificationCatalog.MaximumQuantity(ModificationCatalog.Rules.Single(Function(rule) rule.Id = "mechanical-arm-strength"), chassis) Then Throw New ArgumentException("The old arm enhancement exceeds the revised Strength limit.")
                 AddSelection(design, "mechanical-arm", 1)
-                If item.Level > 0 Then design.Additions.Add(New DesignAddition With {
-                    .Name = item.Name & $" — revised Strength {body * body + item.Level}",
-                    .DesignPoints = If(item.Level <= 3, 60D, 75D) * body * item.Level, .LoadConsumedKg = 10D * item.Level})
+                If item.Level > 0 Then
+                    If design.EquipmentSettings Is Nothing Then design.EquipmentSettings = New List(Of EquipmentSetting)
+                    Dim armNumber = design.CatalogModifications.Single(Function(choice) choice.Id = "mechanical-arm").Quantity
+                    design.EquipmentSettings.Add(New EquipmentSetting With {.Component = "Arm strength", .Target = "mechanical-arm", .Instance = armNumber, .Rating = item.Level})
+                End If
                 Return
             Case "PowerAmplifier"
-                If quantity < 1 OrElse quantity > 10 Then Throw New ArgumentException("Power amplifier Flux must be between 1 and 10.")
-                design.Additions.Add(New DesignAddition With {
-                    .Name = $"Power amplifier — Flux +{quantity} (source transmitter unspecified)", .DesignPoints = 5D * quantity,
-                    .CargoConsumed = Math.Floor(quantity * 0.25D), .LoadConsumedKg = quantity})
-                Return
-            Case "Description"
-                design.Additions.Add(New DesignAddition With {.Name = "Convertible top (appearance; no added ratings)"})
+                AddSelection(design, "power-amplifier", quantity)
                 Return
             Case "StandardTires"
-                design.Additions.Add(New DesignAddition With {.Name = "Standard tires (revised purchase price)", .DirectCostNuyen = chassis.Body.GetValueOrDefault() * 50D * quantity})
+                AddSelection(design, "standard-tires", quantity)
                 Return
             Case "SpareTires"
                 Dim types = all.Where(Function(entry) {"performance-tires", "off-road-tires", "dual-purpose-tires"}.Contains(entry.Mapping.Id)).ToArray()
@@ -258,11 +252,15 @@ Public Module LegacyDesignConversion
                 Dim targets = all.Where(Function(entry) (target = "fixed firm" AndAlso entry.Mapping.Id.EndsWith("fixed-firmpoint", StringComparison.Ordinal)) OrElse
                     (target = "fixed hard" AndAlso entry.Mapping.Id.EndsWith("fixed-hardpoint", StringComparison.Ordinal)) OrElse
                     (target.EndsWith(" turret", StringComparison.Ordinal) AndAlso entry.Mapping.Kind = "Turret" AndAlso entry.Mapping.Id.Contains("-" & target.Split(" "c)(0) & "-"))).ToArray()
-                Dim maximum = If(target = "fixed firm" OrElse target = "micro turret", 4, If(target = "mini turret", 6, If(target = "fixed hard" OrElse target = "small turret", 9, 12)))
-                If quantity > maximum OrElse targets.Length = 0 Then Throw New ArgumentException("Recoil adjusters have no matching mount or exceed its revised limit.")
+                If targets.Length = 0 Then Throw New ArgumentException("Recoil adjusters have no matching revised mount.")
                 If all.Any(Function(entry) entry.Mapping.Id = "weapon-gyro-stabilization") Then Throw New ArgumentException("Recoil adjusters cannot be combined with weapon gyro-stabilization.")
-                Dim count = targets.Sum(Function(entry) CLng(entry.Level))
-                design.Additions.Add(New DesignAddition With {.Name = item.Name & $" — revised rating {quantity} on {count} mount(s)", .DesignPoints = 10D * quantity * count})
+                If design.EquipmentSettings Is Nothing Then design.EquipmentSettings = New List(Of EquipmentSetting)
+                For Each group In targets.GroupBy(Function(entry) entry.Mapping.Id, StringComparer.Ordinal)
+                    Dim count = group.Sum(Function(entry) CLng(entry.Level))
+                    For instance As Integer = 1 To CInt(count)
+                        design.EquipmentSettings.Add(New EquipmentSetting With {.Component = "Recoil", .Target = group.Key, .Instance = instance, .Rating = quantity})
+                    Next
+                Next
                 Return
         End Select
         If mapping.Id = "life-support" Then quantity = CInt(Math.Ceiling(item.Level / 10D))

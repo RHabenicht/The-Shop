@@ -21,7 +21,7 @@ Rigger 3 Revised supplies the rules and prices. Rigger 2 source records are conv
 | Accessories | Drop tanks, amphibious packages, security, crane/winch, drone racks, arms, clinics, seating, tires | 149–155 |
 | Retrofit quotes | 161 catalog entries; printed parts prices, Availability, SI and customization capacity; source and installation references | 122–155 |
 | Individual equipment | Different arm strengths, mount-specific recoil and amplifiers; design and retrofit pricing | 137, 147, 152 |
-| Old saves | All 128 standard source option names have a revised mapping or explicit source-data explanation; original evidence retained | Conversion uses the revised entries above |
+| Old saves | All 128 standard source names are classified for revised conversion, removal or missing replacement specifications; original evidence retained | Conversion uses the revised entries above |
 | Sheet export | Ratings, price, operating modes, payload, mounting, retrofit totals, references, import report and GM review | 113, 121 |
 
 ## Source limits and player data
@@ -34,7 +34,7 @@ Some engine tables and the fuel-enlargement table use incompatible units. Additi
 
 A named weapon, ammunition load, passenger, tool or electronic device requires its actual weight and purchase price. These are payload inputs; selecting a generic vehicle component does not identify a particular model. Physical mount/space costs already reserved by a catalog entry must not be entered a second time as payload cargo.
 
-The old medical-treatment record contains patient count but no revised clinic rating. The old drone-rack record contains storage space but no carried drone Body. Such incomplete records retain their original data and a conversion explanation. Revised components can be selected in the catalog once those actual specifications are known. Homebrew source formulas and old prices are never executed.
+The old medical-treatment record contains patient count but no revised clinic rating. The old drone-rack record contains storage space but no carried drone Body. Such incomplete records retain their original data and a conversion explanation. Revised components can be selected in the catalog once those actual specifications are known. Obsolete aggregate engine-budget checks, cosmetic flags and price modifiers are discarded. Homebrew or unknown options are removed from the active design. Arms, recoil, amplifiers and tires use the same current calculators as new designs; no copied pricing formula is retained in the importer. Source history never supplies executable rules or prices.
 
 ## Verification before packaging
 

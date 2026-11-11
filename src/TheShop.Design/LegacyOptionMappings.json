@@ -79,10 +79,10 @@
   },
   {
     "Name": "Medical-Treatment Gear",
-    "Kind": "Unresolved",
-    "Id": "",
+    "Kind": "NeedsSpecification",
+    "Id": "medical-clinic",
     "Flag": false,
-    "Reason": "The old record supplies patient count, not the Rigger 3 Revised clinic rating or medical layout."
+    "Reason": "Replaced by the revised Medical clinic. The source patient count does not specify its clinic rating."
   },
   {
     "Name": "Signature Improvement",
@@ -110,9 +110,10 @@
   },
   {
     "Name": "Engine Customization",
-    "Kind": "EngineBudget",
+    "Kind": "Removed",
     "Id": "",
-    "Flag": false
+    "Flag": false,
+    "Reason": "The obsolete aggregate engine budget is discarded. Revised Speed, Acceleration and Load customizations are applied independently."
   },
   {
     "Name": "Engine Customization: Speed",
@@ -673,9 +674,10 @@
   },
   {
     "Name": "Convertible Top",
-    "Kind": "Description",
+    "Kind": "Removed",
     "Id": "",
-    "Flag": false
+    "Flag": false,
+    "Reason": "The old convertible flag is not an active revised design option or calculation."
   },
   {
     "Name": "Crane",
@@ -685,10 +687,10 @@
   },
   {
     "Name": "Drone Rack",
-    "Kind": "Unresolved",
+    "Kind": "NeedsSpecification",
     "Id": "",
     "Flag": false,
-    "Reason": "The old record supplies rack space, not the carried drone Body needed by the revised rack table."
+    "Reason": "Use the revised Body-specific drone rack. The source storage volume does not identify the carried drone Body."
   },
   {
     "Name": "Floatation Packages (Aircraft)",

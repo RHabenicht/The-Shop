@@ -286,7 +286,7 @@ Public NotInheritable Class DesignForm
             Next
         End If
         If legacyImportNotes IsNot Nothing Then
-            totals.Text &= Environment.NewLine & $"Legacy import: {legacyImportNotes.Where(Function(note) note.StartsWith("Repriced", StringComparison.Ordinal)).Count()} repriced, {legacyImportNotes.Where(Function(note) note.StartsWith("Review", StringComparison.Ordinal)).Count()} require review."
+            totals.Text &= Environment.NewLine & $"Legacy import: {legacyImportNotes.Where(Function(note) note.StartsWith("Repriced", StringComparison.Ordinal)).Count()} repriced, {legacyImportNotes.Where(Function(note) note.StartsWith("Review", StringComparison.Ordinal) OrElse note.StartsWith("Revised replacement", StringComparison.Ordinal)).Count()} need source data or review, {legacyImportNotes.Where(Function(note) note.StartsWith("Removed", StringComparison.Ordinal)).Count()} obsolete/unsupported entries removed."
         End If
         Dim modified = result.ModifiedRatings
         If modified IsNot Nothing Then

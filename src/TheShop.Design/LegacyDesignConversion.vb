@@ -168,6 +168,7 @@ Public Module LegacyDesignConversion
            id.Contains("mount") OrElse id = "roll-bar" OrElse id = "weapon-gyro-stabilization" Then Return "weapons"
         If id.StartsWith("drive-by-wire", StringComparison.Ordinal) OrElse id = "structural-agility" Then Return "drive-by-wire"
         If id.StartsWith("engine-customization", StringComparison.Ordinal) OrElse id = "active-thermal-masking" OrElse item.Mapping.Kind = "EngineBudget" Then Return "engine"
+        If id = "rigger-adaptation" OrElse id = "datajack-port" Then Return "rigger-interface"
         If id.Contains("seat") Then Return "seating"
         If id.Contains("seal") OrElse id = "cabin-overpressure" OrElse id = "life-support" Then Return "seals"
         If id = "sensors" OrElse id = "remote-control-interface" OrElse id = "advanced-drone-pilot" OrElse id = "autonav" OrElse id = "motorbike-gyro" Then Return "remote-controls"
@@ -267,6 +268,8 @@ Public Module LegacyDesignConversion
         End Select
         If mapping.Id = "life-support" Then quantity = CInt(Math.Ceiling(item.Level / 10D))
         If mapping.Id = "improved-anti-theft-security" AndAlso quantity <= 2 Then Return 'Factory rating 2 is standard under the revised rules.
+        If mapping.Id = "autonav" AndAlso quantity <= chassis.Autonav.GetValueOrDefault() Then Return
+        If mapping.Id = "advanced-drone-pilot" AndAlso quantity <= Math.Max(1, chassis.Pilot.GetValueOrDefault()) Then Return
         If mapping.Id = "datajack-port" AndAlso all.Any(Function(entry) entry.Mapping.Id = "rigger-adaptation") Then Return
         If mapping.Id.StartsWith("living-amenities-", StringComparison.Ordinal) Then AddSelection(design, "living-amenities-people-space", quantity)
         AddSelection(design, mapping.Id, quantity)

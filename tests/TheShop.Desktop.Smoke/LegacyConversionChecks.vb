@@ -14,6 +14,9 @@ Friend Module LegacyConversionChecks
         Dim controls = Convert(folder, catalog, "Van", "diesel", "Rigger2,2,Remote Pilot Advanced Programming", "Rigger2,0,Remote-Control Interfaces", "Rigger2,2,Sensors")
         Check(controls.Calculate(catalog).ModifiedRatings.Pilot.GetValueOrDefault() = 2 AndAlso controls.Calculate(catalog).ModifiedRatings.Sensor.GetValueOrDefault() = 2,
               "Pilot/interface dependencies must convert together even when their source records precede sensors.")
+        Dim basicPilot = Convert(folder, catalog, "Van", "diesel", "Rigger2,1,Remote Pilot Advanced Programming", "Rigger2,0,Remote-Control Interfaces", "Rigger2,2,Sensors")
+        Check(basicPilot.Calculate(catalog).ModifiedRatings.Pilot.GetValueOrDefault() = 1 AndAlso
+              Not basicPilot.CatalogModifications.Any(Function(item) item.Id = "advanced-drone-pilot"), "Factory Pilot 1 should satisfy the saved basic pilot without an invalid programming upgrade.")
         Dim sealed = Convert(folder, catalog, "Van", "diesel", "Rigger2,21,Life Support Systems", "Rigger2,0,EnviroSeal (gas)")
         Check(sealed.CatalogModifications.Single(Function(item) item.Id = "life-support").Quantity = 3,
               "Person-hours must round up to complete ten-person-hour life support blocks.")
@@ -42,7 +45,7 @@ Friend Module LegacyConversionChecks
               arms.Additions.Single().Name.Contains("Strength 17"), "Separate arms must retain their different enhancement levels.")
         Dim mixed = Convert(folder, catalog, "Van", "diesel", "Rigger2,999,Bench Seats", "Rigger2,2,Nitrous Oxide Injectors", "Quality,1,Lemon")
         Check(mixed.CatalogModifications.Count = 1 AndAlso mixed.CatalogModifications.Single().Id = "nitrous" AndAlso
-              mixed.LegacyImportNotes.Count(Function(note) note.StartsWith("Review", StringComparison.Ordinal)) = 2,
+              mixed.LegacyImportNotes.Where(Function(note) note.StartsWith("Review", StringComparison.Ordinal)).Count() = 2,
               "Invalid revised equipment and homebrew must be reported without losing independent valid options.")
         Dim ambiguous = Convert(folder, catalog, "Van", "diesel", "Rigger2,2,Medical-Treatment Gear", "Rigger2,8,Drone Rack")
         Check(ambiguous.CatalogModifications Is Nothing AndAlso ambiguous.LegacyImportNotes.Count = 2,

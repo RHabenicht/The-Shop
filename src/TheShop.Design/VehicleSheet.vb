@@ -47,12 +47,13 @@ Public Module VehicleSheet
         Dim speed = If(modified?.Speed, If(up?.Speed, plant.StartingSpeed))
         Dim speedText = Number(speed)
         If plant.StartingStallSpeed.HasValue Then speedText = Number(plant.StartingStallSpeed) & " / " & speedText & " (stall / flight)"
-        If plant.StartingSecondarySpeed.HasValue Then speedText &= " / " & Number(If(up?.SecondarySpeed, plant.StartingSecondarySpeed)) & " (paired operating ratings)"
+        If plant.StartingSecondarySpeed.HasValue Then speedText &= " / " & Number(If(modified?.SecondarySpeed, If(up?.SecondarySpeed, plant.StartingSecondarySpeed))) & " (paired operating ratings)"
         Row(page, "Speed", speedText)
         If modified?.WaterSpeed.HasValue Then Row(page, "Water Speed rating", Number(modified.WaterSpeed))
         If modified?.WaterSpeedMetersPerTurn.HasValue Then Row(page, "Water speed", Number(modified.WaterSpeedMetersPerTurn) & " m/turn")
         If modified?.WaterHandlingModifier.HasValue Then Row(page, "Water Handling modifier", "+" & Number(modified.WaterHandlingModifier))
         Row(page, "Acceleration", Number(If(modified?.Acceleration, If(up?.Acceleration, plant.StartingAcceleration))))
+        If plant.SourceNote IsNot Nothing Then Row(page, "Power plant source note", plant.SourceNote)
         Row(page, "Signature / Sonar Signature", Pair(If(modified?.Signature, If(up?.Signature, plant.Signature)), If(modified?.SonarSignature, plant.SonarSignature)))
         If modified?.DippingSonar.HasValue Then Row(page, "Dipping sonar", Number(modified.DippingSonar))
         If modified?.ECM.HasValue Then Row(page, "ECM", Number(modified.ECM))
@@ -123,6 +124,20 @@ Public Module VehicleSheet
             }
             For Each item In selections.Where(Function(entry) entry.Value > 0)
                 Row(page, item.Key, item.Value.ToString(CultureInfo.InvariantCulture))
+            Next
+        End If
+        If chassis.FactoryEquipment IsNot Nothing Then
+            For Each item In chassis.FactoryEquipment
+                Dim rule = ModificationCatalog.Rules.Single(Function(candidate) candidate.Id = item.Id)
+                Row(page, rule.Name & " (factory included)", item.Quantity.ToString(CultureInfo.InvariantCulture))
+            Next
+        End If
+        If chassis.FactoryTorpedoTubes > 0 Then Row(page, "Factory torpedo tubes", chassis.FactoryTorpedoTubes.ToString(CultureInfo.InvariantCulture) & "; loading method not specified in chassis table")
+        If chassis.FactoryArmStrength.HasValue Then Row(page, "Factory arm Strength", Number(chassis.FactoryArmStrength))
+        If chassis.IsDrone Then Row(page, "Factory remote control and rigger adaptation", "Included with drone chassis")
+        If chassis.FactoryFeatures IsNot Nothing Then
+            For Each feature In chassis.FactoryFeatures
+                Row(page, "Factory feature", feature)
             Next
         End If
         If design.CatalogModifications IsNot Nothing Then

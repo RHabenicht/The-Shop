@@ -674,10 +674,9 @@
   },
   {
     "Name": "Convertible Top",
-    "Kind": "Removed",
-    "Id": "",
-    "Flag": false,
-    "Reason": "The old convertible flag is not an active revised design option or calculation."
+    "Kind": "Catalog",
+    "Id": "convertible-top",
+    "Flag": true
   },
   {
     "Name": "Crane",

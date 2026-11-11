@@ -13,7 +13,8 @@ Public NotInheritable Class DesignUpgrades
     Public Property DepthSteps As Integer
 
     Friend Function Apply(chassis As StockChassis, plant As StockPowerPlant, design As VehicleDesign,
-                          cargoOverride As Decimal?, loadOverride As Decimal?, Optional underwater As Boolean = False) As UpgradedRatings
+                          cargoOverride As Decimal?, loadOverride As Decimal?, Optional underwater As Boolean = False,
+                          Optional selections As IReadOnlyList(Of ModificationSelection) = Nothing) As UpgradedRatings
         Dim steps = {Speed, SecondarySpeed, Acceleration, Handling, OnRoadHandling, OffRoadHandling, CargoSteps, LoadSteps, Signature, EconomySteps, FuelSteps, DepthSteps}
         If steps.Any(Function(value) value < 0) Then Throw New ArgumentException("Upgrade steps cannot be negative.")
         If steps.All(Function(value) value = 0) AndAlso Not underwater Then Return Nothing
@@ -31,6 +32,11 @@ Public NotInheritable Class DesignUpgrades
             .OffRoadHandling = ImproveHandling(chassis.OffRoadHandling, OffRoadHandling, "Off-road Handling"),
             .Signature = Increase(plant.Signature, Nothing, Signature, "Signature")
         }
+        If DesignEnhancements.Has(selections, "standard-tires") OrElse
+            (DesignEnhancements.Has(selections, "off-road-tires") AndAlso Not DesignEnhancements.Has(selections, "off-road-suspension")) Then
+            If chassis.OnRoadHandling.HasValue Then ratings.OnRoadHandling = chassis.OnRoadHandling.Value - OnRoadHandling \ 2
+            If chassis.OffRoadHandling.HasValue Then ratings.OffRoadHandling = chassis.OffRoadHandling.Value - OffRoadHandling \ 2
+        End If
 
         If EconomySteps > 0 Then
             Dim starting = If(plant.StartingEconomyKmPerLiter, If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar))

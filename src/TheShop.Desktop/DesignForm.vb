@@ -165,6 +165,7 @@ Public NotInheritable Class DesignForm
                                 $"Body {chassis.Body}   Armor {chassis.Armor}")
             startingValues.Text = $"Handling {handling}   {protection}   Speed {speed}   Accel {If(plant.StartingAcceleration?.ToString(), "—")}" &
                 Environment.NewLine & $"Starting cargo {chassis.StartingCargo} CF   Starting load {plant.StartingLoadKg} kg   Chassis markup {chassis.Markup}   Blank overrides use starting values."
+            If plant.SourceNote IsNot Nothing Then startingValues.Text &= Environment.NewLine & plant.SourceNote
         End If
         ClearTotals(sender, e)
     End Sub
@@ -306,6 +307,7 @@ Public NotInheritable Class DesignForm
             If modified.AdaptationPool.HasValue Then values.Add($"Adaptation Pool {modified.AdaptationPool}")
             If modified.RoboticReflexes.HasValue Then values.Add($"Robotic reflexes {modified.RoboticReflexes}")
             If modified.Pilot.HasValue Then values.Add($"Pilot {modified.Pilot}")
+            If modified.SecondarySpeed.HasValue Then values.Add($"Final secondary Speed {modified.SecondarySpeed}")
             If modified.DippingSonar.HasValue Then values.Add($"Dipping sonar {modified.DippingSonar}")
             If modified.ECM.HasValue Then values.Add($"ECM {modified.ECM}")
             If modified.ECCM.HasValue Then values.Add($"ECCM {modified.ECCM}")
@@ -354,7 +356,15 @@ Public NotInheritable Class DesignForm
     End Sub
 
     Private Sub EditPayload(sender As Object, e As EventArgs)
-        Using dialog As New PayloadDialog(payload, equipmentSettings, If(catalogModifications, New List(Of ModificationSelection)).Concat(If(installedRetrofits, New List(Of ModificationSelection))).ToArray())
+        Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
+        Dim mounts = RetrofitCatalog.CombinedSelections(StockCatalog.FactoryMountSelections(chassis), RetrofitCatalog.CombinedSelections(catalogModifications, installedRetrofits))
+        Dim validate As Action(Of List(Of VehiclePayloadItem), List(Of EquipmentSetting)) = Sub(items, settings)
+            Dim proposed = ReadDesign()
+            proposed.Payload = items
+            proposed.EquipmentSettings = settings
+            proposed.Calculate(catalog)
+        End Sub
+        Using dialog As New PayloadDialog(payload, equipmentSettings, mounts, validate)
             If dialog.ShowDialog(Me) = DialogResult.OK Then
                 Try
                     Dim design = ReadDesign()
@@ -385,10 +395,18 @@ Public NotInheritable Class DesignForm
     Private Sub ShowRetrofitQuote(sender As Object, e As EventArgs)
         Try
             Dim quoteDesign = ReadDesign()
-            Dim totals = quoteDesign.Calculate(catalog).Totals
-            Dim quoteContext = If(quoteDesign.CatalogModifications, New List(Of ModificationSelection)).Concat(If(quoteDesign.InstalledRetrofits, New List(Of ModificationSelection))).ToArray()
+            Dim currentResult = quoteDesign.Calculate(catalog)
+            Dim totals = currentResult.Totals
+            Dim quoteContext = RetrofitCatalog.CombinedSelections(DirectCast(chassisBox.SelectedItem, StockChassis).FactoryEquipment, RetrofitCatalog.CombinedSelections(quoteDesign.CatalogModifications, quoteDesign.InstalledRetrofits))
+            Dim preview As Func(Of ModificationSelection, StockDesignResult) = Function(selection)
+                Dim proposed = JsonSerializer.Deserialize(Of StockDesign)(JsonSerializer.Serialize(quoteDesign, jsonOptions), jsonOptions)
+                If proposed.InstalledRetrofits Is Nothing Then proposed.InstalledRetrofits = New List(Of ModificationSelection)
+                proposed.InstalledRetrofits.Add(selection)
+                Return proposed.Calculate(catalog)
+            End Function
             Using dialog As New RetrofitQuoteDialog(DirectCast(chassisBox.SelectedItem, StockChassis),
-                                                     DirectCast(powerPlantBox.SelectedItem, StockPowerPlant), totals, quoteContext)
+                                                     DirectCast(powerPlantBox.SelectedItem, StockPowerPlant), totals, quoteContext,
+                                                     currentResult.EffectiveStreetIndex, currentResult.Availability, preview, currentResult.OriginalCargoCapacity)
                 If dialog.ShowDialog(Me) = DialogResult.OK Then
                     Dim design = ReadDesign()
                     design.InstalledRetrofits = New List(Of ModificationSelection)(If(installedRetrofits, New List(Of ModificationSelection)))
@@ -407,7 +425,13 @@ Public NotInheritable Class DesignForm
         Try
             Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
             Dim plant = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant)
-            Using dialog As New ModificationDialog(installedRetrofits, chassis, plant, RetrofitCatalog.Rules, "Installed retrofits", retrofits:=True)
+            Dim originalCargo As Decimal? = Nothing
+            Try
+                originalCargo = ReadDesign().Calculate(catalog).OriginalCargoCapacity
+            Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
+                ' Keep this editor available so an invalid installed quantity can be reduced or removed.
+            End Try
+            Using dialog As New ModificationDialog(installedRetrofits, chassis, plant, RetrofitCatalog.Rules, "Installed retrofits", retrofits:=True, originalCargoCapacity:=originalCargo)
                 If dialog.ShowDialog(Me) = DialogResult.OK Then
                     Dim design = ReadDesign()
                     design.InstalledRetrofits = dialog.ReadSelection()?.ToList()

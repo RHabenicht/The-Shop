@@ -22,7 +22,7 @@ End Class
 
 Public Module VehiclePayload
     Private ReadOnly weaponValues As New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase) From {
-        {"Pistol", 1D}, {"Shotgun", 1D}, {"Missile", 0D}, {"Heavy Missile", 0D}, {"Torpedo", 0D}, {"Mine", 0D}, {"SMG", 1D}, {"Microwave Designator", 1D}, {"Rifle", 1D}, {"Grenade Launcher", 1D}, {"LMG", 1.5D},
+        {"Pistol", 1D}, {"Shotgun", 1D}, {"Missile", 0D}, {"Rocket", 0D}, {"Bomb", 0D}, {"Heavy Missile", 0D}, {"Torpedo", 0D}, {"Mine", 0D}, {"SMG", 1D}, {"Microwave Designator", 1D}, {"Rifle", 1D}, {"Grenade Launcher", 1D}, {"LMG", 1.5D},
         {"MMG", 2D}, {"HMG", 2D}, {"Missile Launcher", 2D}, {"Rocket Launcher", 2D}, {"Harpoon Gun", 2D}, {"Vindicator", 2D},
         {"Vanquisher", 2.5D}, {"Vengeance", 2.5D}, {"Assault Cannon", 3D}, {"Autocannon", 3D}, {"Vehicle Laser", 3D},
         {"Water Cannon", 3D}, {"Mortar", 4D}, {"Light Railgun", 5D}, {"Outlaw Missile System", 5D}, {"RASCAM", 5D},
@@ -36,20 +36,23 @@ Public Module VehiclePayload
 
     Public Function Additions(design As StockDesign, chassis As StockChassis, ByRef configuredListCost As Decimal, ByRef configuredStreetCost As Decimal) As IReadOnlyList(Of DesignAddition)
         Dim result As New List(Of DesignAddition)
-        Dim mounts = If(design.CatalogModifications, New List(Of ModificationSelection)).Concat(If(design.InstalledRetrofits, New List(Of ModificationSelection))).ToArray()
+        Dim manufactured = StockCatalog.FactoryMountSelections(chassis).Concat(RetrofitCatalog.NormalizeSelections(design.CatalogModifications)).ToArray()
+        Dim installed = RetrofitCatalog.NormalizeSelections(design.InstalledRetrofits)
+        Dim mounts = manufactured.Concat(installed).ToArray()
         Dim usedStorage As New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase)
         Dim used As New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase)
         If design.Payload IsNot Nothing Then
             For Each item In design.Payload
                 If item Is Nothing OrElse String.IsNullOrWhiteSpace(item.Name) OrElse item.Quantity < 1 OrElse item.UnitWeightKg < 0D OrElse item.UnitCostNuyen < 0D OrElse item.UnitCargoCf < 0D Then Throw New ArgumentException("Payload requires a name, positive count and nonnegative weight, price and cargo.")
                 Dim storedInTurret = False
+                Dim mountId = If(item.MountId, "").ToLowerInvariant()
                 If Not String.IsNullOrWhiteSpace(item.MountId) Then
                     Dim mountCount = mounts.Where(Function(choice) String.Equals(choice.Id, item.MountId, StringComparison.OrdinalIgnoreCase)).Sum(Function(choice) CLng(choice.Quantity))
                     If item.MountNumber < 1 OrElse item.MountNumber > mountCount Then Throw New ArgumentException("The selected mount instance does not exist.")
-                    If item.MountId.Contains("turret") AndAlso item.UnitCargoCf > 0D Then
-                        Dim key = item.MountId & "#" & item.MountNumber
+                    If mountId.Contains("turret") AndAlso item.UnitCargoCf > 0D Then
+                        Dim key = mountId & "#" & item.MountNumber
                         usedStorage(key) = If(usedStorage.ContainsKey(key), usedStorage(key), 0D) + item.UnitCargoCf * item.Quantity
-                        If usedStorage(key) > TurretStorage(item.MountId) Then Throw New ArgumentException("Payload exceeds the turret's internal CF.")
+                        If usedStorage(key) > TurretStorage(mountId) Then Throw New ArgumentException("Payload exceeds the turret's internal CF.")
                         storedInTurret = True
                     End If
                 End If
@@ -60,26 +63,46 @@ Public Module VehiclePayload
                     Dim mount = mounts.Where(Function(choice) String.Equals(choice.Id, item.MountId, StringComparison.OrdinalIgnoreCase)).ToArray()
                     Dim count = mount.Sum(Function(choice) CLng(choice.Quantity))
                     If item.MountNumber < 1 OrElse item.MountNumber > count Then Throw New ArgumentException($"Payload '{item.Name}' has no matching mount instance.")
-                    If item.MountId.StartsWith("torpedo-", StringComparison.Ordinal) AndAlso Not {"Forward", "Rear"}.Contains(item.Direction, StringComparer.OrdinalIgnoreCase) Then Throw New ArgumentException("Torpedo installations must face Forward or Rear.")
+                    If (mountId.StartsWith("torpedo-", StringComparison.Ordinal) OrElse mountId = "factory-torpedo-tube") AndAlso Not {"Forward", "Rear"}.Contains(item.Direction, StringComparer.OrdinalIgnoreCase) Then Throw New ArgumentException("Torpedo installations must face Forward or Rear.")
+                    If chassis.Category = "Bike" AndAlso Not String.Equals(item.Direction, "Forward", StringComparison.OrdinalIgnoreCase) Then Throw New ArgumentException("A motorcycle sidecar weapon must fire forwards.")
                     Dim ordnance = value = 0D
                     Dim capacity As Decimal
+                    Dim key = mountId & "#" & item.MountNumber
                     If ordnance Then
-                        If Not (item.MountId.StartsWith("external-missile-mounts", StringComparison.Ordinal) OrElse item.MountId.StartsWith("internal-", StringComparison.Ordinal) OrElse item.MountId.StartsWith("torpedo-", StringComparison.Ordinal)) Then Throw New ArgumentException("Ordnance requires an appropriate launch mount, tube or storage rack.")
-                        Dim maximumWeight = If(item.MountId.EndsWith("reinforced", StringComparison.Ordinal), 1500D, 300D)
-                        If item.MountId.StartsWith("external-", StringComparison.Ordinal) AndAlso (chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft") AndAlso item.UnitWeightKg > maximumWeight Then Throw New ArgumentException("Ordnance exceeds the mount's weight limit.")
-                        capacity = 1D
-                        value = 1D
+                        ValidateOrdnanceMount(mountId, item.WeaponClass, chassis)
+                        If mountId.StartsWith("external-missile-mounts", StringComparison.Ordinal) AndAlso (chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft") Then
+                            capacity = If(mountId.EndsWith("reinforced", StringComparison.Ordinal), 1500D, 300D)
+                            value = item.UnitWeightKg
+                        Else
+                            capacity = 1D
+                            value = 1D
+                            ' Storage quantities reserve consecutive numbered slots, never the same slot twice.
+                            If mountId = "internal-missile-storage" OrElse mountId = "internal-heavy-missile-storage" OrElse mountId = "torpedo-storage-rack" Then
+                                If CLng(item.MountNumber) + item.Quantity - 1L > count Then Throw New ArgumentException("Ordnance exceeds the allocated storage slots.")
+                                For slot As Integer = item.MountNumber To item.MountNumber + item.Quantity - 1
+                                    Dim slotKey = mountId & "#" & slot
+                                    If used.ContainsKey(slotKey) Then Throw New ArgumentException("An ordnance storage slot is already occupied.")
+                                    used(slotKey) = 1D
+                                Next
+                                capacity = item.Quantity
+                                value = 0D
+                            End If
+                        End If
                     Else
-                        capacity = WeaponCapacity(item.MountId)
+                        capacity = WeaponCapacity(mountId)
+                        If (mountId.StartsWith("ring-mount", StringComparison.Ordinal) OrElse mountId = "pintle-mount") AndAlso value > 3D Then Throw New ArgumentException("A manual pintle or ring mount requires a man-portable firearm.")
+                        If mountId.StartsWith("ring-mount", StringComparison.Ordinal) AndAlso {"Autocannon", "Vehicle Laser", "Water Cannon"}.Contains(item.WeaponClass, StringComparer.OrdinalIgnoreCase) Then Throw New ArgumentException("A ring mount requires a man-portable firearm.")
+                        If Not mountId.Contains("turret") Then
+                            If used.ContainsKey(key) OrElse item.Quantity <> 1 Then Throw New ArgumentException("A fixed, pintle or ring mount holds one weapon.")
+                        End If
                     End If
-                    Dim key = item.MountId & "#" & item.MountNumber
                     used(key) = If(used.ContainsKey(key), used(key), 0D) + value * item.Quantity
                     If used(key) > capacity Then Throw New ArgumentException($"Weapons exceed the capacity of {key}.")
                     If Not {"Forward", "Rear", "Left", "Right"}.Contains(item.Direction, StringComparer.OrdinalIgnoreCase) Then Throw New ArgumentException("Choose Forward, Rear, Left or Right for weapon direction.")
                 ElseIf Not String.IsNullOrWhiteSpace(item.MountId) AndAlso Not storedInTurret Then
                     Throw New ArgumentException("Mounted equipment requires a weapon class or allocated turret storage.")
                 End If
-                result.Add(New DesignAddition With {.Name = item.Name & $" ×{item.Quantity}", .DirectCostNuyen = item.UnitCostNuyen * item.Quantity,
+                result.Add(New DesignAddition With {.Name = item.Name & $" ×{item.Quantity}", .IsPayload = True, .DirectCostNuyen = item.UnitCostNuyen * item.Quantity,
                     .LoadConsumedKg = item.UnitWeightKg * item.Quantity, .CargoConsumed = If(storedInTurret, 0D, item.UnitCargoCf * item.Quantity)})
             Next
         End If
@@ -88,20 +111,23 @@ Public Module VehiclePayload
             For Each setting In design.EquipmentSettings
                 If setting Is Nothing OrElse setting.Rating < 1 OrElse setting.Instance < 1 Then Throw New ArgumentException("Equipment settings require a positive instance and rating.")
                 Dim id = setting.Component
-                Dim target = If(id = "Arm strength", "mechanical-arm", If(id = "Recoil", setting.Target, "power-amplifier"))
+                Dim target = If(id = "Arm strength", "mechanical-arm", If(id = "Recoil", If(setting.Target, "").ToLowerInvariant(), "power-amplifier"))
                 If id <> "Arm strength" AndAlso id <> "Recoil" AndAlso id <> "Amplifier" Then Throw New ArgumentException("Choose Arm strength, Recoil or Amplifier.")
                 If Not configured.Add(id & ":" & target & ":" & setting.Instance) Then Throw New ArgumentException("An equipment instance has repeated settings.")
                 If id = "Arm strength" OrElse id = "Recoil" Then
                     Dim count = mounts.Where(Function(choice) choice.Id = target).Sum(Function(choice) CLng(choice.Quantity))
                     If setting.Instance > count Then Throw New ArgumentException("The configured arm or mount instance does not exist.")
                 End If
-                Dim retrofit = setting.Retrofit OrElse (design.InstalledRetrofits IsNot Nothing AndAlso design.InstalledRetrofits.Any(Function(choice) choice.Id = target))
+                Dim factoryCount = manufactured.Where(Function(choice) choice.Id = target).Sum(Function(choice) CLng(choice.Quantity))
+                Dim retrofit = setting.Retrofit OrElse ((id = "Arm strength" OrElse id = "Recoil") AndAlso setting.Instance > factoryCount)
                 Dim body = VehicleScale.RuleBody(chassis)
                 Dim addition As New DesignAddition With {.Name = $"{id} — {target} #{setting.Instance}, rating {setting.Rating}"}
                 Select Case id
                     Case "Arm strength"
                         If DesignEnhancements.Has(mounts, "mechanical-arm-strength") Then Throw New ArgumentException("Use either uniform arm enhancement or individual arm settings.")
-                        If body * body + setting.Rating > body * 10D Then Throw New ArgumentException("Arm Strength exceeds Body × 10.")
+                        Dim factoryArms = If(chassis.FactoryEquipment, New List(Of ModificationSelection)).Where(Function(item) item.Id = "mechanical-arm").Sum(Function(item) item.Quantity)
+                        Dim initialStrength = If(setting.Instance <= factoryArms, chassis.FactoryArmStrength.GetValueOrDefault(CInt(body * body)), body * body)
+                        If initialStrength + setting.Rating > body * 10D Then Throw New ArgumentException("Arm Strength exceeds Body × 10.")
                         If retrofit Then
                             addition.DirectCostNuyen = If(setting.Rating <= 3, 5000D, 6000D) * body * setting.Rating
                         Else
@@ -109,7 +135,9 @@ Public Module VehiclePayload
                         End If
                         addition.LoadConsumedKg = 10D * setting.Rating
                     Case "Recoil"
-                        If DesignEnhancements.Has(mounts, "gunnery-recoil-adjusters") OrElse DesignEnhancements.Has(mounts, "weapon-gyro-stabilization") Then Throw New ArgumentException("Individual recoil settings cannot be combined with uniform recoil or gyro-stabilization.")
+                        If DesignEnhancements.Has(installed, "gunnery-recoil-adjusters") OrElse
+                            (DesignEnhancements.Has(manufactured, "gunnery-recoil-adjusters") AndAlso setting.Instance <= factoryCount) OrElse
+                            DesignEnhancements.Has(mounts, "weapon-gyro-stabilization") Then Throw New ArgumentException("This mount already has uniform recoil adjustment or incompatible gyro-stabilization.")
                         Dim capacity = RecoilCapacity(target)
                         If setting.Rating > capacity Then Throw New ArgumentException("Recoil setting exceeds the mount's limit.")
                         If retrofit Then
@@ -144,13 +172,15 @@ Public Module VehiclePayload
 
     Public Function WeaponCapacity(id As String) As Decimal
         If String.IsNullOrEmpty(id) Then Throw New ArgumentException("Select a weapon mount.")
+        id = id.ToLowerInvariant()
         If id.Contains("turret") Then
             Dim capacity As Decimal = If(id.Contains("micro"), 1D, If(id.Contains("mini"), 2D, If(id.Contains("small"), 3D, If(id.Contains("medium"), 6D, If(id.Contains("extra-large"), 10D, 8D)))))
             If id.EndsWith("pop-up", StringComparison.Ordinal) AndAlso Not id.Contains("micro") Then capacity -= 1D
             Return capacity
         End If
         If id.Contains("firmpoint") OrElse id = "pintle-mount" Then Return 1.5D
-        If id.Contains("hardpoint") OrElse id.StartsWith("ring-mount", StringComparison.Ordinal) Then Return 3D
+        If id.Contains("hardpoint") Then Return 10D
+        If id.StartsWith("ring-mount", StringComparison.Ordinal) Then Return 3D
         Throw New ArgumentException("The selected component is not a gun mount.")
     End Function
 
@@ -163,6 +193,7 @@ Public Module VehiclePayload
     End Function
 
     Public Function RecoilCapacity(id As String) As Integer
+        id = If(id, "").ToLowerInvariant()
         Dim capacity = WeaponCapacity(id)
         If id.Contains("firmpoint") OrElse id.Contains("micro") Then Return 4
         If id.Contains("mini") Then Return 6
@@ -171,8 +202,30 @@ Public Module VehiclePayload
         Throw New ArgumentException("Recoil adjusters require a fixed mount or turret.")
     End Function
 
+    Private Sub ValidateOrdnanceMount(id As String, weaponClass As String, chassis As StockChassis)
+        Dim kind = weaponClass.ToLowerInvariant()
+        Select Case id
+            Case "internal-missile-storage"
+                If kind <> "missile" AndAlso kind <> "rocket" Then Throw New ArgumentException("Standard internal storage accepts normal missiles and rockets.")
+            Case "internal-heavy-missile-storage"
+                If kind <> "heavy missile" AndAlso Not (kind = "torpedo" AndAlso chassis.Category = "Ship") Then Throw New ArgumentException("Heavy internal storage accepts heavy missiles or surface-ship torpedoes.")
+            Case "torpedo-storage-rack"
+                If kind <> "torpedo" Then Throw New ArgumentException("A torpedo storage rack accepts torpedoes.")
+            Case "torpedo-tube-manual", "torpedo-tube-autoloader", "factory-torpedo-tube"
+                If kind = "bomb" Then Throw New ArgumentException("Aircraft bombs require an aircraft ordnance mount.")
+                ' The GM identifies the specific tube-launched missile, mine or torpedo.
+            Case "external-missile-mounts", "external-missile-mounts-reinforced"
+                If kind = "mine" Then Throw New ArgumentException("Sea mines require an appropriate torpedo installation.")
+                If kind = "bomb" AndAlso Not (chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft") Then Throw New ArgumentException("Aircraft bombs require an aircraft ordnance mount.")
+                If kind = "torpedo" AndAlso chassis.Category <> "Ship" AndAlso id <> "external-missile-mounts-reinforced" Then Throw New ArgumentException("Torpedoes require a ship launch mount or a reinforced aircraft mount.")
+            Case Else
+                Throw New ArgumentException("Ordnance requires an appropriate launch mount, tube or storage rack.")
+        End Select
+    End Sub
+
     Public Function Arc(id As String) As String
-        If id.StartsWith("torpedo-", StringComparison.Ordinal) Then Return "Fore or aft tube/storage group; separate torpedo stores"
+        id = If(id, "").ToLowerInvariant()
+        If id.StartsWith("torpedo-", StringComparison.Ordinal) OrElse id = "factory-torpedo-tube" Then Return "Fore or aft tube/storage group; separate torpedo stores"
         If id.Contains("missile") Then Return "Ordnance launch mount"
         If id.Contains("turret") Then Return If(id.Contains("anti-aircraft"), "360°; −10° to +75° elevation", "360°; −10° to +45° elevation")
         If id.StartsWith("ring-mount", StringComparison.Ordinal) Then Return "360°; ±30° elevation; manual gunner"

@@ -28,6 +28,8 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Publish self-contained Windows x64 build
         run: dotnet publish src/TheShop.Desktop -c Release -r win-x64 --self-contained true -o publish
+      - name: Check printed rules and invalid combinations
+        run: dotnet run --project tests/TheShop.Rules.Audit -c Release
       - name: Test editor calculation and file round trip
         run: dotnet run --project tests/TheShop.Desktop.Smoke -c Release
       - name: Build installer

@@ -37,6 +37,13 @@ Public NotInheritable Class StockDesign
     Public Property EquipmentSettings As List(Of EquipmentSetting)
 
     Public Function Calculate(catalog As IReadOnlyList(Of StockChassis)) As StockDesignResult
+        If Additions Is Nothing Then Throw New ArgumentException("Additions must be an array.")
+        If Additions.Any(Function(item) item Is Nothing) Then Throw New ArgumentException("An addition cannot be null.")
+        If LegacyImportNotes IsNot Nothing AndAlso LegacyImportNotes.Any(Function(note) note Is Nothing) Then Throw New ArgumentException("Import notes cannot contain null entries.")
+        If Not [Enum].IsDefined(SpecialtyClass) Then Throw New ArgumentException("Unknown vehicle specialty class.")
+        If AvailabilityClass.HasValue AndAlso Not [Enum].IsDefined(AvailabilityClass.Value) Then Throw New ArgumentException("Unknown Availability class.")
+        Dim designSelections = RetrofitCatalog.NormalizeSelections(CatalogModifications)
+        Dim retrofitSelections = RetrofitCatalog.NormalizeSelections(InstalledRetrofits)
         If EngineStress.HasValue AndAlso EngineStress.Value < 0 Then Throw New ArgumentException("Permanent engine Stress cannot be negative.")
         Dim chassis = StockCatalog.FindById(catalog, ChassisId)
         Dim powerPlant = chassis.PowerPlants.SingleOrDefault(
@@ -45,10 +52,10 @@ Public NotInheritable Class StockDesign
             Throw New ArgumentException($"Power plant '{PowerPlantId}' is unavailable for '{chassis.Id}' in this catalog.")
         End If
 
-        powerPlant = DesignEnhancements.PreparePlant(chassis, powerPlant, CatalogModifications)
+        powerPlant = DesignEnhancements.PreparePlant(chassis, powerPlant, designSelections)
         Dim auxiliary = AuxiliaryEngine.Resolve(AuxiliaryPowerPlantId, chassis)
         If auxiliary IsNot Nothing Then
-            Dim sharedEnhancements = CatalogModifications?.Where(Function(item) item IsNot Nothing AndAlso
+            Dim sharedEnhancements = designSelections.Where(Function(item) item IsNot Nothing AndAlso
                 Not String.Equals(item.Id, "hybrid-engine", StringComparison.OrdinalIgnoreCase)).ToArray()
             auxiliary = DesignEnhancements.PreparePlant(chassis, auxiliary, sharedEnhancements)
         End If
@@ -79,7 +86,7 @@ Public NotInheritable Class StockDesign
             }
         End If
         Dim ratings = If(Upgrades, New DesignUpgrades()).Apply(chassis, powerPlant, design, CargoCapacity, LoadCapacityKg,
-            DesignEnhancements.Has(CatalogModifications, "engine-water-seal") AndAlso (chassis.IsDrone OrElse DesignEnhancements.Has(CatalogModifications, "cabin-water-seal")))
+            DesignEnhancements.Has(designSelections, "engine-water-seal") AndAlso (chassis.IsDrone OrElse DesignEnhancements.Has(designSelections, "cabin-water-seal")), designSelections)
         If design.CargoCapacity > chassis.MaximumCargo Then
             Throw New ArgumentException($"Cargo capacity exceeds the catalog maximum of {chassis.MaximumCargo} CF.")
         End If
@@ -89,23 +96,25 @@ Public NotInheritable Class StockDesign
 
         Dim validationCargo = design.CargoCapacity
         Dim validationLoad = design.LoadCapacityKg
+        Dim priorAdditions = design.Additions.ToArray()
         Dim modifiedRatings As ModifiedRatings = Nothing
-        Dim modifications = ModificationCatalog.Apply(CatalogModifications, chassis, powerPlant, design, ratings, modifiedRatings)
+        Dim modifications = ModificationCatalog.Apply(designSelections, chassis, powerPlant, design, ratings, modifiedRatings)
         Dim totals = design.Calculate()
-        Dim retrofits = RetrofitCatalog.Apply(InstalledRetrofits, CatalogModifications, chassis, powerPlant, ratings, totals, validationCargo, validationLoad, modifiedRatings)
+        Dim originalCargo = totals.CargoRemaining + payloadAdditions.Take(If(Payload?.Count, 0)).Sum(Function(item) item.CargoConsumed)
+        Dim retrofits = RetrofitCatalog.Apply(retrofitSelections, designSelections, chassis, powerPlant, ratings, totals, validationCargo, validationLoad, modifiedRatings,
+                                              design.StreetIndex, If(EffectiveClass().HasValue, VehicleAvailability.Calculate(EffectiveClass().Value, totals.BaseCostNuyen), Nothing), originalCargo, priorAdditions)
         Dim externalCargo = If(retrofits?.Sum(Function(item) item.Quote.ExternalCargoCapacity), 0D)
         Dim resolvedClass = EffectiveClass()
         Dim availability = If(resolvedClass.HasValue, VehicleAvailability.Calculate(resolvedClass.Value, totals.BaseCostNuyen), Nothing)
         If availability IsNot Nothing AndAlso DesignEnhancements.Has(CatalogModifications, "fin-drive") Then
             availability.Rating += 4D
-            availability.BaseDays += 4D
             availability.PlayerAccessible = availability.Rating <= 30D
         End If
         Return New StockDesignResult With {
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
             .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits, .AuxiliaryEngine = AuxiliaryEngine.Ratings(auxiliary),
             .ExternalCargoCapacity = externalCargo, .OperatingModes = VehicleOperatingModes.Build(RetrofitCatalog.CombinedSelections(CatalogModifications, InstalledRetrofits), powerPlant, chassis, ratings, modifiedRatings, externalCargo),
-            .Availability = availability, .EffectiveStreetIndex = design.StreetIndex, .ConfiguredRetrofitListCost = configuredListCost, .ConfiguredRetrofitStreetCost = configuredStreetCost, .EngineStress = EngineStress, .EffectiveAvailabilityClass = resolvedClass
+            .Availability = availability, .EffectiveStreetIndex = design.StreetIndex, .ConfiguredRetrofitListCost = configuredListCost, .ConfiguredRetrofitStreetCost = configuredStreetCost, .EngineStress = EngineStress, .EffectiveAvailabilityClass = resolvedClass, .OriginalCargoCapacity = originalCargo
         }
     End Function
 
@@ -138,12 +147,17 @@ Public NotInheritable Class StockDesign
             Case Else
                 Throw New ArgumentException("Unknown vehicle specialty class.")
         End Select
-        If DesignEnhancements.Has(CatalogModifications, "smart-materials") Then index += 1D
+        If DesignEnhancements.Has(CatalogModifications, "smart-materials") OrElse DesignEnhancements.Has(CatalogModifications, "fin-drive") Then index += 1D
         Return index
     End Function
 End Class
 
 Public Module StockCatalog
+    Public Function FactoryMountSelections(chassis As StockChassis) As IReadOnlyList(Of ModificationSelection)
+        Dim result = RetrofitCatalog.NormalizeSelections(chassis.FactoryEquipment).ToList()
+        If chassis.FactoryTorpedoTubes > 0 Then result.Add(New ModificationSelection With {.Id = "factory-torpedo-tube", .Quantity = chassis.FactoryTorpedoTubes})
+        Return result
+    End Function
     Public Function Read(options As JsonSerializerOptions) As IReadOnlyList(Of StockChassis)
         Using data = GetType(StockChassis).Assembly.GetManifestResourceStream("TheShop.Design.StockCatalog.json")
             Return JsonSerializer.Deserialize(Of StockChassis())(data, options)
@@ -205,9 +219,19 @@ Public NotInheritable Class StockChassis
     Public Property StartingCargo As Decimal
     Public Property MaximumCargo As Decimal
     Public Property PowerPlants As StockPowerPlant()
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property FactoryEquipment As List(Of ModificationSelection)
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property FactoryFeatures As List(Of String)
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property FactoryArmStrength As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingDefault)>
+    Public Property FactoryTorpedoTubes As Integer
 End Class
 
 Public NotInheritable Class StockPowerPlant
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property SourceNote As String
     Friend Function Copy() As StockPowerPlant
         Return DirectCast(MemberwiseClone(), StockPowerPlant)
     End Function
@@ -273,6 +297,7 @@ Public NotInheritable Class StockPowerPlant
 End Class
 
 Public NotInheritable Class StockDesignResult
+    Public Property OriginalCargoCapacity As Decimal
     Public Property ChassisId As String
     Public Property PowerPlantId As String
     Public Property Totals As DesignTotals

@@ -13,6 +13,7 @@ Friend NotInheritable Class PayloadDialog
     Private ReadOnly mountChoices As New List(Of MountChoice)
     Private ReadOnly payloadRows As BindingList(Of VehiclePayloadItem)
     Private ReadOnly settingRows As BindingList(Of EquipmentSetting)
+    Private ReadOnly validationMessage As New Label With {.Name = "payloadValidation", .AutoSize = True, .ForeColor = Color.DarkRed, .MaximumSize = New Size(900, 0)}
     Public ReadOnly Property Payload As List(Of VehiclePayloadItem)
         Get
             Return If(payloadRows.Count = 0, Nothing, payloadRows.ToList())
@@ -23,7 +24,8 @@ Friend NotInheritable Class PayloadDialog
             Return If(settingRows.Count = 0, Nothing, settingRows.ToList())
         End Get
     End Property
-    Public Sub New(currentPayload As List(Of VehiclePayloadItem), currentSettings As List(Of EquipmentSetting), Optional mounts As IReadOnlyList(Of ModificationSelection) = Nothing)
+    Public Sub New(currentPayload As List(Of VehiclePayloadItem), currentSettings As List(Of EquipmentSetting), Optional mounts As IReadOnlyList(Of ModificationSelection) = Nothing,
+                   Optional validate As Action(Of List(Of VehiclePayloadItem), List(Of EquipmentSetting)) = Nothing)
         Text = "Payload and individual equipment"
         ClientSize = New Size(1000, 540)
         MinimumSize = New Size(760, 420)
@@ -34,7 +36,7 @@ Friend NotInheritable Class PayloadDialog
         Dim ids = If(mounts, Array.Empty(Of ModificationSelection)()).Select(Function(item) item.Id).Concat(payloadRows.Select(Function(item) item.MountId)).Where(Function(id) Not String.IsNullOrWhiteSpace(id)).Distinct(StringComparer.OrdinalIgnoreCase)
         For Each id In ids
             Dim rule = ModificationCatalog.Rules.SingleOrDefault(Function(item) item.Id = id)
-            mountChoices.Add(New MountChoice With {.Id = id, .Name = If(rule?.Name, id)})
+            mountChoices.Add(New MountChoice With {.Id = id, .Name = If(rule?.Name, If(id = "factory-torpedo-tube", "Factory torpedo tube", id))})
         Next
         Dim frame As New TableLayoutPanel With {.Dock = DockStyle.Fill, .ColumnCount = 1, .RowCount = 3, .Padding = New Padding(10)}
         frame.RowStyles.Add(New RowStyle(SizeType.AutoSize))
@@ -55,17 +57,25 @@ Friend NotInheritable Class PayloadDialog
         settingsPage.Controls.Add(instructions)
         frame.Controls.Add(tabs, 0, 1)
         Dim actions As New FlowLayoutPanel With {.Dock = DockStyle.Fill, .AutoSize = True}
-        Dim applyButton As New Button With {.Text = "Apply", .AutoSize = True}
+        Dim applyButton As New Button With {.Name = "applyPayload", .Text = "Apply", .AutoSize = True, .CausesValidation = False}
         AddHandler applyButton.Click, Sub(sender, e)
-                                          payloadGrid.EndEdit()
-                                          settingGrid.EndEdit()
+                                          If Not payloadGrid.EndEdit() OrElse Not settingGrid.EndEdit() Then Return
                                           BindingContext(payloadRows).EndCurrentEdit()
                                           BindingContext(settingRows).EndCurrentEdit()
+                                          If validate IsNot Nothing Then
+                                              Try
+                                                  validate(Payload, Settings)
+                                              Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
+                                                  validationMessage.Text = ex.Message
+                                                  Return
+                                              End Try
+                                          End If
                                           DialogResult = DialogResult.OK
                                       End Sub
-        Dim cancelButton As New Button With {.Text = "Cancel", .DialogResult = DialogResult.Cancel, .AutoSize = True}
+        Dim cancelButton As New Button With {.Text = "Cancel", .DialogResult = DialogResult.Cancel, .AutoSize = True, .CausesValidation = False}
         actions.Controls.Add(applyButton)
         actions.Controls.Add(cancelButton)
+        actions.Controls.Add(validationMessage)
         frame.Controls.Add(actions, 0, 2)
         CancelButton = cancelButton
     End Sub
@@ -97,6 +107,12 @@ Friend NotInheritable Class PayloadDialog
             grid.Columns.Add(column)
         Next
         grid.DataSource = data
+        AddHandler grid.DataError, Sub(sender, e)
+                                      e.ThrowException = False
+                                      e.Cancel = True
+                                      validationMessage.Text = "Correct the invalid value before applying. Numeric fields require numbers."
+                                  End Sub
+        AddHandler grid.CellEndEdit, Sub(sender, e) validationMessage.Text = ""
         Return grid
     End Function
 End Class

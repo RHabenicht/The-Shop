@@ -881,6 +881,22 @@
         "StartingEconomyKmPerLiter": 0.8,
         "MaximumEconomyKmPerLiter": 2,
         "DesignPoints": 500
+      },
+      {
+        "Id": "electric-battery",
+        "Name": "Electric Battery",
+        "DesignPoints": 40,
+        "StartingLoadKg": 105,
+        "MaximumLoadKg": 700,
+        "StartingSpeed": 60,
+        "MaximumSpeed": 90,
+        "StartingAcceleration": -1,
+        "MaximumAcceleration": 3,
+        "Signature": 5,
+        "BatteryPowerFactors": 210,
+        "StartingEconomyKmPerPowerFactor": 0.4,
+        "MaximumEconomyKmPerPowerFactor": 2,
+        "SourceNote": "Rigger 3 Revised p. 195, Cars: All Others. The printed 6 − Body starting Acceleration formula gives a nonpositive value; improve Acceleration before using this as a moving vehicle."
       }
     ]
   },
@@ -941,6 +957,22 @@
         "StartingEconomyKmPerLiter": 1,
         "MaximumEconomyKmPerLiter": 2.5,
         "DesignPoints": 500
+      },
+      {
+        "Id": "electric-battery",
+        "Name": "Electric Battery",
+        "DesignPoints": 35,
+        "StartingLoadKg": 90,
+        "MaximumLoadKg": 600,
+        "StartingSpeed": 60,
+        "MaximumSpeed": 90,
+        "StartingAcceleration": 0,
+        "MaximumAcceleration": 4,
+        "Signature": 5,
+        "BatteryPowerFactors": 180,
+        "StartingEconomyKmPerPowerFactor": 0.4,
+        "MaximumEconomyKmPerPowerFactor": 2,
+        "SourceNote": "Rigger 3 Revised p. 195, Cars: All Others. The printed 6 − Body starting Acceleration formula gives a nonpositive value; improve Acceleration before using this as a moving vehicle."
       }
     ]
   },
@@ -986,6 +1018,21 @@
         "StartingEconomyKmPerLiter": 1,
         "MaximumEconomyKmPerLiter": 2.5,
         "DesignPoints": 120
+      },
+      {
+        "Id": "electric-battery",
+        "Name": "Electric Battery",
+        "DesignPoints": 30,
+        "StartingLoadKg": 75,
+        "MaximumLoadKg": 500,
+        "StartingSpeed": 60,
+        "MaximumSpeed": 90,
+        "StartingAcceleration": 1,
+        "MaximumAcceleration": 5,
+        "Signature": 5,
+        "BatteryPowerFactors": 150,
+        "StartingEconomyKmPerPowerFactor": 0.4,
+        "MaximumEconomyKmPerPowerFactor": 2
       }
     ]
   },
@@ -1046,6 +1093,22 @@
         "StartingEconomyKmPerLiter": 1,
         "MaximumEconomyKmPerLiter": 3,
         "DesignPoints": 170
+      },
+      {
+        "Id": "electric-battery",
+        "Name": "Electric Battery",
+        "DesignPoints": 35,
+        "StartingLoadKg": 90,
+        "MaximumLoadKg": 600,
+        "StartingSpeed": 60,
+        "MaximumSpeed": 90,
+        "StartingAcceleration": 0,
+        "MaximumAcceleration": 4,
+        "Signature": 5,
+        "BatteryPowerFactors": 180,
+        "StartingEconomyKmPerPowerFactor": 0.4,
+        "MaximumEconomyKmPerPowerFactor": 2,
+        "SourceNote": "Rigger 3 Revised p. 195, Cars: All Others. The printed 6 − Body starting Acceleration formula gives a nonpositive value; improve Acceleration before using this as a moving vehicle."
       }
     ]
   },
@@ -1091,6 +1154,22 @@
         "StartingEconomyKmPerLiter": 0.25,
         "MaximumEconomyKmPerLiter": 1.25,
         "DesignPoints": 400
+      },
+      {
+        "Id": "electric-battery",
+        "Name": "Electric Battery",
+        "DesignPoints": 55,
+        "StartingLoadKg": 150,
+        "MaximumLoadKg": 1000,
+        "StartingSpeed": 60,
+        "MaximumSpeed": 90,
+        "StartingAcceleration": -4,
+        "MaximumAcceleration": 0,
+        "Signature": 5,
+        "BatteryPowerFactors": 300,
+        "StartingEconomyKmPerPowerFactor": 0.4,
+        "MaximumEconomyKmPerPowerFactor": 2,
+        "SourceNote": "Rigger 3 Revised p. 195, Cars: All Others. The printed 6 − Body starting Acceleration formula gives a nonpositive value; improve Acceleration before using this as a moving vehicle."
       }
     ]
   },
@@ -1136,6 +1215,21 @@
         "StartingEconomyKmPerLiter": 0.8,
         "MaximumEconomyKmPerLiter": 2.4,
         "DesignPoints": 200
+      },
+      {
+        "Id": "electric-battery",
+        "Name": "Electric Battery",
+        "DesignPoints": 30,
+        "StartingLoadKg": 75,
+        "MaximumLoadKg": 500,
+        "StartingSpeed": 60,
+        "MaximumSpeed": 90,
+        "StartingAcceleration": 1,
+        "MaximumAcceleration": 5,
+        "Signature": 5,
+        "BatteryPowerFactors": 150,
+        "StartingEconomyKmPerPowerFactor": 0.4,
+        "MaximumEconomyKmPerPowerFactor": 2
       }
     ]
   },
@@ -1181,6 +1275,22 @@
         "StartingEconomyKmPerLiter": 0.5,
         "MaximumEconomyKmPerLiter": 1.5,
         "DesignPoints": 320
+      },
+      {
+        "Id": "electric-battery",
+        "Name": "Electric Battery",
+        "DesignPoints": 45,
+        "StartingLoadKg": 120,
+        "MaximumLoadKg": 800,
+        "StartingSpeed": 60,
+        "MaximumSpeed": 90,
+        "StartingAcceleration": -2,
+        "MaximumAcceleration": 2,
+        "Signature": 5,
+        "BatteryPowerFactors": 240,
+        "StartingEconomyKmPerPowerFactor": 0.4,
+        "MaximumEconomyKmPerPowerFactor": 2,
+        "SourceNote": "Rigger 3 Revised p. 195, Cars: All Others. The printed 6 − Body starting Acceleration formula gives a nonpositive value; improve Acceleration before using this as a moving vehicle."
       }
     ]
   },
@@ -1681,6 +1791,27 @@
         "MaximumEconomyKmPerBar": 1.5,
         "DesignPoints": 20,
         "PeopleSpaceKg": 300
+      },
+      {
+        "Id": "electric-battery",
+        "Name": "Electric Battery",
+        "DesignPoints": 25,
+        "StartingLoadKg": 60,
+        "MaximumLoadKg": 400,
+        "StartingSpeed": 60,
+        "MaximumSpeed": 90,
+        "StartingAcceleration": 2,
+        "MaximumAcceleration": 6,
+        "Signature": 5,
+        "BatteryPowerFactors": 120,
+        "StartingEconomyKmPerPowerFactor": 0.4,
+        "MaximumEconomyKmPerPowerFactor": 2
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 2
       }
     ]
   },
@@ -1711,6 +1842,21 @@
         "StartingEconomyKmPerLiter": 3,
         "MaximumEconomyKmPerLiter": 6,
         "DesignPoints": 80
+      },
+      {
+        "Id": "electric-battery",
+        "Name": "Electric Battery",
+        "DesignPoints": 30,
+        "StartingLoadKg": 75,
+        "MaximumLoadKg": 500,
+        "StartingSpeed": 60,
+        "MaximumSpeed": 90,
+        "StartingAcceleration": 1,
+        "MaximumAcceleration": 5,
+        "Signature": 5,
+        "BatteryPowerFactors": 150,
+        "StartingEconomyKmPerPowerFactor": 0.4,
+        "MaximumEconomyKmPerPowerFactor": 2
       }
     ]
   },
@@ -2198,6 +2344,12 @@
         "DesignPoints": 65,
         "PeopleSpaceKg": 1500
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "living-amenities-high",
+        "Quantity": 10
+      }
     ]
   },
   {
@@ -2283,6 +2435,12 @@
         "StartingEconomyKmPerLiter": 0.02,
         "MaximumEconomyKmPerLiter": 0.05
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "partial-amenities-basic",
+        "Quantity": 6
+      }
     ]
   },
   {
@@ -2316,6 +2474,12 @@
         "FuelLiters": 2500,
         "StartingEconomyKmPerLiter": 0.1,
         "MaximumEconomyKmPerLiter": 0.3
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-gas-seal",
+        "Quantity": 1
       }
     ]
   },
@@ -3846,6 +4010,12 @@
         "MaximumStallSpeed": 250,
         "MaximumSpeed": 1000
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-gas-seal",
+        "Quantity": 1
+      }
     ]
   },
   {
@@ -4014,6 +4184,28 @@
         "MaximumSpeed": 50,
         "MaximumSecondarySpeed": 25
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "flight-deck",
+        "Quantity": 325
+      },
+      {
+        "Id": "flight-deck-angled",
+        "Quantity": 1
+      },
+      {
+        "Id": "flight-deck-catapult",
+        "Quantity": 1
+      },
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 4600
+      },
+      {
+        "Id": "living-amenities-improved",
+        "Quantity": 400
+      }
     ]
   },
   {
@@ -4085,6 +4277,28 @@
         "StartingSecondarySpeed": 15,
         "MaximumSpeed": 60,
         "MaximumSecondarySpeed": 25
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "flight-deck",
+        "Quantity": 100
+      },
+      {
+        "Id": "flight-deck-angled",
+        "Quantity": 1
+      },
+      {
+        "Id": "flight-deck-catapult",
+        "Quantity": 1
+      },
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 1000
+      },
+      {
+        "Id": "living-amenities-improved",
+        "Quantity": 100
       }
     ]
   },
@@ -4158,6 +4372,28 @@
         "MaximumSpeed": 50,
         "MaximumSecondarySpeed": 25
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "flight-deck",
+        "Quantity": 150
+      },
+      {
+        "Id": "flight-deck-angled",
+        "Quantity": 1
+      },
+      {
+        "Id": "flight-deck-catapult",
+        "Quantity": 1
+      },
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 2800
+      },
+      {
+        "Id": "living-amenities-improved",
+        "Quantity": 200
+      }
     ]
   },
   {
@@ -4213,6 +4449,12 @@
         "StartingSecondarySpeed": 35,
         "MaximumSpeed": 100,
         "MaximumSecondarySpeed": 50
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 35
       }
     ]
   },
@@ -4286,6 +4528,12 @@
         "MaximumSpeed": 60,
         "MaximumSecondarySpeed": 25
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 500
+      }
     ]
   },
   {
@@ -4341,6 +4589,12 @@
         "StartingSecondarySpeed": 20,
         "MaximumSpeed": 55,
         "MaximumSecondarySpeed": 30
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 375
       }
     ]
   },
@@ -4414,6 +4668,12 @@
         "MaximumSpeed": 20,
         "MaximumSecondarySpeed": 10
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 25
+      }
     ]
   },
   {
@@ -4469,6 +4729,12 @@
         "StartingSecondarySpeed": 20,
         "MaximumSpeed": 60,
         "MaximumSecondarySpeed": 30
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 300
       }
     ]
   },
@@ -4592,6 +4858,12 @@
         "MaximumSpeed": 25,
         "MaximumSecondarySpeed": 10
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 25
+      }
     ]
   },
   {
@@ -4644,6 +4916,12 @@
         "StartingSecondarySpeed": 25,
         "MaximumSecondarySpeed": 40,
         "PeopleSpaceKg": 22500
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 15
       }
     ]
   },
@@ -4717,6 +4995,12 @@
         "MaximumSpeed": 50,
         "MaximumSecondarySpeed": 15
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 20
+      }
     ]
   },
   {
@@ -4753,6 +5037,12 @@
         "StartingEconomyKmPerLiter": 0.4,
         "MaximumEconomyKmPerLiter": 1,
         "PeopleSpaceKg": 30000
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 15
       }
     ]
   },
@@ -4897,6 +5187,29 @@
         "MaximumSecondarySpeed": 40,
         "PeopleSpaceKg": 236250
       }
+    ],
+    "FactoryTorpedoTubes": 4,
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "engine-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 105
+      },
+      {
+        "Id": "heavy-launch-control",
+        "Quantity": 4
+      }
+    ],
+    "FactoryFeatures": [
+      "Oxygen generator",
+      "Factory torpedo tubes; loading method not specified in chassis table"
     ]
   },
   {
@@ -4989,6 +5302,19 @@
         "MaximumSpeed": 40,
         "MaximumSecondarySpeed": 5
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "engine-water-seal",
+        "Quantity": 1
+      }
+    ],
+    "FactoryFeatures": [
+      "Oxygen generator"
     ]
   },
   {
@@ -5082,6 +5408,29 @@
         "MaximumSecondarySpeed": 30,
         "PeopleSpaceKg": 236250
       }
+    ],
+    "FactoryTorpedoTubes": 4,
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "engine-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 105
+      },
+      {
+        "Id": "heavy-launch-control",
+        "Quantity": 4
+      }
+    ],
+    "FactoryFeatures": [
+      "Oxygen generator",
+      "Factory torpedo tubes; loading method not specified in chassis table"
     ]
   },
   {
@@ -5194,6 +5543,23 @@
         "MaximumSpeed": 30,
         "MaximumSecondarySpeed": 5
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "engine-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 24
+      }
+    ],
+    "FactoryFeatures": [
+      "Oxygen generator"
     ]
   },
   {
@@ -5271,6 +5637,23 @@
         "MaximumEconomyKmPerPowerFactor": 0.5,
         "PeopleSpaceKg": 24000
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "engine-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 16
+      }
+    ],
+    "FactoryFeatures": [
+      "Oxygen generator"
     ]
   },
   {
@@ -5383,6 +5766,23 @@
         "MaximumSpeed": 45,
         "MaximumSecondarySpeed": 5
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "engine-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 20
+      }
+    ],
+    "FactoryFeatures": [
+      "Oxygen generator"
     ]
   },
   {
@@ -5465,6 +5865,20 @@
         "SonarSignature": 3,
         "StartingSpeed": 35,
         "MaximumSpeed": 75
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "engine-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "life-support",
+        "Quantity": 2
       }
     ]
   },
@@ -5565,6 +5979,20 @@
         "StartingEconomyKmPerBar": 0.25,
         "MaximumEconomyKmPerBar": 1
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "engine-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "life-support",
+        "Quantity": 1
+      }
     ]
   },
   {
@@ -5631,6 +6059,20 @@
         "FuelCellPowerFactors": 200,
         "StartingEconomyKmPerPowerFactor": 0.5,
         "MaximumEconomyKmPerPowerFactor": 2
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "engine-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "life-support",
+        "Quantity": 1
       }
     ]
   },
@@ -5728,6 +6170,29 @@
         "MaximumSpeed": 60,
         "MaximumSecondarySpeed": 30
       }
+    ],
+    "FactoryTorpedoTubes": 4,
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "engine-water-seal",
+        "Quantity": 1
+      },
+      {
+        "Id": "living-amenities-basic",
+        "Quantity": 85
+      },
+      {
+        "Id": "heavy-launch-control",
+        "Quantity": 4
+      }
+    ],
+    "FactoryFeatures": [
+      "Oxygen generator",
+      "Factory torpedo tubes; loading method not specified in chassis table"
     ]
   },
   {
@@ -6110,6 +6575,15 @@
         "StartingSpeed": 180,
         "MaximumSpeed": 300
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "gridlink",
+        "Quantity": 1
+      }
+    ],
+    "FactoryFeatures": [
+      "GridLink (locomotive only)"
     ]
   },
   {
@@ -6187,6 +6661,15 @@
         "StartingEconomyKmPerPowerFactor": 0.05,
         "MaximumEconomyKmPerPowerFactor": 0.2
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "gridlink",
+        "Quantity": 1
+      }
+    ],
+    "FactoryFeatures": [
+      "GridLink (locomotive only)"
     ]
   },
   {
@@ -6284,6 +6767,16 @@
         "StartingEconomyKmPerPowerFactor": 0.01,
         "MaximumEconomyKmPerPowerFactor": 0.02
       }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "partial-amenities-basic",
+        "Quantity": 8
+      },
+      {
+        "Id": "rigger-adaptation",
+        "Quantity": 1
+      }
     ]
   },
   {
@@ -6317,6 +6810,16 @@
         "RocketPowerFactors": 80000,
         "StartingEconomyKmPerPowerFactor": 0.01,
         "MaximumEconomyKmPerPowerFactor": 0.025
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "partial-amenities-basic",
+        "Quantity": 8
+      },
+      {
+        "Id": "rigger-adaptation",
+        "Quantity": 1
       }
     ]
   },
@@ -6566,7 +7069,16 @@
       }
     ],
     "PeopleSpaceCf": 160,
-    "MaximumPeopleSpaceCf": 240
+    "MaximumPeopleSpaceCf": 240,
+    "FactoryEquipment": [
+      {
+        "Id": "gridlink",
+        "Quantity": 1
+      }
+    ],
+    "FactoryFeatures": [
+      "GridLink (locomotive only)"
+    ]
   },
   {
     "Id": "freight-rail-car",
@@ -7184,7 +7696,14 @@
         "StartingEconomyKmPerBar": 0.5,
         "MaximumEconomyKmPerBar": 1
       }
-    ]
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "mechanical-arm",
+        "Quantity": 2
+      }
+    ],
+    "FactoryArmStrength": 6
   },
   {
     "Id": "large-anthroform",
@@ -7266,7 +7785,14 @@
         "StartingEconomyKmPerBar": 0.5,
         "MaximumEconomyKmPerBar": 1
       }
-    ]
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "mechanical-arm",
+        "Quantity": 2
+      }
+    ],
+    "FactoryArmStrength": 9
   },
   {
     "Id": "micro-walker",
@@ -7673,6 +8199,12 @@
         "MaximumEconomyKmPerBar": 0.3,
         "StartingSpeed": 700,
         "MaximumSpeed": 2000
+      }
+    ],
+    "FactoryEquipment": [
+      {
+        "Id": "cabin-gas-seal",
+        "Quantity": 1
       }
     ]
   }

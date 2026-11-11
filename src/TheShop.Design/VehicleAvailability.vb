@@ -8,6 +8,13 @@ Public Enum VehicleAvailabilityClass
     Military
 End Enum
 
+<JsonConverter(GetType(JsonStringEnumConverter(Of VehicleSpecialtyClass)))>
+Public Enum VehicleSpecialtyClass
+    None
+    Medical
+    NonCombat
+End Enum
+
 Public NotInheritable Class VehicleAvailability
     Public Property Rating As Decimal
     Public Property BaseDays As Decimal

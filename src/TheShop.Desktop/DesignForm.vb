@@ -21,13 +21,14 @@ Public NotInheritable Class DesignForm
     Private ReadOnly chassisBox As New ComboBox With {.Name = "chassisBox", .DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
     Private ReadOnly powerPlantBox As New ComboBox With {.Name = "powerPlantBox", .DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
     Private ReadOnly vehicleName As New TextBox With {.Dock = DockStyle.Fill}
-    Private ReadOnly streetIndex As New TextBox With {.Name = "streetIndex", .Text = "1", .Dock = DockStyle.Fill}
+    Private ReadOnly streetIndex As New TextBox With {.Name = "streetIndex", .PlaceholderText = "Book default", .Dock = DockStyle.Fill}
     Private ReadOnly markup As New TextBox With {.Text = "0", .Dock = DockStyle.Fill}
     Private ReadOnly cargo As New TextBox With {.Dock = DockStyle.Fill}
     Private ReadOnly loadOverride As New TextBox With {.Dock = DockStyle.Fill}
     Private ReadOnly startingValues As New Label With {.AutoSize = True, .Dock = DockStyle.Fill, .Padding = New Padding(0, 4, 0, 4)}
     Private ReadOnly totals As New Label With {.Name = "totals", .AutoSize = True, .Dock = DockStyle.Top, .Padding = New Padding(0, 4, 0, 4)}
     Private ReadOnly availabilityBox As New ComboBox With {.DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
+    Private ReadOnly specialtyBox As New ComboBox With {.Name = "specialtyClass", .DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
     Private upgrades As DesignUpgrades
     Private catalogModifications As List(Of ModificationSelection)
     Private installedRetrofits As List(Of ModificationSelection)
@@ -65,7 +66,7 @@ Public NotInheritable Class DesignForm
         fields.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 50))
         AddField(fields, "Chassis", chassisBox, 0, 0)
         AddField(fields, "Power plant", powerPlantBox, 2, 0)
-        AddField(fields, "Street Index", streetIndex, 0, 1)
+        AddField(fields, "Street Index override", streetIndex, 0, 1)
         AddField(fields, "Markup adjustment", markup, 2, 1)
         AddField(fields, "Cargo override (CF)", cargo, 0, 2)
         AddField(fields, "Load override (kg)", loadOverride, 2, 2)
@@ -75,6 +76,10 @@ Public NotInheritable Class DesignForm
         AddHandler availabilityBox.SelectedIndexChanged, AddressOf ClearTotals
         AddField(fields, "Availability class", availabilityBox, 0, 3)
         AddField(fields, "Vehicle name", vehicleName, 2, 3)
+        specialtyBox.Items.AddRange([Enum].GetValues(Of VehicleSpecialtyClass)().Cast(Of Object)().ToArray())
+        specialtyBox.SelectedIndex = 0
+        AddHandler specialtyBox.SelectedIndexChanged, AddressOf ClearTotals
+        AddField(fields, "Specialty class", specialtyBox, 0, 4)
         layout.Controls.Add(fields, 0, 0)
         layout.Controls.Add(startingValues, 0, 1)
 
@@ -168,7 +173,8 @@ Public NotInheritable Class DesignForm
         Dim design As New StockDesign With {
             .ChassisId = DirectCast(chassisBox.SelectedItem, StockChassis).Id,
             .PowerPlantId = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant).Id,
-            .StreetIndex = ReadNumber(streetIndex.Text, "Street Index"),
+            .StreetIndex = ReadOptional(streetIndex.Text, "Street Index"),
+            .SpecialtyClass = CType(specialtyBox.SelectedItem, VehicleSpecialtyClass),
             .Name = If(String.IsNullOrWhiteSpace(vehicleName.Text), Nothing, vehicleName.Text),
             .MarkupAdjustment = ReadNumber(markup.Text, "Markup adjustment"),
             .CargoCapacity = ReadOptional(cargo.Text, "Cargo override"),
@@ -241,12 +247,15 @@ Public NotInheritable Class DesignForm
     Private Sub ShowTotals(result As StockDesignResult)
         Dim totalsValue = result.Totals
         totals.Text = $"{totalsValue.DesignPoints:N} Design Points    Base ¥{totalsValue.BaseCostNuyen:N}    Street ¥{totalsValue.StreetCostNuyen:N}" &
-            Environment.NewLine & $"Remaining cargo {totalsValue.CargoRemaining} CF    Remaining load {totalsValue.LoadRemainingKg} kg"
+            Environment.NewLine & $"Street Index {result.EffectiveStreetIndex}    Remaining cargo {totalsValue.CargoRemaining} CF    Remaining load {totalsValue.LoadRemainingKg} kg"
         If result.AppliedModifications IsNot Nothing Then
             totals.Text &= Environment.NewLine & $"{result.AppliedModifications.Count} catalog modifications applied."
         End If
         If result.InstalledRetrofits IsNot Nothing Then
-            totals.Text &= Environment.NewLine & $"Installed retrofit parts ¥{result.RetrofitPartsCostNuyen:N2}"
+            totals.Text &= Environment.NewLine & $"Installed retrofit list parts ¥{result.RetrofitListPartsCostNuyen:N2}"
+            totals.Text &= Environment.NewLine & If(result.RetrofitPartsCostNuyen.HasValue,
+                $"Installed retrofit street parts ¥{result.RetrofitPartsCostNuyen.GetValueOrDefault():N2}",
+                "Installed retrofit street parts total pending GM review (unlisted Street Index).")
         End If
         If catalogModifications IsNot Nothing AndAlso catalogModifications.Any(Function(item) item.Id.StartsWith("engine-customization-", StringComparison.OrdinalIgnoreCase)) Then
             totals.Text &= Environment.NewLine & "Engine customization requires the gamemaster's Stress test."
@@ -432,7 +441,8 @@ Public NotInheritable Class DesignForm
         chassisBox.SelectedItem = StockCatalog.FindById(catalog, result.ChassisId)
         Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
         powerPlantBox.SelectedItem = chassis.PowerPlants.Single(Function(plant) plant.Id = result.PowerPlantId)
-        streetIndex.Text = design.StreetIndex.ToString(CultureInfo.CurrentCulture)
+        streetIndex.Text = design.StreetIndex?.ToString(CultureInfo.CurrentCulture)
+        specialtyBox.SelectedItem = design.SpecialtyClass
         vehicleName.Text = design.Name
         markup.Text = design.MarkupAdjustment.ToString(CultureInfo.CurrentCulture)
         cargo.Text = design.CargoCapacity?.ToString(CultureInfo.CurrentCulture)

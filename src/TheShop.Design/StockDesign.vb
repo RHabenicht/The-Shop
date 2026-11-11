@@ -8,10 +8,11 @@ Public NotInheritable Class StockDesign
     Public Property PowerPlantId As String
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property AuxiliaryPowerPlantId As String
-    <JsonRequired>
-    Public Property StreetIndex As Decimal
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property StreetIndex As Decimal?
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property Name As String
+    Public Property SpecialtyClass As VehicleSpecialtyClass
     Public Property MarkupAdjustment As Decimal
     Public Property CargoCapacity As Decimal?
     Public Property LoadCapacityKg As Decimal?
@@ -54,7 +55,7 @@ Public NotInheritable Class StockDesign
             .ChassisMarkup = chassis.Markup,
             .CargoCapacity = cargo,
             .LoadCapacityKg = load,
-            .StreetIndex = StreetIndex,
+            .StreetIndex = If(StreetIndex, BookStreetIndex()),
             .MarkupAdjustment = MarkupAdjustment,
             .Additions = Additions
         }
@@ -92,8 +93,29 @@ Public NotInheritable Class StockDesign
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
             .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits, .AuxiliaryEngine = AuxiliaryEngine.Ratings(auxiliary),
             .ExternalCargoCapacity = externalCargo, .OperatingModes = VehicleOperatingModes.Build(CatalogModifications, powerPlant, chassis, ratings, modifiedRatings, externalCargo),
-            .Availability = availability
+            .Availability = availability, .EffectiveStreetIndex = design.StreetIndex
         }
+    End Function
+
+    Private Function BookStreetIndex() As Decimal
+        Dim index = 1D
+        Select Case AvailabilityClass.GetValueOrDefault()
+            Case VehicleAvailabilityClass.Luxury, VehicleAvailabilityClass.Security
+                index = 2D
+            Case VehicleAvailabilityClass.Military
+                index = 3D
+        End Select
+        Select Case SpecialtyClass
+            Case VehicleSpecialtyClass.Medical
+                index += 0.5D
+            Case VehicleSpecialtyClass.NonCombat
+                index += 1D
+            Case VehicleSpecialtyClass.None
+            Case Else
+                Throw New ArgumentException("Unknown vehicle specialty class.")
+        End Select
+        If DesignEnhancements.Has(CatalogModifications, "smart-materials") Then index += 1D
+        Return index
     End Function
 End Class
 
@@ -246,8 +268,15 @@ Public NotInheritable Class StockDesignResult
     Public Property AuxiliaryEngine As AuxiliaryEngineRatings
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property InstalledRetrofits As IReadOnlyList(Of InstalledRetrofit)
-    Public ReadOnly Property RetrofitPartsCostNuyen As Decimal
+    Public Property EffectiveStreetIndex As Decimal
+    Public ReadOnly Property RetrofitListPartsCostNuyen As Decimal
         Get
+            Return If(InstalledRetrofits?.Sum(Function(item) item.Quote.PartsCostNuyen), 0D)
+        End Get
+    End Property
+    Public ReadOnly Property RetrofitPartsCostNuyen As Decimal?
+        Get
+            If InstalledRetrofits IsNot Nothing AndAlso InstalledRetrofits.Any(Function(item) Not item.Quote.StreetPartsCostNuyen.HasValue) Then Return Nothing
             Return If(InstalledRetrofits?.Sum(Function(item) item.Quote.StreetPartsCostNuyen.GetValueOrDefault()), 0D)
         End Get
     End Property

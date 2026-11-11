@@ -100,7 +100,8 @@ Public Module VehicleSheet
         Row(page, "Design Points", Number(totals.DesignPoints))
         Row(page, "Effective chassis markup", Number(totals.EffectiveMarkup))
         Row(page, "Base price", "¥" & Number(totals.BaseCostNuyen))
-        Row(page, "Street Index", Number(design.StreetIndex))
+        Row(page, "Street Index", Number(result.EffectiveStreetIndex))
+        If design.SpecialtyClass <> VehicleSpecialtyClass.None Then Row(page, "Specialty class", design.SpecialtyClass.ToString())
         Row(page, "Street price", "¥" & Number(totals.StreetCostNuyen))
         If result.Availability IsNot Nothing Then
             Row(page, "Availability", $"{Number(result.Availability.Rating)} / {Number(result.Availability.BaseDays)} days")
@@ -128,9 +129,13 @@ Public Module VehicleSheet
         If result.InstalledRetrofits IsNot Nothing Then
             For Each item In result.InstalledRetrofits
                 Row(page, item.Name & " (installed retrofit)",
-                    $"{item.Quantity}; parts ¥{Number(item.Quote.StreetPartsCostNuyen)}; {item.Quote.CargoConsumed} CF; {item.Quote.LoadConsumedKg} kg; Availability {item.Quote.Availability}")
+                    $"{item.Quantity}; list parts ¥{Number(item.Quote.PartsCostNuyen)}; " &
+                    If(item.Quote.StreetPartsCostNuyen.HasValue, "street parts ¥" & Number(item.Quote.StreetPartsCostNuyen), "street price pending GM review (unlisted Street Index)") &
+                    $"; {item.Quote.CargoConsumed} CF; {item.Quote.LoadConsumedKg} kg; Availability {item.Quote.Availability}")
             Next
-            Row(page, "Installed retrofit parts total", "¥" & Number(result.RetrofitPartsCostNuyen))
+            Row(page, "Installed retrofit list parts total", "¥" & Number(result.RetrofitListPartsCostNuyen))
+            Row(page, "Installed retrofit street parts total", If(result.RetrofitPartsCostNuyen.HasValue,
+                "¥" & Number(result.RetrofitPartsCostNuyen), "Pending GM review (unlisted Street Index)"))
         End If
         For Each item In design.Additions
             Row(page, item.Name, $"{Number(item.DesignPoints)} DP; ¥{Number(item.DirectCostNuyen)} direct; {Number(item.CargoConsumed)} CF; {Number(item.LoadConsumedKg)} kg")
@@ -151,6 +156,7 @@ Public Module VehicleSheet
         If design.CatalogModifications IsNot Nothing AndAlso design.CatalogModifications.Any(Function(item) item.Id.StartsWith("engine-customization-", StringComparison.OrdinalIgnoreCase)) Then
             page.Append("<p>Engine customization requires the gamemaster’s permanent engine Stress test.</p>")
         End If
+        page.Append("<h2>GM review</h2><p>Proposed vehicle. Final approval, price, Street Index, Availability and any changes are determined by the gamemaster (Rigger 3 Revised, pp. 113, 121).</p>")
         page.Append("<p class='footer'>The Shop · Calculated from the current design. Manual entries are included in the totals.</p></main></body></html>")
         Return page.ToString()
     End Function

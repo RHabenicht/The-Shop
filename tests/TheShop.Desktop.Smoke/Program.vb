@@ -48,7 +48,7 @@ Module Program
                 editor.LoadDesignFile(destination)
                 Dim reopened = editor.ReadDesign()
                 Require(reopened.ChassisId = "sand-buggy" AndAlso reopened.PowerPlantId = "gasoline" AndAlso
-                        reopened.StreetIndex = 2D AndAlso reopened.Additions.Single().LoadConsumedKg = 25D AndAlso
+                        reopened.StreetIndex.GetValueOrDefault() = 2D AndAlso reopened.Additions.Single().LoadConsumedKg = 25D AndAlso
                         totals.Text.Contains("Street ¥5,600.00"), "Reopening the file did not restore the editor and its totals.")
                 File.WriteAllText(destination, "{""ChassisId"":""skiff"",""PowerPlantId"":""sail"",""StreetIndex"":1}")
                 editor.LoadDesignFile(destination)
@@ -419,13 +419,13 @@ Module Program
                 editor.LoadDesignFile(destination)
                 Dim installedResult = editor.ReadDesign().Calculate(sheetCatalog)
                 Require(editor.ReadDesign().InstalledRetrofits.Count = 2 AndAlso
-                        installedResult.RetrofitPartsCostNuyen = 5000D AndAlso
+                        installedResult.RetrofitPartsCostNuyen.GetValueOrDefault() = 5000D AndAlso
                         installedResult.Totals.BaseCostNuyen = 9500D AndAlso
                         installedResult.Totals.CargoRemaining = 13D AndAlso installedResult.Totals.LoadRemainingKg = 680D,
                         "Installed retrofits should preserve their parts cost and use customization capacity after reopening.")
                 VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
                 Require(File.ReadAllText(sheetPath).Contains("Crane (installed retrofit)") AndAlso
-                        File.ReadAllText(sheetPath).Contains("Installed retrofit parts total"),
+                        File.ReadAllText(sheetPath).Contains("Installed retrofit street parts total"),
                         "Installed retrofit equipment and costs should appear on the vehicle sheet.")
                 retrofittedVan.InstalledRetrofits.Add(New ModificationSelection With {.Id = "medical-clinic", .Quantity = 1})
                 Dim excessRetrofitRejected = False
@@ -535,7 +535,7 @@ Module Program
                 editor.LoadDesignFile(destination)
                 Dim retrofitMountResult = editor.ReadDesign().Calculate(sheetCatalog)
                 Require(retrofitMountResult.ModifiedRatings.Signature.GetValueOrDefault() = 1 AndAlso
-                        retrofitMountResult.RetrofitPartsCostNuyen = 4800D AndAlso
+                        retrofitMountResult.RetrofitPartsCostNuyen.GetValueOrDefault() = 4800D AndAlso
                         retrofitMountResult.Totals.CargoRemaining = 45D AndAlso retrofitMountResult.Totals.LoadRemainingKg = 980D,
                         "Retrofitted mounts should update final ratings and use customization pricing and capacity.")
                 electronicAircraft.CatalogModifications = New List(Of ModificationSelection) From {
@@ -701,7 +701,7 @@ Module Program
                 editor.LoadDesignFile(destination)
                 Dim sensorRefitResult = editor.ReadDesign().Calculate(sheetCatalog)
                 Require(sensorRefitResult.ModifiedRatings.Sensor.GetValueOrDefault() = 5 AndAlso
-                        sensorRefitResult.RetrofitPartsCostNuyen = 60000D AndAlso sensorRefitResult.Totals.CargoRemaining = 41D AndAlso
+                        sensorRefitResult.RetrofitPartsCostNuyen.GetValueOrDefault() = 60000D AndAlso sensorRefitResult.Totals.CargoRemaining = 41D AndAlso
                         sensorRefitResult.Totals.LoadRemainingKg = 930D AndAlso sensorRefitResult.Totals.BaseCostNuyen = 17000D,
                         "Replacement sensors should use the final rating, saved Street Index, and customization capacity.")
                 Using editRetrofits As New ModificationDialog(sensorRefit.InstalledRetrofits, quoteChassis, quotePlant, RetrofitCatalog.Rules)
@@ -715,14 +715,45 @@ Module Program
                     Dim choices = FindControl(Of ComboBox)(restrictedQuote, "retrofitOptions")
                     choices.SelectedIndex = choices.Items.Cast(Of ModificationRule)().ToList().FindIndex(Function(rule) rule.Id = "sensors")
                     FindControl(Of NumericUpDown)(restrictedQuote, "retrofitQuantity").Value = 5D
-                    Require(Not FindControl(Of Button)(restrictedQuote, "installRetrofit").Enabled,
-                            "A restricted part should require an assigned Street Index before installation.")
+                    Require(FindControl(Of Button)(restrictedQuote, "installRetrofit").Enabled AndAlso
+                            FindControl(Of Label)(restrictedQuote, "retrofitOutput").Text.Contains("pending GM review"),
+                            "A restricted part should be available on a proposed sheet without an invented Street Index.")
                     FindControl(Of NumericUpDown)(restrictedQuote, "retrofitStreetIndex").Value = 4D
                     FindControl(Of CheckBox)(restrictedQuote, "customStreetIndex").Checked = True
                     Require(FindControl(Of Button)(restrictedQuote, "installRetrofit").Enabled AndAlso
                             FindControl(Of Label)(restrictedQuote, "retrofitOutput").Text.Contains("¥60,000.00"),
                             "The assigned Street Index should price restricted equipment and enable installation.")
                 End Using
+                sensorRefit.InstalledRetrofits.Single().StreetIndexOverride = Nothing
+                editor.WriteDesignFile(destination, sensorRefit)
+                editor.LoadDesignFile(destination)
+                Dim pendingRefit = editor.ReadDesign().Calculate(sheetCatalog)
+                Require(Not pendingRefit.RetrofitPartsCostNuyen.HasValue AndAlso pendingRefit.RetrofitListPartsCostNuyen = 15000D AndAlso
+                        pendingRefit.ModifiedRatings.Sensor.GetValueOrDefault() = 5 AndAlso pendingRefit.Totals.CargoRemaining = 41D,
+                        "Unpriced street equipment should survive saving with its list cost, rating and capacity intact.")
+                VehicleSheet.Write(sheetPath, editor.ReadDesign(), sheetCatalog)
+                Require(File.ReadAllText(sheetPath).Contains("street price pending GM review") AndAlso File.ReadAllText(sheetPath).Contains("GM review"),
+                        "The exported sheet must identify unresolved street prices for the GM.")
+                Dim bookPriced As New StockDesign With {.ChassisId = "van", .PowerPlantId = "diesel"}
+                For Each classification In [Enum].GetValues(Of VehicleAvailabilityClass)()
+                    bookPriced.AvailabilityClass = classification
+                    Dim expected = If(classification = VehicleAvailabilityClass.Standard, 1D, If(classification = VehicleAvailabilityClass.Military, 3D, 2D))
+                    Require(bookPriced.Calculate(sheetCatalog).EffectiveStreetIndex = expected,
+                            "Vehicle class should supply the p. 113 base Street Index when no override is supplied.")
+                Next
+                bookPriced.AvailabilityClass = VehicleAvailabilityClass.Standard
+                bookPriced.CatalogModifications = New List(Of ModificationSelection) From {New ModificationSelection With {.Id = "smart-materials", .Quantity = 1}}
+                Require(bookPriced.Calculate(sheetCatalog).EffectiveStreetIndex = 2D, "Smart materials should add the p. 118 Street Index modifier.")
+                bookPriced.SpecialtyClass = VehicleSpecialtyClass.Medical
+                Require(bookPriced.Calculate(sheetCatalog).EffectiveStreetIndex = 2.5D, "Medical specialty should add 0.5 to the base index.")
+                bookPriced.SpecialtyClass = VehicleSpecialtyClass.NonCombat
+                Require(bookPriced.Calculate(sheetCatalog).EffectiveStreetIndex = 3D, "Noncombat specialty should add 1 to the base index.")
+                editor.WriteDesignFile(destination, bookPriced)
+                editor.LoadDesignFile(destination)
+                Require(Not editor.ReadDesign().StreetIndex.HasValue AndAlso editor.ReadDesign().SpecialtyClass = VehicleSpecialtyClass.NonCombat AndAlso
+                        editor.ReadDesign().Calculate(sheetCatalog).EffectiveStreetIndex = 3D, "Book pricing and specialty selection should survive an editor round trip.")
+                bookPriced.StreetIndex = 4D
+                Require(bookPriced.Calculate(sheetCatalog).EffectiveStreetIndex = 4D, "A saved final Street Index override must remain authoritative.")
                 electronicAircraft.CatalogModifications = New List(Of ModificationSelection) From {
                     New ModificationSelection With {.Id = "aircraft-drop-tanks", .Quantity = 2}
                 }
@@ -750,7 +781,7 @@ Module Program
                 editor.WriteDesignFile(destination, externalCargoVan)
                 editor.LoadDesignFile(destination)
                 Dim externalCargoResult = editor.ReadDesign().Calculate(sheetCatalog)
-                Require(externalCargoResult.ExternalCargoCapacity = 12D AndAlso externalCargoResult.RetrofitPartsCostNuyen = 3000D AndAlso
+                Require(externalCargoResult.ExternalCargoCapacity = 12D AndAlso externalCargoResult.RetrofitPartsCostNuyen.GetValueOrDefault() = 3000D AndAlso
                         externalCargoResult.Totals.CargoRemaining = 48D AndAlso externalCargoResult.OperatingModes.Single().Name = "External cargo mounts loaded",
                         "External mounts should store separate cargo capacity and report the loaded Handling modifier.")
                 Require(JsonSerializer.Serialize(externalCargoResult).Contains("""ExternalCargoCapacity"":12"),

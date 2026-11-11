@@ -47,7 +47,6 @@ Public Module RetrofitCatalog
             If rule Is Nothing OrElse Not seen.Add(rule.Id) Then Throw New ArgumentException("An installed retrofit is unknown or repeated.")
             entries.Add(New InstalledRetrofit With {.Name = rule.Name, .Quantity = selection.Quantity,
                 .Quote = Quote(rule, selection.Quantity, chassis, plant, selection.StreetIndexOverride)})
-            If Not entries.Last().Quote.StreetIndex.HasValue Then Throw New ArgumentException("Assign a Street Index before installing this restricted retrofit.")
             combined.Add(New ModificationSelection With {.Id = rule.Id, .Quantity = selection.Quantity})
         Next
         Dim groups = combined.GroupBy(Function(item) item.Id, StringComparer.OrdinalIgnoreCase).ToArray()

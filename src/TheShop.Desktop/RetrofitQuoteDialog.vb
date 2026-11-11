@@ -25,7 +25,7 @@ Friend NotInheritable Class RetrofitQuoteDialog
         Dim options As New ComboBox With {.Name = "retrofitOptions", .DropDownStyle = ComboBoxStyle.DropDownList, .Width = 320, .DisplayMember = NameOf(ModificationRule.Name)}
         Dim quantity As New NumericUpDown With {.Name = "retrofitQuantity", .Minimum = 1, .Maximum = Integer.MaxValue, .Value = 1}
         Dim quantityLabel As New Label With {.AutoSize = True}
-        Dim customIndex As New CheckBox With {.Name = "customStreetIndex", .Text = "Use assigned Street Index", .AutoSize = True}
+        Dim customIndex As New CheckBox With {.Name = "customStreetIndex", .Text = "GM Street Index override", .AutoSize = True}
         Dim streetIndex As New NumericUpDown With {.Name = "retrofitStreetIndex", .Minimum = 0.01D, .Maximum = 1000D, .DecimalPlaces = 2, .Value = 1D, .Enabled = False}
         Dim updating As Boolean
         Dim output As New Label With {.Name = "retrofitOutput", .AutoSize = True, .MinimumSize = New Size(360, 0)}
@@ -54,13 +54,13 @@ Friend NotInheritable Class RetrofitQuoteDialog
                                     Dim load = totals.LoadRemainingKg - result.LoadConsumedKg
                                     Dim streetCost = If(result.StreetPartsCostNuyen.HasValue,
                                         $"Street parts cost ¥{result.StreetPartsCostNuyen.GetValueOrDefault():N2} (SI {result.StreetIndex})",
-                                        "Assign a Street Index to price and install this restricted part.")
+                                        "Street Index not listed in Rigger 3 Revised. Street price pending GM review.")
                                     output.Text = $"List parts cost ¥{result.PartsCostNuyen:N2}{Environment.NewLine}" &
                                         streetCost & Environment.NewLine &
                                         $"Availability {result.Availability}{Environment.NewLine}" &
                                         $"Remaining cargo {cargo:0.##} CF   Remaining load {load:0.##} kg"
                                     If result.ExternalCargoCapacity > 0D Then output.Text &= Environment.NewLine & $"External cargo capacity {result.ExternalCargoCapacity} CF."
-                                    installButton.Enabled = cargo >= 0D AndAlso load >= 0D AndAlso result.StreetIndex.HasValue
+                                    installButton.Enabled = cargo >= 0D AndAlso load >= 0D
                                     If cargo < 0D OrElse load < 0D Then output.Text &= Environment.NewLine & "Exceeds available capacity."
                                 End Sub
         AddHandler installButton.Click,

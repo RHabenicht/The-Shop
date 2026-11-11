@@ -7,7 +7,7 @@ Public NotInheritable Class LegacyOptionMapping
     Public Property Id As String
     Public Property Flag As Boolean
     Public Property Quantity As Integer?
-    Public Property Variant As String
+    Public Property TurretStyle As String
     Public Property Reason As String
 End Class
 
@@ -37,6 +37,28 @@ Public Module LegacyDesignConversion
         Return Regex.Replace(If(name, "").ToLowerInvariant(), "[^a-z0-9]", "")
     End Function
 
+    Public Function FindComponents(reference As JsonElement, catalog As IReadOnlyList(Of StockChassis)) As (Chassis As StockChassis, Plant As StockPowerPlant)
+        Dim oldName = reference.GetProperty("Chassis").GetProperty("Name").GetString()
+        Dim chassisKey = Key(oldName.Replace(" (clean)", "", StringComparison.OrdinalIgnoreCase))
+        Dim aliases As New Dictionary(Of String, String) From {
+            {"commutersubcomp", "subcompact"}, {"apctracked", "tracked-apc"}, {"apcwheeled", "wheeled-apc"},
+            {"singleengine", "single-engine-aircraft"}, {"twinengine", "twin-engine-aircraft"}
+        }
+        For Each size In {"micro", "small", "medium", "large"}
+            aliases("rotaryuav" & size) = size & "-rotary-wing-uav"
+            aliases("fixedwinguav" & size) = size & "-fixed-wing-uav"
+            aliases("tiltwinguav" & size) = size & "-tilt-wing-uav"
+        Next
+        Dim candidates = catalog.Where(Function(item) Key(item.Name) = chassisKey OrElse
+            (aliases.ContainsKey(chassisKey) AndAlso item.Id = aliases(chassisKey))).ToArray()
+        If candidates.Length <> 1 Then Return (Nothing, Nothing)
+        Dim engineKey = Key(reference.GetProperty("Engine").GetProperty("Name").GetString().Split(","c)(0))
+        If engineKey = "electric" Then engineKey = "electricbattery"
+        If engineKey = "turbine" Then engineKey = "jetturbine"
+        Dim plants = candidates(0).PowerPlants.Where(Function(item) Key(item.Name) = engineKey).ToArray()
+        Return (candidates(0), If(plants.Length = 1, plants(0), Nothing))
+    End Function
+
     Public Function CreateDesign(reference As JsonElement, chassisId As String, plantId As String,
                                  catalog As IReadOnlyList(Of StockChassis)) As StockDesign
         Dim chassis = StockCatalog.FindById(catalog, chassisId)
@@ -45,6 +67,10 @@ Public Module LegacyDesignConversion
             .Name = reference.GetProperty("Name").GetString(), .LegacyReference = reference,
             .CatalogModifications = New List(Of ModificationSelection), .LegacyImportNotes = New List(Of String)
         }
+        Dim components = FindComponents(reference, catalog)
+        If components.Chassis Is Nothing OrElse components.Plant Is Nothing OrElse components.Chassis.Id <> chassisId OrElse components.Plant.Id <> plantId Then
+            baseDesign.LegacyImportNotes.Add($"Review manually: Source chassis/engine are being rebuilt on {chassis.Name} / {plantId}. Original component ratings and prices are not carried over.")
+        End If
         Dim markups As JsonElement
         If reference.TryGetProperty("Markups", markups) Then
             If markups.GetProperty("Ambulance").GetDouble() > 0 Then
@@ -197,7 +223,7 @@ Public Module LegacyDesignConversion
                 Dim size = mapping.Id.Split("-"c)(1)
                 Dim variants = all.Where(Function(entry) entry.Mapping.Kind = "TurretVariant" AndAlso entry.Mapping.Id = size).ToArray()
                 If variants.Length > 1 Then Throw New ArgumentException("Combined pop-up and anti-aircraft turret variants need a combined revised specification.")
-                AddSelection(design, mapping.Id & If(variants.Length = 1, "-" & variants(0).Mapping.Variant, ""), quantity)
+                AddSelection(design, mapping.Id & If(variants.Length = 1, "-" & variants(0).Mapping.TurretStyle, ""), quantity)
                 Return
             Case "TurretVariant"
                 If Not all.Any(Function(entry) entry.Mapping.Kind = "Turret" AndAlso entry.Mapping.Id.Contains("-" & mapping.Id & "-")) Then Throw New ArgumentException("A turret variant has no saved base turret.")

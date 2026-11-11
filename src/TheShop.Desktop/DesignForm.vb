@@ -482,14 +482,8 @@ Public NotInheritable Class DesignForm
     End Sub
 
     Private Function LegacyComponents(reference As JsonElement) As (Chassis As StockChassis, Plant As StockPowerPlant, Matched As Boolean)
-        Dim chassisName = reference.GetProperty("Chassis").GetProperty("Name").GetString().Trim()
-        Dim plantName = reference.GetProperty("Engine").GetProperty("Name").GetString().Trim()
-        Dim matchingChassis = catalog.Where(Function(item) String.Equals(item.Name, chassisName, StringComparison.OrdinalIgnoreCase)).ToArray()
-        If matchingChassis.Length = 1 Then
-            Dim matchingPlants = matchingChassis(0).PowerPlants.
-                Where(Function(item) String.Equals(item.Name, plantName, StringComparison.OrdinalIgnoreCase)).ToArray()
-            If matchingPlants.Length = 1 Then Return (matchingChassis(0), matchingPlants(0), True)
-        End If
+        Dim matching = LegacyDesignConversion.FindComponents(reference, catalog)
+        If matching.Chassis IsNot Nothing AndAlso matching.Plant IsNot Nothing Then Return (matching.Chassis, matching.Plant, True)
         Return (DirectCast(chassisBox.SelectedItem, StockChassis), DirectCast(powerPlantBox.SelectedItem, StockPowerPlant), False)
     End Function
 

@@ -488,56 +488,56 @@
     "Kind": "TurretVariant",
     "Id": "micro",
     "Flag": true,
-    "Variant": "anti-aircraft"
+    "TurretStyle": "anti-aircraft"
   },
   {
     "Name": "Turrets: Anti-Aircraft (mini)",
     "Kind": "TurretVariant",
     "Id": "mini",
     "Flag": true,
-    "Variant": "anti-aircraft"
+    "TurretStyle": "anti-aircraft"
   },
   {
     "Name": "Turrets: Anti-Aircraft (small)",
     "Kind": "TurretVariant",
     "Id": "small",
     "Flag": true,
-    "Variant": "anti-aircraft"
+    "TurretStyle": "anti-aircraft"
   },
   {
     "Name": "Turrets: Anti-Aircraft (medium)",
     "Kind": "TurretVariant",
     "Id": "medium",
     "Flag": true,
-    "Variant": "anti-aircraft"
+    "TurretStyle": "anti-aircraft"
   },
   {
     "Name": "Turrets: Pop-Up (micro)",
     "Kind": "TurretVariant",
     "Id": "micro",
     "Flag": true,
-    "Variant": "pop-up"
+    "TurretStyle": "pop-up"
   },
   {
     "Name": "Turrets: Pop-Up (mini)",
     "Kind": "TurretVariant",
     "Id": "mini",
     "Flag": true,
-    "Variant": "pop-up"
+    "TurretStyle": "pop-up"
   },
   {
     "Name": "Turrets: Pop-Up (small)",
     "Kind": "TurretVariant",
     "Id": "small",
     "Flag": true,
-    "Variant": "pop-up"
+    "TurretStyle": "pop-up"
   },
   {
     "Name": "Turrets: Pop-Up (medium)",
     "Kind": "TurretVariant",
     "Id": "medium",
     "Flag": true,
-    "Variant": "pop-up"
+    "TurretStyle": "pop-up"
   },
   {
     "Name": "Vehicle Gyroscopic Stabilizers",

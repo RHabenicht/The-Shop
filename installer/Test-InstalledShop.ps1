@@ -33,8 +33,10 @@ function Assert-ApplicationStarts([string]$Path, [string]$WorkingDirectory) {
             [void]$process.CloseMainWindow()
             if (-not $process.WaitForExit(10000)) {
                 Stop-Process -Id $process.Id -Force
-                if (-not $process.WaitForExit(10000)) { throw 'The installed app did not stop.' }
+                [void]$process.WaitForExit(10000)
+                throw 'The installed app did not close cleanly.'
             }
+            if ($process.ExitCode -ne 0) { throw "The installed app closed with code $($process.ExitCode)." }
         }
         $process.Dispose()
     }

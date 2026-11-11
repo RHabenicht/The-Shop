@@ -8,11 +8,6 @@ on:
     branches: [main]
     paths: ['src/**', 'tests/**', 'installer/**', '.github/workflows/windows.yml']
   workflow_dispatch:
-    inputs:
-      package_installer:
-        description: Build and test the final installer
-        type: boolean
-        default: false
 
 permissions:
   contents: read
@@ -20,7 +15,7 @@ permissions:
 jobs:
   build:
     runs-on: windows-2025
-    timeout-minutes: 12
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-dotnet@v4
@@ -33,19 +28,36 @@ jobs:
       - name: Test editor calculation and file round trip
         run: dotnet run --project tests/TheShop.Desktop.Smoke -c Release
       - name: Build installer
-        if: github.event_name == 'workflow_dispatch' && inputs.package_installer
         shell: pwsh
         run: |
           $compiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'
           & $compiler 'installer/TheShop.iss'
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup exited with code $LASTEXITCODE." }
-      - name: Test installer, installed startup, and uninstall
-        if: github.event_name == 'workflow_dispatch' && inputs.package_installer
+      - name: Test installation, installed startup, repair, and uninstall
         shell: pwsh
-        run: ./installer/Test-InstalledShop.ps1 -Installer installer-output/The-Shop-Setup-x64.exe
-      - uses: actions/upload-artifact@v4
-        if: github.event_name == 'workflow_dispatch' && inputs.package_installer
+        run: |
+          $version = ([xml](Get-Content src/TheShop.Desktop/TheShop.Desktop.vbproj -Raw)).Project.PropertyGroup.Version
+          ./installer/Test-InstalledShop.ps1 -Installer installer-output/The-Shop-Setup-x64.exe -ExpectedVersion $version -Report installer-output/Installer-Test-Report.txt
+      - name: Prepare download package
+        shell: pwsh
+        run: |
+          Copy-Item installer/INSTALL.txt installer-output/INSTALL.txt
+          $hash = (Get-FileHash installer-output/The-Shop-Setup-x64.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content installer-output/SHA256SUMS.txt "$hash  The-Shop-Setup-x64.exe" -Encoding ascii
+      - name: Upload tested installer
+        uses: actions/upload-artifact@v4
         with:
           name: The-Shop-Windows-x64
-          path: installer-output/The-Shop-Setup-x64.exe
+          path: |
+            installer-output/The-Shop-Setup-x64.exe
+            installer-output/INSTALL.txt
+            installer-output/Installer-Test-Report.txt
+            installer-output/SHA256SUMS.txt
           if-no-files-found: error
+      - name: Upload installer diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: The-Shop-Installer-Diagnostics
+          path: installer-output/*.log
+          if-no-files-found: ignore

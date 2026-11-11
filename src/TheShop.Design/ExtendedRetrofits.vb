@@ -8,7 +8,7 @@ Public Module ExtendedRetrofits
         "autosoft-interpretation", "towed-array-sonar", "power-amplifier", "remote-control-encryption", "retransmission-power-amplifier", "aircraft-flotation", "generator",
         "drone-rack-body-0", "drone-rack-body-1", "drone-rack-body-2", "drone-rack-body-3", "aircraft-drop-tanks", "amphibious-operation", "seat-armor",
         "standard-tires", "performance-tires", "off-road-tires", "dual-purpose-tires", "runflat-upgrade", "spare-standard-tires", "spare-performance-tires", "spare-off-road-tires", "spare-dual-purpose-tires",
-        "external-missile-mounts", "internal-missile-storage", "internal-heavy-missile-storage", "naval-weapons-control", "torpedo-tube-manual", "torpedo-tube-autoloader", "torpedo-storage-rack",
+        "external-missile-mounts", "external-missile-mounts-reinforced", "internal-missile-storage", "internal-heavy-missile-storage", "naval-weapons-control", "torpedo-tube-manual", "torpedo-tube-autoloader", "torpedo-storage-rack",
         "ring-mount-door-gun", "gunnery-recoil-adjusters", "weapon-gyro-stabilization", "pistol-mount-conversion", "smg-mount-conversion", "rifle-mount-conversion", "heavy-mount-conversion", "sidecar", "ammo-bin-small-arms", "ammo-bin-machine-gun", "ammo-bin-heavy"
     }
     Public Function Contains(id As String) As Boolean
@@ -113,8 +113,8 @@ Public Module ExtendedRetrofits
                 Dim rate = If(rule.Id.Contains("performance"), 75D, If(rule.Id.Contains("off-road"), 125D, If(rule.Id.Contains("dual-purpose"), 250D, 50D)))
                 result.PartsCostNuyen = body * rate * q
                 If rule.Id.StartsWith("spare-", StringComparison.Ordinal) Then result.CargoConsumed = Math.Floor(body / 2D) * q
-            Case "external-missile-mounts"
-                result.PartsCostNuyen = 1500D * q : result.StreetIndex = 5D : result.Availability = "10 / 60 days"
+            Case "external-missile-mounts", "external-missile-mounts-reinforced"
+                result.PartsCostNuyen = If(rule.Id.EndsWith("reinforced", StringComparison.Ordinal), 5000D, 1500D) * q : result.StreetIndex = 5D : result.Availability = "10 / 60 days"
             Case "internal-missile-storage", "internal-heavy-missile-storage"
                 Dim heavy = rule.Id = "internal-heavy-missile-storage"
                 result.CargoConsumed = If(heavy, 8D + 50D * q, 2D + 3D * q) : result.LoadConsumedKg = If(heavy, 500D, 0D)

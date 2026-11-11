@@ -21,7 +21,7 @@ End Class
 
 Public Module VehiclePayload
     Private ReadOnly weaponValues As New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase) From {
-        {"SMG", 1D}, {"Microwave Designator", 1D}, {"Rifle", 1D}, {"Grenade Launcher", 1D}, {"LMG", 1.5D},
+        {"Pistol", 1D}, {"Shotgun", 1D}, {"Missile", 0D}, {"Heavy Missile", 0D}, {"Torpedo", 0D}, {"Mine", 0D}, {"SMG", 1D}, {"Microwave Designator", 1D}, {"Rifle", 1D}, {"Grenade Launcher", 1D}, {"LMG", 1.5D},
         {"MMG", 2D}, {"HMG", 2D}, {"Missile Launcher", 2D}, {"Rocket Launcher", 2D}, {"Harpoon Gun", 2D}, {"Vindicator", 2D},
         {"Vanquisher", 2.5D}, {"Vengeance", 2.5D}, {"Assault Cannon", 3D}, {"Autocannon", 3D}, {"Vehicle Laser", 3D},
         {"Bolt", 5D}, {"Firelance", 5D}, {"Heavy Railgun", 5D}, {"Talon", 5D}, {"Arbalest", 5D}, {"RASCAM", 5D},
@@ -47,7 +47,17 @@ Public Module VehiclePayload
                     Dim mount = mounts.Where(Function(choice) String.Equals(choice.Id, item.MountId, StringComparison.OrdinalIgnoreCase)).ToArray()
                     Dim count = mount.Sum(Function(choice) CLng(choice.Quantity))
                     If item.MountNumber < 1 OrElse item.MountNumber > count Then Throw New ArgumentException($"Payload '{item.Name}' has no matching mount instance.")
-                    Dim capacity = WeaponCapacity(item.MountId)
+                    Dim ordnance = value = 0D
+                    Dim capacity As Decimal
+                    If ordnance Then
+                        If Not (item.MountId.StartsWith("external-missile-mounts", StringComparison.Ordinal) OrElse item.MountId.StartsWith("internal-", StringComparison.Ordinal) OrElse item.MountId.StartsWith("torpedo-", StringComparison.Ordinal)) Then Throw New ArgumentException("Ordnance requires an appropriate launch mount, tube or storage rack.")
+                        Dim maximumWeight = If(item.MountId.EndsWith("reinforced", StringComparison.Ordinal), 1500D, 300D)
+                        If item.MountId.StartsWith("external-", StringComparison.Ordinal) AndAlso chassis.Category <> "Ship" AndAlso chassis.Category <> "Submarine" AndAlso item.UnitWeightKg > maximumWeight Then Throw New ArgumentException("Ordnance exceeds the mount's weight limit.")
+                        capacity = 1D
+                        value = 1D
+                    Else
+                        capacity = WeaponCapacity(item.MountId)
+                    End If
                     Dim key = item.MountId & "#" & item.MountNumber
                     used(key) = If(used.ContainsKey(key), used(key), 0D) + value * item.Quantity
                     If used(key) > capacity Then Throw New ArgumentException($"Weapons exceed the capacity of {key}.")
@@ -136,6 +146,8 @@ Public Module VehiclePayload
     End Function
 
     Public Function Arc(id As String) As String
+        If id.StartsWith("torpedo-", StringComparison.Ordinal) Then Return "Fore or aft tube/storage group; separate torpedo stores"
+        If id.Contains("missile") Then Return "Ordnance launch mount"
         If id.Contains("turret") Then Return If(id.Contains("anti-aircraft"), "360°; −10° to +75° elevation", "360°; −10° to +45° elevation")
         If id.StartsWith("ring-mount", StringComparison.Ordinal) Then Return "360°; ±30° elevation; manual gunner"
         If id = "pintle-mount" Then Return "±60° horizontal; ±30° elevation; manual gunner"

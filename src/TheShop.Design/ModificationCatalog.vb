@@ -257,6 +257,7 @@ Public Module ModificationCatalog
         New ModificationRule("torpedo-storage-rack", "Torpedo storage rack", "torpedoes", Integer.MaxValue, 32D),
         New ModificationRule("internal-missile-storage", "Internal missile/rocket mount", "missiles", Integer.MaxValue),
         New ModificationRule("internal-heavy-missile-storage", "Internal heavy missile mount", "missiles", Integer.MaxValue),
+        New ModificationRule("external-missile-mounts-reinforced", "Reinforced aircraft ordnance mounts", "mounts", Integer.MaxValue),
         New ModificationRule("external-missile-mounts", "External missile/rocket mounts", "mounts", Integer.MaxValue),
         New ModificationRule("naval-weapons-control", "Naval weapons control network", "stations", Integer.MaxValue, 100D, 5000D, 500D),
         New ModificationRule("robotic-pilot", "Robotic-pilot advanced programming", "rating", 5),
@@ -329,7 +330,7 @@ Public Module ModificationCatalog
         If rule.Id = "weapon-gyro-stabilization" Then Return CInt(Math.Min(Integer.MaxValue, body * 2D))
         If rule.Id = "setup-time-reduction" Then Return CInt(Math.Ceiling((2D * body + 1D) / 2D))
         If rule.Id = "aircraft-drop-tanks" Then Return body \ 2
-        If rule.Id = "external-missile-mounts" Then Return body
+        If rule.Id.StartsWith("external-missile-mounts", StringComparison.Ordinal) Then Return body
         If rule.Id = "extra-entry-points" Then
             If chassis.Hull.HasValue Then Return CInt(Math.Min(Integer.MaxValue, chassis.Hull.Value * 2D))
             Return CInt(Math.Ceiling(body / 2D))
@@ -362,8 +363,10 @@ Public Module ModificationCatalog
                 Return chassis.Category = "Ship" OrElse chassis.Category = "Submarine"
             Case "internal-missile-storage", "internal-heavy-missile-storage"
                 Return chassis.Body.HasValue OrElse chassis.Hull.HasValue
+            Case "external-missile-mounts-reinforced"
+                Return (chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft") AndAlso VehicleScale.RuleBody(chassis) > 0
             Case "external-missile-mounts"
-                Return chassis.Body.GetValueOrDefault() > 0
+                Return VehicleScale.RuleBody(chassis) > 0
             Case "dipping-sonar"
                 Return chassis.Category = "Rotor Craft" OrElse chassis.Category = "Vectored-Thrust Aircraft"
             Case "airlock"
@@ -833,7 +836,7 @@ Public Module ModificationCatalog
         Next
         If seen.Contains("aircraft-drop-tanks") Then
             Dim pairs = validated.Single(Function(choice) choice.Rule.Id = "aircraft-drop-tanks").Quantity
-            Dim external = validated.Where(Function(choice) choice.Rule.Id = "external-missile-mounts").Select(Function(choice) choice.Quantity).SingleOrDefault()
+            Dim external = validated.Where(Function(choice) choice.Rule.Id.StartsWith("external-missile-mounts", StringComparison.Ordinal)).Select(Function(choice) choice.Quantity).Sum()
             If 2D * pairs + external > chassis.Body.GetValueOrDefault() Then Throw New ArgumentException("Drop tanks and external missile mounts exceed the aircraft's external mounting limit.")
             If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
             finalRatings.FuelCapacity = If(upgrades?.FuelCapacity, plant.FuelLiters).GetValueOrDefault() + 2000D * pairs
@@ -843,7 +846,7 @@ Public Module ModificationCatalog
             finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) + pairs \ 2
         End If
         Dim fixedExternalPenalty = If(validated.Any(Function(choice) choice.Rule.Id.StartsWith("external-fixed-", StringComparison.Ordinal)), 1, 0)
-        Dim missileMounts = validated.Where(Function(choice) choice.Rule.Id = "external-missile-mounts").Select(Function(choice) choice.Quantity).SingleOrDefault()
+        Dim missileMounts = validated.Where(Function(choice) choice.Rule.Id.StartsWith("external-missile-mounts", StringComparison.Ordinal)).Select(Function(choice) choice.Quantity).SingleOrDefault()
         Dim isAircraft = chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft"
         Dim missilePenalty = If(isAircraft, missileMounts \ 2, If(missileMounts > 0, 1, 0))
         Dim turretPenalty = validated.Where(Function(choice) choice.Rule.Id.Contains("turret") AndAlso Not choice.Rule.Id.EndsWith("-pop-up", StringComparison.Ordinal)).

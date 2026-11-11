@@ -247,7 +247,7 @@ Public NotInheritable Class DesignForm
     Private Sub ShowTotals(result As StockDesignResult)
         Dim totalsValue = result.Totals
         totals.Text = $"{totalsValue.DesignPoints:N} Design Points    Base ¥{totalsValue.BaseCostNuyen:N}    Street ¥{totalsValue.StreetCostNuyen:N}" &
-            Environment.NewLine & $"Street Index {result.EffectiveStreetIndex}    Remaining cargo {totalsValue.CargoRemaining} CF    Remaining load {totalsValue.LoadRemainingKg} kg"
+            Environment.NewLine & $"Street Index {result.EffectiveStreetIndex}    Remaining cargo {totalsValue.CargoRemaining:0.##} CF    Remaining load {totalsValue.LoadRemainingKg:0.##} kg"
         If result.UpgradedRatings?.AdditionalFuelCapacity.HasValue Then totals.Text &= Environment.NewLine & $"Additional fuel storage {result.UpgradedRatings.AdditionalFuelCapacity} {result.UpgradedRatings.AdditionalFuelUnit}; original tank units retained."
         If result.ModifiedRatings?.PersonalArmor.HasValue Then totals.Text &= Environment.NewLine & $"Personal ballistic armor {result.ModifiedRatings.PersonalArmor}"
         If result.ModifiedRatings?.AblativeArmor.HasValue Then totals.Text &= Environment.NewLine & $"Ablative armor bonus {result.ModifiedRatings.AblativeArmor} (not hardened)"
@@ -342,7 +342,7 @@ Public NotInheritable Class DesignForm
     End Sub
 
     Private Sub EditPayload(sender As Object, e As EventArgs)
-        Using dialog As New PayloadDialog(payload, equipmentSettings)
+        Using dialog As New PayloadDialog(payload, equipmentSettings, If(catalogModifications, New List(Of ModificationSelection)).Concat(If(installedRetrofits, New List(Of ModificationSelection))).ToArray())
             If dialog.ShowDialog(Me) = DialogResult.OK Then
                 Try
                     Dim design = ReadDesign()

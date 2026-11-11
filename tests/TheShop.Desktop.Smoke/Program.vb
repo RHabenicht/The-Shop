@@ -340,7 +340,7 @@ Module Program
                 editor.WriteDesignFile(destination, sealedVan)
                 editor.LoadDesignFile(destination)
                 Require(totals.Text.Contains("Base ¥52,000.00") AndAlso totals.Text.Contains("45 CF") AndAlso
-                        totals.Text.Contains("940 kg"), "Cabin equipment did not apply the listed costs and capacities.")
+                        totals.Text.Contains("940 kg"), "Cabin equipment did not apply the listed costs and capacities. " & totals.Text)
                 Dim remoteVan As New StockDesign With {
                     .ChassisId = "van", .PowerPlantId = "diesel", .StreetIndex = 1,
                     .CatalogModifications = New List(Of ModificationSelection) From {

@@ -6,6 +6,11 @@ Imports TheShop.Design
 
 Friend NotInheritable Class PayloadDialog
     Inherits Form
+    Private NotInheritable Class MountChoice
+        Public Property Id As String
+        Public Property Name As String
+    End Class
+    Private ReadOnly mountChoices As New List(Of MountChoice)
     Private ReadOnly payloadRows As BindingList(Of VehiclePayloadItem)
     Private ReadOnly settingRows As BindingList(Of EquipmentSetting)
     Public ReadOnly Property Payload As List(Of VehiclePayloadItem)
@@ -18,13 +23,19 @@ Friend NotInheritable Class PayloadDialog
             Return If(settingRows.Count = 0, Nothing, settingRows.ToList())
         End Get
     End Property
-    Public Sub New(currentPayload As List(Of VehiclePayloadItem), currentSettings As List(Of EquipmentSetting))
+    Public Sub New(currentPayload As List(Of VehiclePayloadItem), currentSettings As List(Of EquipmentSetting), Optional mounts As IReadOnlyList(Of ModificationSelection) = Nothing)
         Text = "Payload and individual equipment"
         ClientSize = New Size(1000, 540)
         MinimumSize = New Size(760, 420)
         StartPosition = FormStartPosition.CenterParent
         payloadRows = New BindingList(Of VehiclePayloadItem)(JsonSerializer.Deserialize(Of List(Of VehiclePayloadItem))(JsonSerializer.Serialize(If(currentPayload, New List(Of VehiclePayloadItem)))))
         settingRows = New BindingList(Of EquipmentSetting)(JsonSerializer.Deserialize(Of List(Of EquipmentSetting))(JsonSerializer.Serialize(If(currentSettings, New List(Of EquipmentSetting)))))
+        mountChoices.Add(New MountChoice With {.Id = "", .Name = "No mount"})
+        Dim ids = If(mounts, Array.Empty(Of ModificationSelection)()).Select(Function(item) item.Id).Concat(payloadRows.Select(Function(item) item.MountId)).Where(Function(id) Not String.IsNullOrWhiteSpace(id)).Distinct(StringComparer.OrdinalIgnoreCase)
+        For Each id In ids
+            Dim rule = ModificationCatalog.Rules.SingleOrDefault(Function(item) item.Id = id)
+            mountChoices.Add(New MountChoice With {.Id = id, .Name = If(rule?.Name, id)})
+        Next
         Dim frame As New TableLayoutPanel With {.Dock = DockStyle.Fill, .ColumnCount = 1, .RowCount = 3, .Padding = New Padding(10)}
         frame.RowStyles.Add(New RowStyle(SizeType.AutoSize))
         frame.RowStyles.Add(New RowStyle(SizeType.Percent, 100))
@@ -58,13 +69,19 @@ Friend NotInheritable Class PayloadDialog
         frame.Controls.Add(actions, 0, 2)
         CancelButton = cancelButton
     End Sub
-    Private Shared Function MakeGrid(name As String, data As Object) As DataGridView
+    Private Function MakeGrid(name As String, data As Object) As DataGridView
         Dim grid As New DataGridView With {.Name = name, .Dock = DockStyle.Fill, .AutoGenerateColumns = False,
             .AllowUserToAddRows = True, .AllowUserToDeleteRows = True, .AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells}
         Dim rowType = If(TypeOf data Is BindingList(Of VehiclePayloadItem), GetType(VehiclePayloadItem), GetType(EquipmentSetting))
         For Each field As PropertyDescriptor In TypeDescriptor.GetProperties(rowType)
             Dim column As DataGridViewColumn
-            If field.Name = "WeaponClass" Then
+            If field.Name = "MountId" Then
+                column = New DataGridViewComboBoxColumn With {.DataSource = mountChoices.ToArray(), .DisplayMember = "Name", .ValueMember = "Id"}
+            ElseIf field.Name = "Component" Then
+                Dim components As New DataGridViewComboBoxColumn()
+                components.Items.AddRange({"Arm strength", "Recoil", "Amplifier"})
+                column = components
+            ElseIf field.Name = "WeaponClass" Then
                 Dim choices As New DataGridViewComboBoxColumn()
                 choices.Items.Add("")
                 choices.Items.AddRange(VehiclePayload.WeaponClasses.Cast(Of Object)().ToArray())
@@ -73,7 +90,7 @@ Friend NotInheritable Class PayloadDialog
                 column = New DataGridViewTextBoxColumn()
             End If
             column.Name = field.Name
-            column.HeaderText = field.Name
+            column.HeaderText = If(field.Name = "UnitWeightKg", "Unit kg", If(field.Name = "UnitCostNuyen", "Unit list ¥", If(field.Name = "UnitCargoCf", "Unit CF", If(field.Name = "MountId", "Mount", field.Name))))
             column.DataPropertyName = field.Name
             grid.Columns.Add(column)
         Next

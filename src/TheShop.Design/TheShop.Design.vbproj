@@ -9,5 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="StockCatalog.json" LogicalName="TheShop.Design.StockCatalog.json" />
+    <EmbeddedResource Include="LegacyOptionMappings.json" LogicalName="TheShop.Design.LegacyOptionMappings.json" />
+    <EmbeddedResource Include="LegacyChassisSensors.json" LogicalName="TheShop.Design.LegacyChassisSensors.json" />
   </ItemGroup>
 </Project>

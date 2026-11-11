@@ -179,6 +179,7 @@ Public Module ModificationCatalog
         New ModificationRule("electronic-deception", "Electronic deception", "rating", 6),
         New ModificationRule("electronic-counter-deception", "Electronic counter-deception", "rating", 6),
         New ModificationRule("radar-absorbent-materials", "Radar-absorbent materials", "levels", 3),
+        New ModificationRule("active-thermal-masking", "Active thermal masking", "levels", 2, 3D, 0D, 100D),
         New ModificationRule("thermal-baffles", "Thermal baffles", "levels", 2),
         New ModificationRule("noisemaker-dispenser", "Noisemaker dispenser", "noisemakers", Integer.MaxValue),
         New ModificationRule("smart-armor", "Smart armor system", "", 1),
@@ -333,6 +334,8 @@ Public Module ModificationCatalog
             Return True
         End If
         Select Case rule.Id
+            Case "active-thermal-masking"
+                Return chassis.Category <> "Bike" AndAlso {"gasoline", "methane", "diesel", "jet-turbine"}.Contains(plant.Id)
             Case "external-cargo-mounts"
                 Return False
             Case "ccss-integration"
@@ -843,10 +846,20 @@ Public Module ModificationCatalog
                 finalRatings.SonarSignature = CInt(plant.SonarSignature.GetValueOrDefault() - sonarPenalty)
             End If
         End If
+        If seen.Contains("active-thermal-masking") Then
+            Dim masking = validated.Single(Function(choice) choice.Rule.Id = "active-thermal-masking").Quantity
+            Dim customization = validated.Where(Function(choice) choice.Rule.Id.StartsWith("engine-customization-", StringComparison.Ordinal)).Sum(Function(choice) CLng(choice.Quantity))
+            If masking > customization Then Throw New ArgumentException("Active thermal masking requires at least as many engine customization levels.")
+        End If
         Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount, pilot, adaptation, deckLength)).ToList()
         If seen.Contains("gunnery-recoil-adjusters") Then
             Dim index = validated.FindIndex(Function(choice) choice.Rule.Id = "gunnery-recoil-adjusters")
             result(index).DesignPoints *= fixedAndTurretCount
+        End If
+        If seen.Contains("active-thermal-masking") Then
+            Dim masking = validated.Single(Function(choice) choice.Rule.Id = "active-thermal-masking").Quantity
+            Dim engineCost = result.Where(Function(item) item.Name.StartsWith("Engine customization", StringComparison.Ordinal)).Sum(Function(item) item.DesignPoints)
+            result.Single(Function(item) item.Name = "Active thermal masking").DesignPoints = engineCost * (2D + 0.25D * (masking - 1D))
         End If
         design.Additions = design.Additions.Concat(result).ToList()
         Return result

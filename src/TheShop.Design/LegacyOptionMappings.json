@@ -1,0 +1,785 @@
+[
+  {
+    "Name": "Acceleration Increase",
+    "Kind": "Upgrade",
+    "Id": "Acceleration",
+    "Flag": false
+  },
+  {
+    "Name": "Add STOL",
+    "Kind": "Catalog",
+    "Id": "stol-profile",
+    "Flag": true
+  },
+  {
+    "Name": "Add VSTOL",
+    "Kind": "Catalog",
+    "Id": "vstol-profile",
+    "Flag": true
+  },
+  {
+    "Name": "Increase Fuel Tank Capacity",
+    "Kind": "Upgrade",
+    "Id": "FuelSteps",
+    "Flag": false
+  },
+  {
+    "Name": "Handling Improvement",
+    "Kind": "Upgrade",
+    "Id": "OnRoadHandling",
+    "Flag": false
+  },
+  {
+    "Name": "Handling Improvement (OffRoad)",
+    "Kind": "Upgrade",
+    "Id": "OffRoadHandling",
+    "Flag": false
+  },
+  {
+    "Name": "Hydrofoil",
+    "Kind": "Catalog",
+    "Id": "hydrofoil",
+    "Flag": true
+  },
+  {
+    "Name": "Improved Economy",
+    "Kind": "Upgrade",
+    "Id": "EconomySteps",
+    "Flag": false
+  },
+  {
+    "Name": "Increased Cargo Space",
+    "Kind": "Upgrade",
+    "Id": "CargoSteps",
+    "Flag": false
+  },
+  {
+    "Name": "Living Amenities (Basic)",
+    "Kind": "Catalog",
+    "Id": "living-amenities-basic",
+    "Flag": false
+  },
+  {
+    "Name": "Living Amenities (Improved)",
+    "Kind": "Catalog",
+    "Id": "living-amenities-improved",
+    "Flag": false
+  },
+  {
+    "Name": "Living Amenities (High)",
+    "Kind": "Catalog",
+    "Id": "living-amenities-high",
+    "Flag": false
+  },
+  {
+    "Name": "Load Increase",
+    "Kind": "Upgrade",
+    "Id": "LoadSteps",
+    "Flag": false
+  },
+  {
+    "Name": "Medical-Treatment Gear",
+    "Kind": "Unresolved",
+    "Id": "",
+    "Flag": false,
+    "Reason": "The old record supplies patient count, not the Rigger 3 Revised clinic rating or medical layout."
+  },
+  {
+    "Name": "Signature Improvement",
+    "Kind": "Upgrade",
+    "Id": "Signature",
+    "Flag": false
+  },
+  {
+    "Name": "Smart Materials",
+    "Kind": "Catalog",
+    "Id": "smart-materials",
+    "Flag": true
+  },
+  {
+    "Name": "Speed Increase",
+    "Kind": "Upgrade",
+    "Id": "Speed",
+    "Flag": false
+  },
+  {
+    "Name": "Structural Agility",
+    "Kind": "Catalog",
+    "Id": "structural-agility",
+    "Flag": false
+  },
+  {
+    "Name": "Engine Customization",
+    "Kind": "EngineBudget",
+    "Id": "",
+    "Flag": false
+  },
+  {
+    "Name": "Engine Customization: Speed",
+    "Kind": "Catalog",
+    "Id": "engine-customization-speed",
+    "Flag": false
+  },
+  {
+    "Name": "Engine Customization: Acceleration",
+    "Kind": "Catalog",
+    "Id": "engine-customization-acceleration",
+    "Flag": false
+  },
+  {
+    "Name": "Engine Customization: Load",
+    "Kind": "Catalog",
+    "Id": "engine-customization-load",
+    "Flag": false
+  },
+  {
+    "Name": "Gridlink Power",
+    "Kind": "Catalog",
+    "Id": "gridlink",
+    "Flag": true
+  },
+  {
+    "Name": "Nitrous Oxide Injectors",
+    "Kind": "Catalog",
+    "Id": "nitrous",
+    "Flag": false
+  },
+  {
+    "Name": "SunCell Power",
+    "Kind": "Catalog",
+    "Id": "suncell",
+    "Flag": true
+  },
+  {
+    "Name": "Turbocharging",
+    "Kind": "Catalog",
+    "Id": "turbocharging",
+    "Flag": false
+  },
+  {
+    "Name": "Adjusted Controls (Dwarf)",
+    "Kind": "Catalog",
+    "Id": "adjusted-controls",
+    "Flag": true,
+    "Quantity": 1
+  },
+  {
+    "Name": "Adjusted Controls (Troll)",
+    "Kind": "Catalog",
+    "Id": "adjusted-controls",
+    "Flag": true,
+    "Quantity": 2
+  },
+  {
+    "Name": "Adjusted Controls (Other)",
+    "Kind": "Catalog",
+    "Id": "adjusted-controls",
+    "Flag": true,
+    "Quantity": 3
+  },
+  {
+    "Name": "Autonav",
+    "Kind": "Catalog",
+    "Id": "autonav",
+    "Flag": false
+  },
+  {
+    "Name": "Contingency Maneuver Controls",
+    "Kind": "Catalog",
+    "Id": "contingency-maneuver-controls",
+    "Flag": false
+  },
+  {
+    "Name": "Datajack port",
+    "Kind": "Catalog",
+    "Id": "datajack-port",
+    "Flag": true
+  },
+  {
+    "Name": "Drive-by-Wire",
+    "Kind": "Catalog",
+    "Id": "drive-by-wire",
+    "Flag": false
+  },
+  {
+    "Name": "Drive-by-Wire: Accel",
+    "Kind": "Catalog",
+    "Id": "drive-by-wire-acceleration-allocation",
+    "Flag": false
+  },
+  {
+    "Name": "Drive-by-Wire: Speed",
+    "Kind": "Catalog",
+    "Id": "drive-by-wire-speed-allocation",
+    "Flag": false
+  },
+  {
+    "Name": "Drive-by-Wire: Load",
+    "Kind": "Catalog",
+    "Id": "drive-by-wire-load-allocation",
+    "Flag": false
+  },
+  {
+    "Name": "Improved Control Surfaces",
+    "Kind": "Catalog",
+    "Id": "improved-control-surfaces",
+    "Flag": false
+  },
+  {
+    "Name": "Improved Suspension",
+    "Kind": "Catalog",
+    "Id": "improved-suspension",
+    "Flag": false
+  },
+  {
+    "Name": "Off-Road Suspension",
+    "Kind": "Catalog",
+    "Id": "off-road-suspension",
+    "Flag": false
+  },
+  {
+    "Name": "Remote-Control Interfaces",
+    "Kind": "Catalog",
+    "Id": "remote-control-interface",
+    "Flag": true
+  },
+  {
+    "Name": "Remote Pilot Advanced Programming",
+    "Kind": "Catalog",
+    "Id": "advanced-drone-pilot",
+    "Flag": false
+  },
+  {
+    "Name": "Rigger Adaptation",
+    "Kind": "Catalog",
+    "Id": "rigger-adaptation",
+    "Flag": true
+  },
+  {
+    "Name": "Secondary Controls",
+    "Kind": "Catalog",
+    "Id": "secondary-controls",
+    "Flag": true
+  },
+  {
+    "Name": "Standard Armour",
+    "Kind": "Catalog",
+    "Id": "vehicle-armor",
+    "Flag": false
+  },
+  {
+    "Name": "Concealed Armour",
+    "Kind": "Catalog",
+    "Id": "concealed-armor",
+    "Flag": false
+  },
+  {
+    "Name": "Advanced Passenger Protection Systems",
+    "Kind": "Catalog",
+    "Id": "passenger-protection",
+    "Flag": false
+  },
+  {
+    "Name": "Crash Cages",
+    "Kind": "Catalog",
+    "Id": "crash-cage",
+    "Flag": true
+  },
+  {
+    "Name": "EnviroSeal (gas)",
+    "Kind": "Catalog",
+    "Id": "cabin-gas-seal",
+    "Flag": true
+  },
+  {
+    "Name": "EnviroSeal (water)",
+    "Kind": "Catalog",
+    "Id": "cabin-water-seal",
+    "Flag": true
+  },
+  {
+    "Name": "EnviroSeal (engine)",
+    "Kind": "Catalog",
+    "Id": "engine-water-seal",
+    "Flag": true
+  },
+  {
+    "Name": "EnviroSeal: overpressurization",
+    "Kind": "Catalog",
+    "Id": "cabin-overpressure",
+    "Flag": true
+  },
+  {
+    "Name": "Life Support Systems",
+    "Kind": "Catalog",
+    "Id": "life-support",
+    "Flag": false
+  },
+  {
+    "Name": "Roll Bars",
+    "Kind": "Catalog",
+    "Id": "roll-bar",
+    "Flag": true
+  },
+  {
+    "Name": "Smart Armour Systems (SAS)",
+    "Kind": "Catalog",
+    "Id": "smart-armor",
+    "Flag": true
+  },
+  {
+    "Name": "Thermal Baffles",
+    "Kind": "Catalog",
+    "Id": "thermal-baffles",
+    "Flag": false
+  },
+  {
+    "Name": "Active Thermal Masking",
+    "Kind": "Catalog",
+    "Id": "active-thermal-masking",
+    "Flag": false
+  },
+  {
+    "Name": "Radar-Absorbent Materials (RAM)",
+    "Kind": "Catalog",
+    "Id": "radar-absorbent-materials",
+    "Flag": false
+  },
+  {
+    "Name": "Fixed mount, ext Firmpoint",
+    "Kind": "Catalog",
+    "Id": "external-fixed-firmpoint",
+    "Flag": false
+  },
+  {
+    "Name": "Fixed mount, int Firmpoint",
+    "Kind": "Catalog",
+    "Id": "internal-fixed-firmpoint",
+    "Flag": false
+  },
+  {
+    "Name": "Fixed mount, ext Hardpoint",
+    "Kind": "Catalog",
+    "Id": "external-fixed-hardpoint",
+    "Flag": false
+  },
+  {
+    "Name": "Fixed mount, int Hardpoint",
+    "Kind": "Catalog",
+    "Id": "internal-fixed-hardpoint",
+    "Flag": false
+  },
+  {
+    "Name": "Gunnery Recoil Adjusters (fixed firm)",
+    "Kind": "Recoil",
+    "Id": "fixed firm",
+    "Flag": false
+  },
+  {
+    "Name": "Gunnery Recoil Adjusters (micro turret)",
+    "Kind": "Recoil",
+    "Id": "micro turret",
+    "Flag": false
+  },
+  {
+    "Name": "Gunnery Recoil Adjusters (mini turret)",
+    "Kind": "Recoil",
+    "Id": "mini turret",
+    "Flag": false
+  },
+  {
+    "Name": "Gunnery Recoil Adjusters (small turret)",
+    "Kind": "Recoil",
+    "Id": "small turret",
+    "Flag": false
+  },
+  {
+    "Name": "Gunnery Recoil Adjusters (fixed hard)",
+    "Kind": "Recoil",
+    "Id": "fixed hard",
+    "Flag": false
+  },
+  {
+    "Name": "Gunnery Recoil Adjusters (medium turret)",
+    "Kind": "Recoil",
+    "Id": "medium turret",
+    "Flag": false
+  },
+  {
+    "Name": "Gunnery Recoil Adjusters (large turret)",
+    "Kind": "Recoil",
+    "Id": "large turret",
+    "Flag": false
+  },
+  {
+    "Name": "External Rocket Mounts",
+    "Kind": "Catalog",
+    "Id": "external-missile-mounts",
+    "Flag": false
+  },
+  {
+    "Name": "Internal Rocket Mounts",
+    "Kind": "Catalog",
+    "Id": "internal-missile-storage",
+    "Flag": false
+  },
+  {
+    "Name": "Pintle Mounts",
+    "Kind": "Catalog",
+    "Id": "pintle-mount",
+    "Flag": false
+  },
+  {
+    "Name": "Ring Mounts",
+    "Kind": "Catalog",
+    "Id": "ring-mount",
+    "Flag": false
+  },
+  {
+    "Name": "Smartlink Integration Kits",
+    "Kind": "Smartlink",
+    "Id": "",
+    "Flag": false
+  },
+  {
+    "Name": "Turrets (mini)",
+    "Kind": "Turret",
+    "Id": "crewed-mini-turret",
+    "Flag": false
+  },
+  {
+    "Name": "Turrets (small)",
+    "Kind": "Turret",
+    "Id": "crewed-small-turret",
+    "Flag": false
+  },
+  {
+    "Name": "Turrets (medium)",
+    "Kind": "Turret",
+    "Id": "crewed-medium-turret",
+    "Flag": false
+  },
+  {
+    "Name": "Turrets, Remote (micro)",
+    "Kind": "Turret",
+    "Id": "remote-micro-turret",
+    "Flag": false
+  },
+  {
+    "Name": "Turrets, Remote (mini)",
+    "Kind": "Turret",
+    "Id": "remote-mini-turret",
+    "Flag": false
+  },
+  {
+    "Name": "Turrets, Remote (small)",
+    "Kind": "Turret",
+    "Id": "remote-small-turret",
+    "Flag": false
+  },
+  {
+    "Name": "Turrets, Remote (medium)",
+    "Kind": "Turret",
+    "Id": "remote-medium-turret",
+    "Flag": false
+  },
+  {
+    "Name": "Turrets: Anti-Aircraft (micro)",
+    "Kind": "TurretVariant",
+    "Id": "micro",
+    "Flag": true,
+    "Variant": "anti-aircraft"
+  },
+  {
+    "Name": "Turrets: Anti-Aircraft (mini)",
+    "Kind": "TurretVariant",
+    "Id": "mini",
+    "Flag": true,
+    "Variant": "anti-aircraft"
+  },
+  {
+    "Name": "Turrets: Anti-Aircraft (small)",
+    "Kind": "TurretVariant",
+    "Id": "small",
+    "Flag": true,
+    "Variant": "anti-aircraft"
+  },
+  {
+    "Name": "Turrets: Anti-Aircraft (medium)",
+    "Kind": "TurretVariant",
+    "Id": "medium",
+    "Flag": true,
+    "Variant": "anti-aircraft"
+  },
+  {
+    "Name": "Turrets: Pop-Up (micro)",
+    "Kind": "TurretVariant",
+    "Id": "micro",
+    "Flag": true,
+    "Variant": "pop-up"
+  },
+  {
+    "Name": "Turrets: Pop-Up (mini)",
+    "Kind": "TurretVariant",
+    "Id": "mini",
+    "Flag": true,
+    "Variant": "pop-up"
+  },
+  {
+    "Name": "Turrets: Pop-Up (small)",
+    "Kind": "TurretVariant",
+    "Id": "small",
+    "Flag": true,
+    "Variant": "pop-up"
+  },
+  {
+    "Name": "Turrets: Pop-Up (medium)",
+    "Kind": "TurretVariant",
+    "Id": "medium",
+    "Flag": true,
+    "Variant": "pop-up"
+  },
+  {
+    "Name": "Vehicle Gyroscopic Stabilizers",
+    "Kind": "Catalog",
+    "Id": "weapon-gyro-stabilization",
+    "Flag": false
+  },
+  {
+    "Name": "BattleTac FDDM Receiver Module",
+    "Kind": "Catalog",
+    "Id": "battletac-fddm",
+    "Flag": true
+  },
+  {
+    "Name": "BattleTac IVIS Receiver Module",
+    "Kind": "Catalog",
+    "Id": "battletac-ivis",
+    "Flag": true
+  },
+  {
+    "Name": "ECM",
+    "Kind": "Catalog",
+    "Id": "ecm",
+    "Flag": false
+  },
+  {
+    "Name": "ECCM",
+    "Kind": "Catalog",
+    "Id": "eccm",
+    "Flag": false
+  },
+  {
+    "Name": "ED",
+    "Kind": "Catalog",
+    "Id": "electronic-deception",
+    "Flag": false
+  },
+  {
+    "Name": "ECD",
+    "Kind": "Catalog",
+    "Id": "electronic-counter-deception",
+    "Flag": false
+  },
+  {
+    "Name": "Electronic Ports",
+    "Kind": "Catalog",
+    "Id": "electronics-port",
+    "Flag": false
+  },
+  {
+    "Name": "Power Amplifiers",
+    "Kind": "Unresolved",
+    "Id": "",
+    "Flag": false,
+    "Reason": "The old record does not identify the amplified device. It cannot be assumed to be a retransmission unit."
+  },
+  {
+    "Name": "Sensors",
+    "Kind": "SensorIncrement",
+    "Id": "sensors",
+    "Flag": false
+  },
+  {
+    "Name": "Aircraft Drop Tanks",
+    "Kind": "Catalog",
+    "Id": "aircraft-drop-tanks",
+    "Flag": false
+  },
+  {
+    "Name": "Amphibious Operation Package",
+    "Kind": "Catalog",
+    "Id": "amphibious-operation",
+    "Flag": false
+  },
+  {
+    "Name": "Anti-Theft System",
+    "Kind": "Catalog",
+    "Id": "improved-anti-theft-security",
+    "Flag": false
+  },
+  {
+    "Name": "Anti-Theft System: Shock option",
+    "Kind": "Catalog",
+    "Id": "anti-theft-electric-system",
+    "Flag": true
+  },
+  {
+    "Name": "Bench Seats",
+    "Kind": "Catalog",
+    "Id": "bench-seat",
+    "Flag": false
+  },
+  {
+    "Name": "Bench Seats: Armour",
+    "Kind": "Catalog",
+    "Id": "seat-armor",
+    "Flag": false
+  },
+  {
+    "Name": "Bench Seats (Folding)",
+    "Kind": "Catalog",
+    "Id": "folding-bench-seat",
+    "Flag": false
+  },
+  {
+    "Name": "Bench Seats (Reinforced)",
+    "Kind": "Catalog",
+    "Id": "reinforced-bench-seat",
+    "Flag": false
+  },
+  {
+    "Name": "Bucket Seats",
+    "Kind": "Catalog",
+    "Id": "bucket-seat",
+    "Flag": false
+  },
+  {
+    "Name": "Bucket Seats: Armour",
+    "Kind": "Catalog",
+    "Id": "seat-armor",
+    "Flag": false
+  },
+  {
+    "Name": "Bucket Seats (Reinforced)",
+    "Kind": "Catalog",
+    "Id": "reinforced-bucket-seat",
+    "Flag": false
+  },
+  {
+    "Name": "Bucket Seats (Extra Big Reinforced)",
+    "Kind": "Catalog",
+    "Id": "reinforced-bucket-seat",
+    "Flag": false
+  },
+  {
+    "Name": "Convertible Top",
+    "Kind": "Unresolved",
+    "Id": "",
+    "Flag": false,
+    "Reason": "The old record only tracks a convertible flag; no priced Rigger 3 Revised catalog equivalent is defined."
+  },
+  {
+    "Name": "Crane",
+    "Kind": "CapacityIndex",
+    "Id": "crane",
+    "Flag": false
+  },
+  {
+    "Name": "Drone Rack",
+    "Kind": "Unresolved",
+    "Id": "",
+    "Flag": false,
+    "Reason": "The old record supplies rack space, not the carried drone Body needed by the revised rack table."
+  },
+  {
+    "Name": "Floatation Packages (Aircraft)",
+    "Kind": "Catalog",
+    "Id": "aircraft-flotation",
+    "Flag": true
+  },
+  {
+    "Name": "Hovercraft Water Seals",
+    "Kind": "Catalog",
+    "Id": "hovercraft-water-seal",
+    "Flag": true
+  },
+  {
+    "Name": "Mechanical Arm #1",
+    "Kind": "Arm",
+    "Id": "mechanical-arm",
+    "Flag": true
+  },
+  {
+    "Name": "Mechanical Arm #2",
+    "Kind": "Arm",
+    "Id": "mechanical-arm",
+    "Flag": true
+  },
+  {
+    "Name": "Mechanical Arm #3",
+    "Kind": "Arm",
+    "Id": "mechanical-arm",
+    "Flag": true
+  },
+  {
+    "Name": "Mechanical Arm #4",
+    "Kind": "Arm",
+    "Id": "mechanical-arm",
+    "Flag": true
+  },
+  {
+    "Name": "Sidecar",
+    "Kind": "Catalog",
+    "Id": "sidecar",
+    "Flag": false
+  },
+  {
+    "Name": "Spotlights",
+    "Kind": "Catalog",
+    "Id": "spotlight",
+    "Flag": true
+  },
+  {
+    "Name": "Tires (Standard)",
+    "Kind": "StandardTires",
+    "Id": "",
+    "Flag": false
+  },
+  {
+    "Name": "Tires (Performance)",
+    "Kind": "Catalog",
+    "Id": "performance-tires",
+    "Flag": false
+  },
+  {
+    "Name": "Tires (Off-road)",
+    "Kind": "Catalog",
+    "Id": "off-road-tires",
+    "Flag": false
+  },
+  {
+    "Name": "Tires (Dual-Purpose)",
+    "Kind": "Catalog",
+    "Id": "dual-purpose-tires",
+    "Flag": false
+  },
+  {
+    "Name": "Tires Option: Runflat",
+    "Kind": "Catalog",
+    "Id": "runflat-upgrade",
+    "Flag": false
+  },
+  {
+    "Name": "Tires Option: Spare",
+    "Kind": "SpareTires",
+    "Id": "",
+    "Flag": false
+  },
+  {
+    "Name": "Winches",
+    "Kind": "CapacityIndex",
+    "Id": "winch",
+    "Flag": false
+  }
+]

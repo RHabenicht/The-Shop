@@ -16,6 +16,16 @@ Public Module VehicleOperatingModes
         Dim accel = If(modified?.Acceleration, If(upgrades?.Acceleration, plant.StartingAcceleration))
         Dim signature = If(modified?.Signature, If(upgrades?.Signature, plant.Signature))
         Dim sonarSignature = If(modified?.SonarSignature, plant.SonarSignature)
+        If DesignEnhancements.Has(selections, "active-thermal-masking") Then
+            Dim levels = selections.Single(Function(item) item.Id = "active-thermal-masking").Quantity
+            For level As Integer = 1 To levels
+                modes.Add(New VehicleOperatingMode With {
+                    .Name = $"Active thermal masking level {level}", .Speed = Math.Max(0, speed.GetValueOrDefault() - 15 * level), .Signature = signature + level,
+                    .Notes = $"Maximum {60 - 5 * level} minutes, then vent for 10 minutes. Overrun adds 1 Stress per minute and requires a Stress test each minute."
+                })
+            Next
+            modes.Add(New VehicleOperatingMode With {.Name = "Thermal masking venting", .Speed = speed, .Signature = 2, .Notes = "Ten-minute cooldown."})
+        End If
         If DesignEnhancements.Has(selections, "hydrofoil") Then
             modes.Add(New VehicleOperatingMode With {
                 .Name = "Hydrofoil engaged", .Speed = Scale(speed, 1.25D), .Acceleration = Scale(accel, 1.25D),

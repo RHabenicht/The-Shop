@@ -6,7 +6,7 @@ The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised sto
 
 ## Windows desktop preview
 
-The editor lets you select a chassis and compatible power plant, enter options or modifications, and calculate the design cost and remaining capacity. Open and save use the same stock design JSON format as the command-line calculator. Legacy `.shp` import still runs separately.
+The editor lets you select a chassis and compatible power plant, enter options or modifications, and calculate the design cost and remaining capacity. Open and save use the same stock design JSON format as the command-line calculator. The editor imports legacy `.shp` vehicles and converts their supported selections to revised rules.
 
 On Windows, use the .NET 10 SDK to run the editor from source:
 
@@ -64,6 +64,8 @@ Improved suspension, off-road suspension, and improved control surfaces use thei
 
 Body-rated vehicles can select fixed mounts, pintles, rings, crewed and remote turrets, and launch controls. These entries share the vehicle’s hardpoint and firmpoint budget. Enter carried weapon and ammunition weight separately. Turret gun capacity, firing arcs, and crew space require review against the book. Aircraft door guns and Hull-rated mounts use manual entries. Autosoft interpretation, BattleTac FDDM and IVIS receivers, ship CCSS integration, dipping sonar, and mount smartlink integration are also available (*Rigger 3 Revised*, pp. 136–143).
 
+Active thermal masking uses the revised customization-cost multiplier, consumes 3 CF and 100 kg, and requires matching engine customization levels. The sheet shows active speed and Signature, operating duration and the ten-minute venting mode (*Rigger 3 Revised*, p. 134).
+
 Engine customization has separate Speed, Acceleration, and Load entries with the first-level and subsequent-level prices. Resolve the book’s engine Stress test with the gamemaster. Drive-by-wire requires a total ten-percent bonus allocation across Speed, Acceleration, and Load. It applies after other design changes and rounds whole-number ratings down. For suspension effects, a vehicle with improved suspension or drive-by-wire and no selected tire type uses the book’s assumed dual-purpose tires. Tire purchase prices still require the actual count (*Rigger 3 Revised*, pp. 125, 129, 155).
 
 Turret variants include anti-aircraft and pop-up configurations. Pop-up turrets use their stowed Signature and doubled cargo requirement. Torpedo tubes include a manual-loading or autoloading option. Torpedo racks, internal missile storage, external missile mounts, and naval weapon control stations are available separately. Account for carried ordnance weight and review naval hardpoint allocation separately (*Rigger 3 Revised*, pp. 137–141).
@@ -90,7 +92,7 @@ Choose **Retrofit quote…** to calculate list and street parts cost, Availabili
 
 ## Import a legacy vehicle
 
-To bring a `Shop v1.40` save into the editor, select **Import .shp…**. The editor suggests the revised chassis and compatible power plant when both names match uniquely. For other saves it uses the editor’s current selection. Review the source record before starting the new design. Original options and markups stay in **Legacy reference** and are saved with the new design. Recognized crash cages, rigger adaptation, datajack ports, electronics ports, spotlights, nitrous injectors, and roll bars are repriced when their source names match and the revised design validates. Other entries remain in the source reference and import review notes. The notes are saved and included on the exported sheet.
+To bring a `Shop v1.40` save into the editor, select **Import .shp…**. The editor suggests the revised chassis and compatible power plant when both names match uniquely. For other saves it uses the editor’s current selection. Review the source record before starting the new design. Original options and markups stay in **Legacy reference** and are saved with the new design. The importer maps all 128 standard option names in the supplied Rigger 2 archive to revised rules or an explicit conversion report. It converts old units, zero-level switches, sensor increases, control allocations, turret variants, seats, arms and mount-specific recoil adjusters. Revised costs and limits replace the old formulas. Dependencies are processed together, independent of save order. Invalid groups are reported while independent valid groups still convert. Old patient-count medical gear, drone rack space, unidentified power amplifiers and convertible flags lack a complete revised catalog specification and stay in the source reference with an explanation. Homebrew and unknown entries are preserved without applying their old rules or prices. Luxury and medical/noncombat classifications use revised pricing; old unusual/special price modifiers are retained only as reference. The notes are saved and included on the exported sheet.
 
 For command-line extraction:
 

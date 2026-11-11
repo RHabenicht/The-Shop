@@ -131,7 +131,7 @@ Public Module ModificationCatalog
         New ModificationRule("ablative-armor", "Ablative armor (retrofit only)", "levels", 3),
         New ModificationRule("standard-tires", "Standard tires", "tires", Integer.MaxValue),
         New ModificationRule("power-amplifier", "Power amplifier", "added Flux", 10),
-        New ModificationRule("ring-mount-door-gun", "Aircraft door gun ring mount", "mounts", Integer.MaxValue, 16D, 10D, 25D, 2),
+        New ModificationRule("ring-mount-door-gun", "Aircraft door gun ring mount", "mounts", Integer.MaxValue, 17D, 10D, 25D, 2),
         New ModificationRule("vehicle-armor", "Vehicle armor", "added points", Integer.MaxValue),
         New ModificationRule("concealed-armor", "Concealed armor", "added points", Integer.MaxValue),
         New ModificationRule("bulwark", "Bulwark", "added points", Integer.MaxValue),
@@ -565,17 +565,6 @@ Public Module ModificationCatalog
             End If
             validated.Add((rule, choice.Quantity))
             Select Case rule.Id
-                Case "personal-armor"
-                item.DesignPoints = 5D * quantity
-                item.LoadConsumedKg = body * 2D * quantity
-            Case "ablative-armor"
-                item.LoadConsumedKg = body * 100D
-            Case "standard-tires"
-                item.DirectCostNuyen = body * 50D * quantity
-            Case "power-amplifier"
-                item.DesignPoints = 5D * quantity
-                item.CargoConsumed = Math.Floor(quantity * 0.25D)
-                item.LoadConsumedKg = quantity
             Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation", "autonav", "advanced-drone-pilot", "ecm", "eccm", "electronic-deception", "electronic-counter-deception", "dipping-sonar", "robotic-pilot", "robotic-reflexes"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
                     ApplyRating(finalRatings, rule.Id, choice.Quantity, chassis, plant, upgrades)
@@ -655,19 +644,19 @@ Public Module ModificationCatalog
                     Dim starting = If(upgrades?.Speed, plant.StartingSpeed).GetValueOrDefault()
                     Dim maximum = Math.Max(starting + 30D, Math.Ceiling(plant.MaximumSpeed.Value * 1.75D))
                     Dim value = starting + 30D * levels
-                    If value > maximum Then Throw New ArgumentException("Engine customization exceeds the increased Speed maximum.")
+                    If Not customization AndAlso value > maximum Then Throw New ArgumentException("Engine customization exceeds the increased Speed maximum.")
                     finalRatings.Speed = CInt(value)
                 Case "engine-customization-acceleration"
                     Dim starting = If(upgrades?.Acceleration, plant.StartingAcceleration).GetValueOrDefault()
                     Dim maximum = Math.Max(starting + 2D, Math.Ceiling(plant.MaximumAcceleration.Value * 1.75D))
                     Dim value = starting + 2D * levels
-                    If value > maximum Then Throw New ArgumentException("Engine customization exceeds the increased Acceleration maximum.")
+                    If Not customization AndAlso value > maximum Then Throw New ArgumentException("Engine customization exceeds the increased Acceleration maximum.")
                     finalRatings.Acceleration = CInt(value)
                 Case "engine-customization-load"
                     Dim increment = VehicleScale.RuleBody(chassis) * 50D
                     Dim maximum = Math.Max(design.LoadCapacityKg + increment, Math.Ceiling(plant.MaximumLoadKg * 1.75D))
                     Dim value = design.LoadCapacityKg + increment * levels
-                    If value > maximum Then Throw New ArgumentException("Engine customization exceeds the increased Load maximum.")
+                    If Not customization AndAlso value > maximum Then Throw New ArgumentException("Engine customization exceeds the increased Load maximum.")
                     design.LoadCapacityKg = value
             End Select
         Next
@@ -743,7 +732,7 @@ Public Module ModificationCatalog
             Dim baseSpeed = If(finalRatings.Speed, If(upgrades?.Speed, plant.StartingSpeed)).GetValueOrDefault()
             Dim maximum = Math.Max(baseSpeed + 15D, plant.MaximumSpeed.Value * 1.25D)
             Dim speed = baseSpeed + 15D * levels
-            If speed > maximum Then Throw New ArgumentException("Turbocharging exceeds the increased maximum Speed.")
+            If Not customization AndAlso speed > maximum Then Throw New ArgumentException("Turbocharging exceeds the increased maximum Speed.")
             finalRatings.Speed = CInt(speed)
             finalRatings.Acceleration = CInt(If(finalRatings.Acceleration, If(upgrades?.Acceleration, plant.StartingAcceleration)).GetValueOrDefault() + CLng(levels))
             finalRatings.Signature = CInt(If(upgrades?.Signature, plant.Signature).GetValueOrDefault() - CLng(levels))
@@ -876,8 +865,8 @@ Public Module ModificationCatalog
         End If
         If seen.Contains("active-thermal-masking") Then
             Dim masking = validated.Single(Function(choice) choice.Rule.Id = "active-thermal-masking").Quantity
-            Dim customization = validated.Where(Function(choice) choice.Rule.Id.StartsWith("engine-customization-", StringComparison.Ordinal)).Sum(Function(choice) CLng(choice.Quantity))
-            If masking > customization Then Throw New ArgumentException("Active thermal masking requires at least as many engine customization levels.")
+            Dim customizationLevels = validated.Where(Function(choice) choice.Rule.Id.StartsWith("engine-customization-", StringComparison.Ordinal)).Sum(Function(choice) CLng(choice.Quantity))
+            If masking > customizationLevels Then Throw New ArgumentException("Active thermal masking requires at least as many engine customization levels.")
         End If
         If seen.Contains("personal-armor") Then
             If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
@@ -1112,7 +1101,9 @@ Public Module ModificationCatalog
                 item.LoadConsumedKg = 10D * quantity * armCount
                 item.Name = $"Mechanical arm enhancement (Strength {body * body + quantity} per arm)"
             Case "drone-rack-body-0", "drone-rack-body-1", "drone-rack-body-2", "drone-rack-body-3"
+                Dim droneBody = Integer.Parse(rule.Id.Substring(rule.Id.Length - 1), Globalization.CultureInfo.InvariantCulture)
                 item.DesignPoints = body * 12D * quantity
+                item.CargoConsumed = Math.Floor((droneBody + 1.5D) * droneBody) * quantity
                 item.LoadConsumedKg = 45D * quantity
             Case "cabin-gas-seal"
                 item.DesignPoints = body * 3D

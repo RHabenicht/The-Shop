@@ -68,6 +68,20 @@ Public Module RetrofitCatalog
         ModificationCatalog.Apply(designSelections, chassis, plant, baseline, upgrades, baselineRatings)
         Dim validation As New VehicleDesign With {.Additions = New List(Of DesignAddition), .CargoCapacity = validationCargo, .LoadCapacityKg = validationLoad}
         ModificationCatalog.Apply(merged, chassis, plant, validation, upgrades, validationRatings, True)
+        Dim oldSpeed = If(baselineRatings?.Speed, If(upgrades?.Speed, plant.StartingSpeed)).GetValueOrDefault()
+        Dim oldAccel = If(baselineRatings?.Acceleration, If(upgrades?.Acceleration, plant.StartingAcceleration)).GetValueOrDefault()
+        For Each installed In selections
+            Select Case installed.Id
+                Case "engine-customization-speed"
+                    If validationRatings.Speed.GetValueOrDefault() > Math.Max(oldSpeed + 30D, Math.Ceiling(oldSpeed * 1.5D)) Then Throw New ArgumentException("Engine retrofit exceeds the 1.5 × original Speed limit.")
+                Case "engine-customization-acceleration"
+                    If validationRatings.Acceleration.GetValueOrDefault() > Math.Max(oldAccel + 2D, Math.Ceiling(oldAccel * 1.5D)) Then Throw New ArgumentException("Engine retrofit exceeds the 1.5 × original Acceleration limit.")
+                Case "engine-customization-load"
+                    If validation.LoadCapacityKg > Math.Max(baseline.LoadCapacityKg + VehicleScale.RuleBody(chassis) * 50D, baseline.LoadCapacityKg * 1.5D) Then Throw New ArgumentException("Engine retrofit exceeds the 1.5 × original Load limit.")
+                Case "turbocharging"
+                    If validationRatings.Speed.GetValueOrDefault() > Math.Max(oldSpeed + 15D, oldSpeed * 1.5D) Then Throw New ArgumentException("Turbocharging retrofit exceeds the 1.5 × original Speed limit.")
+            End Select
+        Next
         Dim cargo = totals.CargoRemaining + validation.CargoCapacity - baseline.CargoCapacity - entries.Sum(Function(item) item.Quote.CargoConsumed)
         Dim load = totals.LoadRemainingKg + validation.LoadCapacityKg - baseline.LoadCapacityKg - entries.Sum(Function(item) item.Quote.LoadConsumedKg)
         If cargo < 0D OrElse load < 0D Then Throw New ArgumentException("Installed retrofits exceed the vehicle's available cargo or load.")

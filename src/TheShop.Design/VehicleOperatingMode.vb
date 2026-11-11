@@ -16,6 +16,8 @@ Public Module VehicleOperatingModes
         Dim accel = If(modified?.Acceleration, If(upgrades?.Acceleration, plant.StartingAcceleration))
         Dim signature = If(modified?.Signature, If(upgrades?.Signature, plant.Signature))
         Dim sonarSignature = If(modified?.SonarSignature, plant.SonarSignature)
+        Dim popups = If(selections, Array.Empty(Of ModificationSelection)()).Where(Function(item) item.Id.Contains("turret") AndAlso item.Id.EndsWith("pop-up", StringComparison.Ordinal)).Sum(Function(item) CLng(item.Quantity))
+        If popups > 0 Then modes.Add(New VehicleOperatingMode With {.Name = "Pop-up turrets deployed", .Speed = speed, .Signature = CInt(signature.GetValueOrDefault() - popups), .Notes = "A Complex Action deploys the turret; its weapon is ready on the next available action."})
         If DesignEnhancements.Has(selections, "active-thermal-masking") Then
             Dim levels = selections.Single(Function(item) item.Id = "active-thermal-masking").Quantity
             For level As Integer = 1 To levels

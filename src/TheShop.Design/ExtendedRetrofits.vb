@@ -97,7 +97,7 @@ Public Module ExtendedRetrofits
             Case "generator"
                 result.PartsCostNuyen = chassis.DesignPoints * chassis.Markup * 100D / 4D : result.CargoConsumed = chassis.StartingCargo / 3D : result.LoadConsumedKg = plant.StartingLoadKg / 2D : result.Availability = "5 / 7 days"
             Case "drone-rack-body-0", "drone-rack-body-1", "drone-rack-body-2", "drone-rack-body-3"
-                result.PartsCostNuyen = (listCost * 0.1D + 2500D) * q : result.CargoConsumed = 2D * q : result.LoadConsumedKg = 45D * q : result.StreetIndex = 2D : result.Availability = "4 / 96 hours"
+                result.PartsCostNuyen = (listCost * 0.1D + 2500D) * q : result.CargoConsumed = (Math.Floor((Integer.Parse(rule.Id.Substring(rule.Id.Length - 1), Globalization.CultureInfo.InvariantCulture) + 1.5D) * Integer.Parse(rule.Id.Substring(rule.Id.Length - 1), Globalization.CultureInfo.InvariantCulture)) + 2D) * q : result.LoadConsumedKg = 45D * q : result.StreetIndex = 2D : result.Availability = "4 / 96 hours"
             Case "aircraft-drop-tanks"
                 result.PartsCostNuyen = 8000D * q
             Case "amphibious-operation"
@@ -122,7 +122,7 @@ Public Module ExtendedRetrofits
             Case "naval-weapons-control"
                 result.PartsCostNuyen = q * 500000D : result.CargoConsumed = q * 100D : result.LoadConsumedKg = q * 500D : result.StreetIndex = Nothing : result.Availability = $"{q * 10} / {q * 10} days"
             Case "ring-mount-door-gun"
-                result.PartsCostNuyen = 3000D * q : result.CargoConsumed = 16D * q : result.LoadConsumedKg = 25D * q : result.StreetIndex = 2D : result.Availability = "8 / 14 days"
+                result.PartsCostNuyen = 3000D * q : result.CargoConsumed = 17D * q : result.LoadConsumedKg = 25D * q : result.StreetIndex = 2D : result.Availability = "8 / 14 days"
             Case "gunnery-recoil-adjusters", "weapon-gyro-stabilization"
                 result.PartsCostNuyen = If(rule.Id = "gunnery-recoil-adjusters", 500D, 1000D) * q : result.CargoConsumed = 1D : result.LoadConsumedKg = q + 24D : result.StreetIndex = 1.5D : result.Availability = If(rule.Id = "gunnery-recoil-adjusters", "6 / 48 hours", "8 / 72 hours")
             Case "pistol-mount-conversion", "smg-mount-conversion", "rifle-mount-conversion", "heavy-mount-conversion"

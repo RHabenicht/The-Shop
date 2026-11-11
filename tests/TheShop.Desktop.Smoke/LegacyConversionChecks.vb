@@ -48,12 +48,15 @@ Friend Module LegacyConversionChecks
               "Turret variants must replace the base turret instead of charging for both.")
         Dim recoil = Convert(folder, catalog, "Van", "diesel", "Rigger2,4,Gunnery Recoil Adjusters (fixed firm)", "Rigger2,2,""Fixed mount, ext Firmpoint""")
         Check(recoil.EquipmentSettings.Count = 2 AndAlso recoil.Calculate(catalog).Totals.DesignPoints = 195D, "Targeted recoil adjusters must retain mount count and revised per-level pricing.")
+        Dim zeroRecoil = Convert(folder, catalog, "Van", "diesel", "Rigger2,0,Gunnery Recoil Adjusters (fixed firm)", "Rigger2,2,""Fixed mount, ext Firmpoint""")
+        Check(zeroRecoil.Calculate(catalog).Totals.DesignPoints = 115D AndAlso zeroRecoil.EquipmentSettings Is Nothing,
+              "An unused zero-level source enhancement must not reject its revised weapon mounts.")
         Dim arms = Convert(folder, catalog, "Van", "diesel", "Rigger2,1,Mechanical Arm #1", "Rigger2,0,Mechanical Arm #2")
         Check(arms.CatalogModifications.Single(Function(item) item.Id = "mechanical-arm").Quantity = 2 AndAlso arms.EquipmentSettings.Count = 1 AndAlso
               arms.EquipmentSettings.Single().Rating = 1 AndAlso arms.Calculate(catalog).Totals.DesignPoints = 1135D, "Separate arms must retain their different enhancement levels.")
         Dim mixed = Convert(folder, catalog, "Van", "diesel", "Rigger2,999,Bench Seats", "Rigger2,2,Nitrous Oxide Injectors", "Quality,1,Lemon")
         Check(mixed.CatalogModifications.Count = 1 AndAlso mixed.CatalogModifications.Single().Id = "nitrous" AndAlso
-              mixed.LegacyImportNotes.Where(Function(note) note.StartsWith("Review", StringComparison.Ordinal)).Count() = 1 AndAlso
+              mixed.LegacyImportNotes.Where(Function(note) note.StartsWith("Excluded under revised rules:", StringComparison.Ordinal)).Count() = 1 AndAlso
               mixed.LegacyImportNotes.Any(Function(note) note.StartsWith("Removed from active design: Lemon", StringComparison.Ordinal)),
               "Invalid revised equipment and homebrew must be reported without losing independent valid options.")
         Dim ambiguous = Convert(folder, catalog, "Van", "diesel", "Rigger2,2,Medical-Treatment Gear", "Rigger2,8,Drone Rack")

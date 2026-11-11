@@ -152,7 +152,7 @@ Public Module LegacyDesignConversion
             Loop While madeProgress AndAlso pending.Count > 0
             For Each group In pending
                 For Each item In group.Entries
-                    result.LegacyImportNotes.Add($"Review manually: {item.Name}. Not applied: {group.Failure}")
+                    result.LegacyImportNotes.Add($"Excluded under revised rules: {item.Name}. {group.Failure}")
                 Next
             Next
         End Try
@@ -248,6 +248,7 @@ Public Module LegacyDesignConversion
                 AddSelection(design, "spare-" & If(types.Length = 1, types(0).Mapping.Id, "standard-tires"), quantity)
                 Return
             Case "Recoil"
+                If quantity = 0 Then Return
                 Dim target = mapping.Id
                 Dim targets = all.Where(Function(entry) (target = "fixed firm" AndAlso entry.Mapping.Id.EndsWith("fixed-firmpoint", StringComparison.Ordinal)) OrElse
                     (target = "fixed hard" AndAlso entry.Mapping.Id.EndsWith("fixed-hardpoint", StringComparison.Ordinal)) OrElse

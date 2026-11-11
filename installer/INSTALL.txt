@@ -1,0 +1,29 @@
+THE SHOP 0.2.16
+Shadowrun Third Edition vehicle builder - Rigger 3 Revised
+
+INSTALL
+Run The-Shop-Setup-x64.exe on 64-bit Windows 10 or Windows 11.
+The installer includes the .NET desktop runtime. No separate runtime or
+development tools are required.
+
+The default location is %LOCALAPPDATA%\Programs\The Shop. Installation is
+for the current Windows account and does not require administrator rights.
+Start The Shop from its Start menu entry or the final installer screen.
+
+UPDATES AND SAVED VEHICLES
+Install a newer package over the existing installation. The installer keeps
+the same application identity and remembers the installation location.
+Save vehicle designs and exported sheets in Documents or another folder of
+your choice. Designs use JSON; original Shop vehicles can be imported from
+.shp files. Obsolete Rigger 2 selections are removed or replaced during
+conversion. Review the conversion notes before saving the revised design.
+
+UNINSTALL
+Open Windows Settings > Apps, select The Shop, and choose Uninstall.
+Saved vehicle designs and exported sheets are not installer-owned files
+and are preserved. Reinstalling the package can restore missing program
+files without changing saved designs.
+
+SOURCE AND VERIFICATION
+https://github.com/RHabenicht/The-Shop
+The download package includes the installer test report and SHA-256 checksum.

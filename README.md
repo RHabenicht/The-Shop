@@ -2,19 +2,21 @@
 
 The Shop is a vehicle builder for Shadowrun. This project updates James Ojaste’s original Rigger 2 program for Shadowrun Third Edition using **Rigger 3 Revised** and modern Visual Basic .NET.
 
-The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The component catalog covers 117 chassis and 379 chassis and power plant combinations. Included chassis equipment is displayed and participates in dependencies and mounting without charging its price, space or weight again. Factory arm Strength and torpedo tube counts retain their printed specifications; unspecified torpedo loading methods are not invented. Coverage includes ground vehicles, boats, hovercraft, crewed aircraft, aerial drones, ships, submarines, sea sleds, ground drones, rail vehicles, trailers, and rocket craft. The Windows desktop preview can edit and price catalog-based designs. The Windows workflow verifies the desktop build. Final installer packaging is a separate manual workflow step.
+The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised stock vehicle costs and remaining cargo and load from entered design values. The component catalog covers 117 chassis and 379 chassis and power plant combinations. Included chassis equipment is displayed and participates in dependencies and mounting without charging its price, space or weight again. Factory arm Strength and torpedo tube counts retain their printed specifications; unspecified torpedo loading methods are not invented. Coverage includes ground vehicles, boats, hovercraft, crewed aircraft, aerial drones, ships, submarines, sea sleds, ground drones, rail vehicles, trailers, and rocket craft. The Windows desktop editor can edit and price catalog-based designs. The Windows workflow builds the installer and verifies installation, startup, repair and uninstall.
 
 ## Windows desktop
 
 The editor lets you select a chassis and compatible power plant, enter options or modifications, and calculate the design cost and remaining capacity. Open and save use the same stock design JSON format as the command-line calculator. The editor imports legacy `.shp` vehicles and converts their supported selections to revised rules.
 
-On Windows, use the .NET 10 SDK to run the editor from source:
+For Windows 10/11 x64, download the installer package from the [Windows desktop workflow](../../actions/workflows/windows.yml), extract it and run `The-Shop-Setup-x64.exe`. It includes the .NET desktop runtime and installs for the current account without administrator rights. Use the Start menu entry to open The Shop. See [installation instructions](installer/INSTALL.txt) for saved designs, updates and removal.
+
+To run the editor from source on Windows, use the .NET 10 SDK:
 
 ```sh
 dotnet run --project src/TheShop.Desktop
 ```
 
-The [Windows desktop workflow](../../actions/workflows/windows.yml) publishes the Windows executable and runs editor, calculation, conversion and file round-trip tests on pushes and pull requests. Installer packaging is deferred. When the implementation is ready to package, run the workflow manually with `package_installer` enabled; that final step builds the installer, tests installation/startup/uninstall and uploads `The-Shop-Windows-x64`.
+The [Windows desktop workflow](../../actions/workflows/windows.yml) publishes a self-contained Windows executable, runs the rules and native editor tests, builds the installer and tests installation, shortcut creation, installed startup, repair, saved-file preservation and uninstall. Successful runs upload `The-Shop-Windows-x64`, containing the installer, instructions, test report and SHA-256 checksum. The workflow runs on source/installer pushes and pull requests and can also be started manually.
 
 ## Apply design upgrades
 
@@ -164,9 +166,9 @@ The archives are preserved as supplied. The source archive contains no license f
 
 Enter a vehicle name and choose **Export HTML…**. Open the exported file in a browser to print it or use the browser’s Save as PDF option. The sheet includes calculated ratings, capacity, price, Availability, payload and weapon assignments, individual equipment settings, turret space and arcs, retrofit prices and installation references, operating modes and any imported legacy reference.
 
-## Verification and remaining packaging
+## Verification
 
-The catalog contains 226 rule entries, 117 chassis and 379 compatible chassis/power plant combinations. The independent rules audit checks every electronics rating and turret variant against transcribed printed values, targeted dependency and pricing regressions, and calculation/JSON round trips for all stock combinations. The stock and quote sweeps check execution and consistency; they are not numerical proof of every formula. Windows tests exercise the editor, invalid numeric edits, missing quote prerequisites, overwrite/reopen, conversion and HTML export. The final installer is intentionally not rebuilt during development checks.
+The catalog contains 226 rule entries, 117 chassis and 379 compatible chassis/power plant combinations. The independent rules audit checks every electronics rating and turret variant against transcribed printed values, targeted dependency and pricing regressions, and calculation/JSON round trips for all stock combinations. The stock and quote sweeps check execution and consistency; they are not numerical proof of every formula. Windows tests exercise the editor, invalid numeric edits, missing quote prerequisites, overwrite/reopen, conversion and HTML export. Installer tests run after the source checks and verify the actual packaged application on native Windows. The package test repairs a missing program library and checks that reinstalling and uninstalling preserve saved vehicle files. Historical-version upgrades and every Windows release are not covered by this automated run.
 
 [Rigger 3 Revised coverage](docs/RIGGER_3_REVISED_COVERAGE.md) records the implementation scope and source references. GM approval and actual player choices remain part of the vehicle sheet workflow. Missing specifications for a revised replacement are identified as source-data gaps. Obsolete rules never remain as active or manual fallback options.
 

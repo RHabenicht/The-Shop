@@ -1,7 +1,7 @@
 [Setup]
 AppId=TheShop.RHabenicht
 AppName=The Shop
-AppVersion=0.2.15
+AppVersion=0.2.16
 DefaultDirName={localappdata}\Programs\The Shop
 DefaultGroupName=The Shop
 PrivilegesRequired=lowest
@@ -14,9 +14,14 @@ Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
 UninstallDisplayIcon={app}\TheShop.Desktop.exe
+SetupLogging=yes
 
 [Files]
 Source: "..\publish\*"; DestDir: "{app}"; Excludes: "*.pdb,TheShop.Design.exe,TheShop.Design.deps.json,TheShop.Design.runtimeconfig.json"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "INSTALL.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\The Shop"; Filename: "{app}\TheShop.Desktop.exe"
+
+[Run]
+Filename: "{app}\TheShop.Desktop.exe"; Description: "Launch The Shop"; Flags: nowait postinstall skipifsilent

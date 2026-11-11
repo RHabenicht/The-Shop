@@ -51,6 +51,20 @@ Friend Module CompletionChecks
         arms.CatalogModifications = Choices(("mechanical-arm", 2))
         arms.EquipmentSettings = New List(Of EquipmentSetting) From {New EquipmentSetting With {.Component = "Arm strength", .Rating = 1}, New EquipmentSetting With {.Component = "Arm strength", .Instance = 2, .Rating = 4}}
         Check(arms.Calculate(catalog).Totals.LoadRemainingKg = 630D, "Different arm enhancements must retain individual weight increases.")
+        Dim turretStorage = MakeVan()
+        turretStorage.CatalogModifications = Choices(("remote-small-turret", 1), ("roll-bar", 1))
+        turretStorage.Payload = New List(Of VehiclePayloadItem) From {New VehiclePayloadItem With {.Name = "Turret supplies", .UnitCargoCf = 1D, .UnitWeightKg = 5D, .MountId = "remote-small-turret"}}
+        Check(turretStorage.Calculate(catalog).Totals.CargoRemaining = 44D, "Turret internal storage must not be charged a second time against vehicle cargo.")
+        turretStorage.Payload(0).Quantity = 3
+        MustReject(Sub() turretStorage.Calculate(catalog), "Turret storage must not exceed the published internal capacity.")
+        Dim naval As New StockDesign With {.ChassisId = "attack-submarine", .PowerPlantId = "diesel", .CatalogModifications = Choices(("remote-large-turret", 1)),
+            .Payload = New List(Of VehiclePayloadItem) From {New VehiclePayloadItem With {.Name = "Railgun fixture", .WeaponClass = "Heavy Railgun", .UnitWeightKg = 10D, .MountId = "remote-large-turret"}}}
+        MustReject(Sub() naval.Calculate(catalog), "The printed Heavy Railgun Weapon Value 10 must exceed a large turret's capacity of 8.")
+        Dim amplifier = MakeVan()
+        amplifier.EquipmentSettings = New List(Of EquipmentSetting) From {New EquipmentSetting With {.Component = "Amplifier", .Target = "Radio", .Rating = 3, .Retrofit = True}}
+        Dim amplified = amplifier.Calculate(catalog)
+        Check(amplified.RetrofitListPartsCostNuyen = 750D AndAlso amplified.RetrofitPartsCostNuyen.GetValueOrDefault() = 1125D AndAlso amplified.Totals.CargoRemaining = 46D,
+              "Individual retrofit amplifiers must use the customization rounding and parts Street Index.")
         Dim quote = RetrofitCatalog.Quote(ModificationCatalog.Rules.Single(Function(rule) rule.Id = "improved-suspension"), 1, van, diesel, listCost:=20000D)
         Check(quote.PartsCostNuyen = 2000D AndAlso quote.StreetPartsCostNuyen.GetValueOrDefault() = 4000D, "Percentage retrofit prices must use list cost before Street Index.")
         MustReject(Sub() RetrofitCatalog.Quote(ModificationCatalog.Rules.Single(Function(rule) rule.Id = "nitrous"), 6, van, diesel), "Customization nitrous is limited to 5 even though manufacture allows 6.")
@@ -71,11 +85,13 @@ Friend Module CompletionChecks
                 Next
             Next
         Next
+        Console.WriteLine($"Completion coverage: {catalog.Count} chassis; {catalog.Sum(Function(item) item.PowerPlants.Count)} power plant combinations; {quotedCount} compatible retrofit quotes.")
         Check(quotedCount > 10000, "Every compatible catalog retrofit should have an executable quote.")
+        mounted.EngineStress = 2
         Dim path = IO.Path.Combine(folder, "completion-design.json")
         File.WriteAllText(path, JsonSerializer.Serialize(mounted))
         Dim reopened = JsonSerializer.Deserialize(Of StockDesign)(File.ReadAllText(path))
-        Check(reopened.Calculate(catalog).Totals.LoadRemainingKg = mounted.Calculate(catalog).Totals.LoadRemainingKg, "Payload and individual settings must survive save/reopen.")
+        Check(reopened.EngineStress.GetValueOrDefault() = 2 AndAlso reopened.Calculate(catalog).Totals.LoadRemainingKg = mounted.Calculate(catalog).Totals.LoadRemainingKg, "Payload and individual settings must survive save/reopen.")
         Dim html = IO.Path.Combine(folder, "completion-sheet.html")
         VehicleSheet.Write(html, reopened, catalog)
         Check(File.ReadAllText(html).Contains("Test LMG") AndAlso File.ReadAllText(html).Contains("Recoil (individual)"), "The exported sheet must include payload, mounting and equipment settings.")

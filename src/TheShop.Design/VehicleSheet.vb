@@ -103,6 +103,7 @@ Public Module VehicleSheet
         Row(page, "Design Points", Number(totals.DesignPoints))
         Row(page, "Effective chassis markup", Number(totals.EffectiveMarkup))
         Row(page, "Base price", "¥" & Number(totals.BaseCostNuyen))
+        If design.EngineStress.HasValue Then Row(page, "Permanent engine Stress (GM result)", Number(design.EngineStress))
         Row(page, "Street Index", Number(result.EffectiveStreetIndex))
         If design.SpecialtyClass <> VehicleSpecialtyClass.None Then Row(page, "Specialty class", design.SpecialtyClass.ToString())
         Row(page, "Street price", "¥" & Number(totals.StreetCostNuyen))
@@ -135,11 +136,16 @@ Public Module VehicleSheet
                     $"{item.Quantity}; list parts ¥{Number(item.Quote.PartsCostNuyen)}; " &
                     If(item.Quote.StreetPartsCostNuyen.HasValue, "street parts ¥" & Number(item.Quote.StreetPartsCostNuyen), "street price pending GM review (unlisted Street Index)") &
                     $"; {item.Quote.CargoConsumed} CF; {item.Quote.LoadConsumedKg} kg; Availability {item.Quote.Availability}")
+                Row(page, item.Name & " installation", $"Rigger 3 Revised p. {item.Quote.SourcePage}; {item.Quote.EquipmentRequired}; {item.Quote.InstallationTest}" &
+                    If(item.Quote.InstallationBaseHours.HasValue, $"; base {item.Quote.InstallationBaseHours:0.##} hours before Installation Test successes", ""))
             Next
             Row(page, "Installed retrofit list parts total", "¥" & Number(result.RetrofitListPartsCostNuyen))
             Row(page, "Installed retrofit street parts total", If(result.RetrofitPartsCostNuyen.HasValue,
                 "¥" & Number(result.RetrofitPartsCostNuyen), "Pending GM review (unlisted Street Index)"))
         End If
+        For Each mount In RetrofitCatalog.CombinedSelections(design.CatalogModifications, design.InstalledRetrofits).Where(Function(item) item.Id.Contains("turret"))
+            Row(page, mount.Id & " internal space", $"Per turret: {VehiclePayload.TurretStorage(mount.Id)} CF; {VehiclePayload.TurretSeating(mount.Id)} seating positions; {VehiclePayload.Arc(mount.Id)}")
+        Next
         If design.Payload IsNot Nothing Then
             For Each item In design.Payload
                 Row(page, item.Name & " (payload)", $"{item.Quantity}; {item.UnitWeightKg * item.Quantity} kg; {item.UnitCargoCf * item.Quantity} CF; list ¥{item.UnitCostNuyen * item.Quantity:N2}")
@@ -169,7 +175,10 @@ Public Module VehicleSheet
             page.Append("</pre>")
         End If
         If design.CatalogModifications IsNot Nothing AndAlso design.CatalogModifications.Any(Function(item) item.Id.StartsWith("engine-customization-", StringComparison.OrdinalIgnoreCase)) Then
-            page.Append("<p>Engine customization requires the gamemaster’s permanent engine Stress test.</p>")
+            page.Append("<p>Manufactured engine customization: GM secretly rolls 6 dice against target 6. On failure, roll 1D6, divide by 2 and round up for permanent engine Stress (Rigger 3 Revised p. 125).</p>")
+        End If
+        If design.InstalledRetrofits IsNot Nothing AndAlso design.InstalledRetrofits.Any(Function(item) item.Id.StartsWith("engine-customization-", StringComparison.Ordinal)) Then
+            page.Append("<p>Customized engine: GM secretly makes the appropriate Build/Repair Test at twice the installation target. Failure adds 1D6 divided by 2, rounded up, permanent engine Stress (Rigger 3 Revised p. 125).</p>")
         End If
         page.Append("<h2>GM review</h2><p>Proposed vehicle. Final approval, price, Street Index, Availability and any changes are determined by the gamemaster (Rigger 3 Revised, pp. 113, 121).</p>")
         page.Append("<p class='footer'>The Shop · Calculated from the current design. Manual entries are included in the totals.</p></main></body></html>")

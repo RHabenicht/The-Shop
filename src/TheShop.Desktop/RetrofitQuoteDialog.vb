@@ -59,6 +59,8 @@ Friend NotInheritable Class RetrofitQuoteDialog
                                         streetCost & Environment.NewLine &
                                         $"Availability {result.Availability}{Environment.NewLine}" &
                                         $"Remaining cargo {cargo:0.##} CF   Remaining load {load:0.##} kg"
+                                    output.Text &= Environment.NewLine & $"Rigger 3 Revised p. {result.SourcePage}; {result.EquipmentRequired}"
+                                    If result.InstallationBaseHours.HasValue Then output.Text &= Environment.NewLine & $"Base installation {result.InstallationBaseHours:0.##} hours; {result.InstallationTest}. Actual time depends on Installation Test successes."
                                     If result.ExternalCargoCapacity > 0D Then output.Text &= Environment.NewLine & $"External cargo capacity {result.ExternalCargoCapacity} CF."
                                     installButton.Enabled = cargo >= 0D AndAlso load >= 0D
                                     If cargo < 0D OrElse load < 0D Then output.Text &= Environment.NewLine & "Exceeds available capacity."

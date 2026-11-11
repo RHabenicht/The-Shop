@@ -77,6 +77,8 @@ Friend NotInheritable Class PayloadDialog
             Dim column As DataGridViewColumn
             If field.Name = "MountId" Then
                 column = New DataGridViewComboBoxColumn With {.DataSource = mountChoices.ToArray(), .DisplayMember = "Name", .ValueMember = "Id"}
+            ElseIf field.PropertyType Is GetType(Boolean) Then
+                column = New DataGridViewCheckBoxColumn()
             ElseIf field.Name = "Component" Then
                 Dim components As New DataGridViewComboBoxColumn()
                 components.Items.AddRange({"Arm strength", "Recoil", "Amplifier"})

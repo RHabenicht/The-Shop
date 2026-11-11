@@ -1,4 +1,8 @@
 Public NotInheritable Class RetrofitQuote
+    Public Property SourcePage As Integer
+    Public Property InstallationBaseHours As Decimal?
+    Public Property EquipmentRequired As String
+    Public Property InstallationTest As String
     Public Property PartsCostNuyen As Decimal
     Public Property StreetIndex As Decimal?
     Public Property Availability As String
@@ -138,6 +142,7 @@ Public Module RetrofitCatalog
                 result.StreetIndex = 1D
             End If
         End If
+        InstallationRules.Describe(result, rule, quantity, chassis)
         Return result
     End Function
 

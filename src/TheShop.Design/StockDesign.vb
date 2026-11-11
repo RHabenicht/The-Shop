@@ -13,6 +13,8 @@ Public NotInheritable Class StockDesign
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property Name As String
     Public Property SpecialtyClass As VehicleSpecialtyClass
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property EngineStress As Integer?
     Public Property MarkupAdjustment As Decimal
     Public Property CargoCapacity As Decimal?
     Public Property LoadCapacityKg As Decimal?
@@ -35,6 +37,7 @@ Public NotInheritable Class StockDesign
     Public Property EquipmentSettings As List(Of EquipmentSetting)
 
     Public Function Calculate(catalog As IReadOnlyList(Of StockChassis)) As StockDesignResult
+        If EngineStress.HasValue AndAlso EngineStress.Value < 0 Then Throw New ArgumentException("Permanent engine Stress cannot be negative.")
         Dim chassis = StockCatalog.FindById(catalog, ChassisId)
         Dim powerPlant = chassis.PowerPlants.SingleOrDefault(
             Function(candidate) String.Equals(candidate.Id, PowerPlantId, StringComparison.OrdinalIgnoreCase))
@@ -101,7 +104,7 @@ Public NotInheritable Class StockDesign
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
             .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits, .AuxiliaryEngine = AuxiliaryEngine.Ratings(auxiliary),
             .ExternalCargoCapacity = externalCargo, .OperatingModes = VehicleOperatingModes.Build(RetrofitCatalog.CombinedSelections(CatalogModifications, InstalledRetrofits), powerPlant, chassis, ratings, modifiedRatings, externalCargo),
-            .Availability = availability, .EffectiveStreetIndex = design.StreetIndex, .ConfiguredRetrofitListCost = configuredListCost, .ConfiguredRetrofitStreetCost = configuredStreetCost
+            .Availability = availability, .EffectiveStreetIndex = design.StreetIndex, .ConfiguredRetrofitListCost = configuredListCost, .ConfiguredRetrofitStreetCost = configuredStreetCost, .EngineStress = EngineStress
         }
     End Function
 
@@ -276,6 +279,7 @@ Public NotInheritable Class StockDesignResult
     Public Property AuxiliaryEngine As AuxiliaryEngineRatings
     <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
     Public Property InstalledRetrofits As IReadOnlyList(Of InstalledRetrofit)
+    Public Property EngineStress As Integer?
     Public Property ConfiguredRetrofitListCost As Decimal
     Public Property ConfiguredRetrofitStreetCost As Decimal
     Public Property EffectiveStreetIndex As Decimal

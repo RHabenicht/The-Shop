@@ -22,6 +22,7 @@ Public NotInheritable Class DesignForm
     Private ReadOnly powerPlantBox As New ComboBox With {.Name = "powerPlantBox", .DropDownStyle = ComboBoxStyle.DropDownList, .Dock = DockStyle.Fill}
     Private ReadOnly vehicleName As New TextBox With {.Dock = DockStyle.Fill}
     Private ReadOnly streetIndex As New TextBox With {.Name = "streetIndex", .PlaceholderText = "Book default", .Dock = DockStyle.Fill}
+    Private ReadOnly engineStress As New TextBox With {.Name = "engineStress", .PlaceholderText = "GM result, if assigned", .Dock = DockStyle.Fill}
     Private ReadOnly markup As New TextBox With {.Text = "0", .Dock = DockStyle.Fill}
     Private ReadOnly cargo As New TextBox With {.Dock = DockStyle.Fill}
     Private ReadOnly loadOverride As New TextBox With {.Dock = DockStyle.Fill}
@@ -82,6 +83,7 @@ Public NotInheritable Class DesignForm
         specialtyBox.SelectedIndex = 0
         AddHandler specialtyBox.SelectedIndexChanged, AddressOf ClearTotals
         AddField(fields, "Specialty class", specialtyBox, 0, 4)
+        AddField(fields, "Permanent engine Stress", engineStress, 2, 4)
         layout.Controls.Add(fields, 0, 0)
         layout.Controls.Add(startingValues, 0, 1)
 
@@ -115,7 +117,7 @@ Public NotInheritable Class DesignForm
         powerPlantBox.DisplayMember = NameOf(StockPowerPlant.Name)
         AddHandler chassisBox.SelectedIndexChanged, AddressOf ChassisChanged
         AddHandler powerPlantBox.SelectedIndexChanged, AddressOf PowerPlantChanged
-        For Each field As TextBox In {streetIndex, markup, cargo, loadOverride}
+        For Each field As TextBox In {streetIndex, markup, cargo, loadOverride, engineStress}
             AddHandler field.TextChanged, AddressOf ClearTotals
         Next
         AddHandler additions.CellValueChanged, AddressOf ClearTotals
@@ -176,6 +178,7 @@ Public NotInheritable Class DesignForm
         Dim design As New StockDesign With {
             .ChassisId = DirectCast(chassisBox.SelectedItem, StockChassis).Id,
             .PowerPlantId = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant).Id,
+            .EngineStress = ReadOptionalInteger(engineStress.Text, "Permanent engine Stress"),
             .Payload = payload, .EquipmentSettings = equipmentSettings,
             .StreetIndex = ReadOptional(streetIndex.Text, "Street Index"),
             .SpecialtyClass = CType(specialtyBox.SelectedItem, VehicleSpecialtyClass),
@@ -215,6 +218,13 @@ Public NotInheritable Class DesignForm
             Throw New ArgumentException($"{label} needs a number.")
         End If
         Return number
+    End Function
+
+    Private Shared Function ReadOptionalInteger(value As String, label As String) As Integer?
+        Dim number = ReadOptional(value, label)
+        If Not number.HasValue Then Return Nothing
+        If number.Value < 0D OrElse number.Value > Integer.MaxValue OrElse Decimal.Truncate(number.Value) <> number.Value Then Throw New ArgumentException($"{label} needs a nonnegative whole number.")
+        Return CInt(number.Value)
     End Function
 
     Private Shared Function ReadOptional(value As String, label As String) As Decimal?
@@ -263,6 +273,7 @@ Public NotInheritable Class DesignForm
         If catalogModifications IsNot Nothing AndAlso catalogModifications.Any(Function(item) item.Id.StartsWith("engine-customization-", StringComparison.OrdinalIgnoreCase)) Then
             totals.Text &= Environment.NewLine & "Engine customization requires the gamemaster's Stress test."
         End If
+        If result.EngineStress.HasValue Then totals.Text &= Environment.NewLine & $"Permanent engine Stress {result.EngineStress}"
         If result.AuxiliaryEngine IsNot Nothing Then
             Dim engine = result.AuxiliaryEngine
             totals.Text &= Environment.NewLine & $"Auxiliary {engine.Name}   Speed {engine.Speed}   Acceleration {engine.Acceleration}"
@@ -465,6 +476,7 @@ Public NotInheritable Class DesignForm
         specialtyBox.SelectedItem = design.SpecialtyClass
         payload = design.Payload
         equipmentSettings = design.EquipmentSettings
+        engineStress.Text = design.EngineStress?.ToString(CultureInfo.CurrentCulture)
         vehicleName.Text = design.Name
         markup.Text = design.MarkupAdjustment.ToString(CultureInfo.CurrentCulture)
         cargo.Text = design.CargoCapacity?.ToString(CultureInfo.CurrentCulture)

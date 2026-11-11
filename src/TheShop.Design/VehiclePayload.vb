@@ -22,7 +22,7 @@ End Class
 
 Public Module VehiclePayload
     Private ReadOnly weaponValues As New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase) From {
-        {"Pistol", 1D}, {"Shotgun", 1D}, {"Missile", 0D}, {"Heavy Missile", 0D}, {"Torpedo", 0D}, {"Mine", 0D}, {"SMG", 1D}, {"Microwave Designator", 1D}, {"Rifle", 1D}, {"Grenade Launcher", 1D}, {"LMG", 1.5D},
+        {"Pistol", 1D}, {"Shotgun", 1D}, {"Missile", 0D}, {"Rocket", 0D}, {"Bomb", 0D}, {"Heavy Missile", 0D}, {"Torpedo", 0D}, {"Mine", 0D}, {"SMG", 1D}, {"Microwave Designator", 1D}, {"Rifle", 1D}, {"Grenade Launcher", 1D}, {"LMG", 1.5D},
         {"MMG", 2D}, {"HMG", 2D}, {"Missile Launcher", 2D}, {"Rocket Launcher", 2D}, {"Harpoon Gun", 2D}, {"Vindicator", 2D},
         {"Vanquisher", 2.5D}, {"Vengeance", 2.5D}, {"Assault Cannon", 3D}, {"Autocannon", 3D}, {"Vehicle Laser", 3D},
         {"Water Cannon", 3D}, {"Mortar", 4D}, {"Light Railgun", 5D}, {"Outlaw Missile System", 5D}, {"RASCAM", 5D},
@@ -102,7 +102,7 @@ Public Module VehiclePayload
                 ElseIf Not String.IsNullOrWhiteSpace(item.MountId) AndAlso Not storedInTurret Then
                     Throw New ArgumentException("Mounted equipment requires a weapon class or allocated turret storage.")
                 End If
-                result.Add(New DesignAddition With {.Name = item.Name & $" ×{item.Quantity}", .DirectCostNuyen = item.UnitCostNuyen * item.Quantity,
+                result.Add(New DesignAddition With {.Name = item.Name & $" ×{item.Quantity}", .IsPayload = True, .DirectCostNuyen = item.UnitCostNuyen * item.Quantity,
                     .LoadConsumedKg = item.UnitWeightKg * item.Quantity, .CargoConsumed = If(storedInTurret, 0D, item.UnitCargoCf * item.Quantity)})
             Next
         End If
@@ -206,15 +206,17 @@ Public Module VehiclePayload
         Dim kind = weaponClass.ToLowerInvariant()
         Select Case id
             Case "internal-missile-storage"
-                If kind <> "missile" Then Throw New ArgumentException("Standard internal storage accepts normal missiles and rockets.")
+                If kind <> "missile" AndAlso kind <> "rocket" Then Throw New ArgumentException("Standard internal storage accepts normal missiles and rockets.")
             Case "internal-heavy-missile-storage"
                 If kind <> "heavy missile" AndAlso Not (kind = "torpedo" AndAlso chassis.Category = "Ship") Then Throw New ArgumentException("Heavy internal storage accepts heavy missiles or surface-ship torpedoes.")
             Case "torpedo-storage-rack"
                 If kind <> "torpedo" Then Throw New ArgumentException("A torpedo storage rack accepts torpedoes.")
             Case "torpedo-tube-manual", "torpedo-tube-autoloader", "factory-torpedo-tube"
+                If kind = "bomb" Then Throw New ArgumentException("Aircraft bombs require an aircraft ordnance mount.")
                 ' The GM identifies the specific tube-launched missile, mine or torpedo.
             Case "external-missile-mounts", "external-missile-mounts-reinforced"
                 If kind = "mine" Then Throw New ArgumentException("Sea mines require an appropriate torpedo installation.")
+                If kind = "bomb" AndAlso Not (chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft") Then Throw New ArgumentException("Aircraft bombs require an aircraft ordnance mount.")
                 If kind = "torpedo" AndAlso chassis.Category <> "Ship" AndAlso id <> "external-missile-mounts-reinforced" Then Throw New ArgumentException("Torpedoes require a ship launch mount or a reinforced aircraft mount.")
             Case Else
                 Throw New ArgumentException("Ordnance requires an appropriate launch mount, tube or storage rack.")

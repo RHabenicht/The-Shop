@@ -86,6 +86,21 @@ Module Program
                 d.Payload(0).Quantity = 4
                 Reject(Sub() d.Calculate(catalog))
             End Sub)
+            Test("rockets and aircraft bombs retain their own ordnance classes", Sub()
+                Dim d = Van(("internal-missile-storage", 1))
+                d.Payload = New List(Of VehiclePayloadItem) From {Weapon("Rocket", "internal-missile-storage", 2D)}
+                d.Calculate(catalog)
+                d.Payload(0).WeaponClass = "Bomb"
+                Reject(Sub() d.Calculate(catalog))
+                d.ChassisId = "cargo-helicopter" : d.PowerPlantId = "jet-turbine"
+                d.LoadCapacityKg = 2000D
+                d.CatalogModifications = Choices(("external-missile-mounts-reinforced", 1))
+                d.Payload(0).MountId = "external-missile-mounts-reinforced"
+                d.Payload(0).Quantity = 3 : d.Payload(0).UnitWeightKg = 500D
+                d.Calculate(catalog)
+                d.Payload(0).Quantity = 4
+                Reject(Sub() d.Calculate(catalog))
+            End Sub)
             Test("uniform enhancement quote requires its target", Sub()
                 Reject(Sub() Quote("mechanical-arm-strength", 1))
                 Reject(Sub() Quote("retransmission-power-amplifier", 1))
@@ -201,6 +216,22 @@ Module Program
                 d.InstalledRetrofits = Choices(("cabin-gas-seal", 1), ("cabin-overpressure", 1))
                 Equal(d.Calculate(catalog).Totals.CargoRemaining, 46D, "Seal with overpressure")
             End Sub)
+            Test("external mounts use manufactured cargo capacity, p.151", Sub()
+                Dim d = Van(("bucket-seat", 1))
+                d.Upgrades = New DesignUpgrades With {.CargoSteps = 260}
+                d.Payload = New List(Of VehiclePayloadItem) From {New VehiclePayloadItem With {.Name = "Carried supplies", .UnitCargoCf = 30D}}
+                d.InstalledRetrofits = Choices(("external-cargo-mounts", 94))
+                Dim r = d.Calculate(catalog)
+                Equal(r.OriginalCargoCapacity, 94D, "Manufactured rated cargo")
+                Equal(r.ExternalCargoCapacity, 94D, "Maximum exterior capacity")
+                Equal(r.Totals.CargoRemaining, 64D, "Cargo after supplies")
+                d.InstalledRetrofits(0).Quantity = 95
+                Reject(Sub() d.Calculate(catalog))
+            End Sub)
+            Test("a zero-starting-cargo chassis can add mounts after cargo upgrades", Sub()
+                Dim d As New StockDesign With {.ChassisId = "small-walker", .PowerPlantId = "electric-battery", .Upgrades = New DesignUpgrades With {.CargoSteps = 5}, .InstalledRetrofits = Choices(("external-cargo-mounts", 1))}
+                Equal(d.Calculate(catalog).ExternalCargoCapacity, 1D, "Upgraded chassis exterior mount")
+            End Sub)
             Test("bench and bucket armor limits differ, p.153", Sub()
                 Dim d = Van(("bucket-seat", 1), ("seat-armor", 4))
                 d.Calculate(catalog)
@@ -291,10 +322,84 @@ Module Program
                 Equal(result.Totals.CargoRemaining, 159D, "OTHS cargo")
                 Equal(result.Totals.LoadRemainingKg, 17500D, "OTHS mass")
             End Sub)
+            Test("Hull-rated engine acceleration customization, pp.114,125", Sub()
+                Dim d As New StockDesign With {.ChassisId = "attack-submarine", .PowerPlantId = "diesel", .CatalogModifications = Choices(("engine-customization-acceleration", 1))}
+                Dim r = d.Calculate(catalog)
+                Equal(r.ModifiedRatings.Acceleration.Value, 5, "Acceleration")
+                Equal(r.Totals.DesignPoints, 400000D, "First-level plant cost")
+                d.InstalledRetrofits = d.CatalogModifications : d.CatalogModifications = Nothing
+                Equal(d.Calculate(catalog).RetrofitListPartsCostNuyen, 11100000D, "Retrofit list parts")
+                d.InstalledRetrofits(0).Quantity = 2
+                Reject(Sub() d.Calculate(catalog))
+            End Sub)
+            Test("secondary speed customization preserves the other rating", Sub()
+                Dim d As New StockDesign With {.ChassisId = "attack-submarine", .PowerPlantId = "diesel", .CatalogModifications = Choices(("engine-customization-secondary-speed", 1))}
+                Equal(d.Calculate(catalog).ModifiedRatings.SecondarySpeed.Value, 55, "One full secondary level")
+                If Not VehicleSheet.Render(d, catalog).Contains("30 / 55") Then Throw New InvalidOperationException("Secondary customization is absent from export.")
+                d.CatalogModifications(0).Quantity = 2
+                Reject(Sub() d.Calculate(catalog))
+            End Sub)
+            Test("Hull-rated thermal baffles, pp.114,135", Sub()
+                Dim d As New StockDesign With {.ChassisId = "attack-submarine", .PowerPlantId = "diesel", .InstalledRetrofits = Choices(("thermal-baffles", 1))}
+                Dim r = d.Calculate(catalog)
+                Equal(r.RetrofitListPartsCostNuyen, 6250000D, "Hull Factor parts")
+                Equal(r.Totals.LoadRemainingKg, 625000D, "Hull Factor baffle mass")
+                Equal(r.ModifiedRatings.InfraredSignature.Value, 7, "Thermal Signature")
+            End Sub)
+            Test("Hull-rated weapon gyro uses the same Body scale as its maximum", Sub()
+                Dim d As New StockDesign With {.ChassisId = "attack-submarine", .PowerPlantId = "diesel", .CatalogModifications = Choices(("external-fixed-hardpoint", 1), ("weapon-gyro-stabilization", 4))}
+                Equal(d.Calculate(catalog).OperatingModes.Single().Handling.Value, 4, "No gyro penalty below Hull Factor")
+            End Sub)
+            Test("Hull-rated remote control interface", Sub()
+                Dim d As New StockDesign With {.ChassisId = "attack-submarine", .PowerPlantId = "diesel", .CatalogModifications = Choices(("remote-control-interface", 1))}
+                Dim r = d.Calculate(catalog)
+                Equal(r.ModifiedRatings.Pilot.Value, 1, "Remote Pilot")
+                Equal(r.Totals.DesignPoints, 432500D, "Hull Factor interface cost")
+            End Sub)
+            Test("paired speeds receive turbo and wire effects", Sub()
+                Dim d As New StockDesign With {.ChassisId = "attack-submarine", .PowerPlantId = "diesel", .CatalogModifications = Choices(("turbocharging", 1))}
+                Dim r = d.Calculate(catalog)
+                Equal(r.ModifiedRatings.Speed.Value, 45, "Primary turbo Speed")
+                Equal(r.ModifiedRatings.SecondarySpeed.Value, 40, "Secondary turbo Speed")
+                d.CatalogModifications = Choices(("drive-by-wire", 1), ("drive-by-wire-speed-allocation", 10))
+                r = d.Calculate(catalog)
+                Equal(r.ModifiedRatings.Speed.Value, 33, "Primary wire Speed")
+                Equal(r.ModifiedRatings.SecondarySpeed.Value, 27, "Secondary wire Speed")
+            End Sub)
+            Test("Body 0 engine customization remains available", Sub()
+                Dim d As New StockDesign With {.ChassisId = "micro-rotary-wing-uav", .PowerPlantId = "electric-battery", .CatalogModifications = Choices(("engine-customization-speed", 1))}
+                Equal(d.Calculate(catalog).ModifiedRatings.Speed.Value, 40, "Body 0 customized Speed")
+            End Sub)
+            Test("sidecar and flotation penalties survive engine changes", Sub()
+                Dim d As New StockDesign With {.ChassisId = "chopper", .PowerPlantId = "gasoline", .CatalogModifications = Choices(("sidecar", 2), ("engine-customization-speed", 1))}
+                Equal(d.Calculate(catalog).ModifiedRatings.Speed.Value, 75, "Engine plus sidecar")
+                d.ChassisId = "airliner" : d.PowerPlantId = "jet-propeller"
+                d.CatalogModifications = Choices(("aircraft-flotation", 1), ("engine-customization-speed", 1))
+                Equal(d.Calculate(catalog).ModifiedRatings.Speed.Value, 175, "Engine plus floats")
+            End Sub)
+            Test("wire bonus follows drop-tank penalties, pp.129,149", Sub()
+                Dim d As New StockDesign With {.ChassisId = "airliner", .PowerPlantId = "jet-propeller", .CatalogModifications = Choices(("aircraft-drop-tanks", 2), ("drive-by-wire", 1), ("drive-by-wire-speed-allocation", 10))}
+                Dim r = d.Calculate(catalog)
+                Equal(r.ModifiedRatings.Speed.Value, 335, "(320 − 15) × 1.1, rounded down")
+                Equal(r.ModifiedRatings.Signature.Value, 2, "One Signature penalty for drop tanks")
+                Equal(r.OperatingModes.Single().Speed.Value, 352, "320 × 1.1 after jettison")
+                Equal(r.OperatingModes.Single().Signature.Value, 3, "Normal Signature after jettison")
+            End Sub)
+            Test("wire Load bonus follows permanent equipment without depending on cargo", Sub()
+                Dim d = Van(("bucket-seat", 1), ("drive-by-wire", 1), ("drive-by-wire-load-allocation", 10))
+                d.PowerPlantId = "diesel"
+                Equal(d.Calculate(catalog).Totals.LoadRemainingKg, 990D, "(1000 − 100) × 1.1")
+                d.Payload = New List(Of VehiclePayloadItem) From {New VehiclePayloadItem With {.Name = "Carried tools", .UnitWeightKg = 200D}}
+                Equal(d.Calculate(catalog).Totals.LoadRemainingKg, 790D, "Cargo does not change the vehicle's Load improvement")
+                d.CatalogModifications = Choices(("bucket-seat", 1))
+                d.InstalledRetrofits = Choices(("drive-by-wire", 1), ("drive-by-wire-load-allocation", 10))
+                Equal(d.Calculate(catalog).Totals.LoadRemainingKg, 790D, "Retrofit Load improvement")
+            End Sub)
         Finally
             Directory.Delete(folder, True)
         End Try
         Console.WriteLine($"Rules audit: {checks} cases; {failures.Count} failed.")
+        Console.WriteLine($"Catalog: {catalog.Count} chassis; {catalog.Sum(Function(item) item.PowerPlants.Count)} engines; {ModificationCatalog.Rules.Count} rule entries; {RetrofitCatalog.Rules.Count} retrofit entries.")
         For Each failure In failures
             Console.Error.WriteLine(failure)
         Next

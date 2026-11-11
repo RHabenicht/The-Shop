@@ -55,6 +55,9 @@ Public NotInheritable Class ModifiedRatings
     Public Property Acceleration As Integer?
     Public Property Signature As Integer?
     Public Property Speed As Integer?
+    Public Property SecondarySpeed As Integer?
+    Public Property SpeedWithoutDropTanks As Integer?
+    Public Property HandlingWithoutDropTanks As Integer?
     Public Property Economy As Decimal?
     Public Property FuelCapacity As Decimal?
     Public Property FuelUnit As String
@@ -222,6 +225,7 @@ Public Module ModificationCatalog
         New ModificationRule("smartlink-integration-1", "Smartlink I mount integration", "mounts", Integer.MaxValue, 0D, 25D),
         New ModificationRule("smartlink-integration-2", "Smartlink II mount integration", "mounts", Integer.MaxValue, 0D, 35D),
         New ModificationRule("engine-customization-speed", "Engine customization — Speed", "levels", Integer.MaxValue),
+        New ModificationRule("engine-customization-secondary-speed", "Engine customization — Secondary Speed", "levels", Integer.MaxValue),
         New ModificationRule("engine-customization-acceleration", "Engine customization — Acceleration", "levels", Integer.MaxValue),
         New ModificationRule("engine-customization-load", "Engine customization — Load", "levels", Integer.MaxValue),
         New ModificationRule("drive-by-wire", "Drive-by-wire system", "rating", 3),
@@ -449,7 +453,7 @@ Public Module ModificationCatalog
             Case "autonav"
                 Return chassis.Autonav.GetValueOrDefault() < rule.Maximum AndAlso plant.Id <> "unpowered"
             Case "remote-control-interface"
-                Return Not chassis.IsDrone AndAlso chassis.Body.HasValue AndAlso plant.Id <> "unpowered"
+                Return Not chassis.IsDrone AndAlso VehicleScale.RuleBody(chassis) > 0D AndAlso plant.Id <> "unpowered"
             Case "advanced-drone-pilot"
                 Return chassis.Pilot.GetValueOrDefault() < rule.Maximum AndAlso plant.Id <> "unpowered"
             Case "turbocharging"
@@ -460,20 +464,22 @@ Public Module ModificationCatalog
                     (Not chassis.Category.Contains("Aircraft") AndAlso chassis.Category <> "Rotor Craft" OrElse
                      plant.Id.StartsWith("electric-", StringComparison.Ordinal))
             Case "thermal-baffles"
-                Return chassis.Body.HasValue AndAlso
+                Return VehicleScale.RuleBody(chassis) > 0D AndAlso
                     (plant.Id = "gasoline" OrElse plant.Id = "methane" OrElse plant.Id = "diesel" OrElse plant.Id.StartsWith("jet-", StringComparison.Ordinal))
             Case "noisemaker-dispenser"
                 Return chassis.Category = "Boat" OrElse chassis.Category = "Ship" OrElse chassis.Category = "Submarine"
             Case "smart-armor"
                 Return chassis.Body.GetValueOrDefault() >= 4
             Case "engine-customization-speed"
-                Return chassis.Body.HasValue AndAlso plant.StartingSpeed.HasValue AndAlso plant.MaximumSpeed.HasValue AndAlso Not plant.StartingSecondarySpeed.HasValue
+                Return plant.StartingSpeed.HasValue AndAlso plant.MaximumSpeed.HasValue
+            Case "engine-customization-secondary-speed"
+                Return plant.StartingSecondarySpeed.HasValue AndAlso plant.MaximumSecondarySpeed.HasValue
             Case "engine-customization-acceleration"
-                Return chassis.Body.HasValue AndAlso plant.StartingAcceleration.HasValue AndAlso plant.MaximumAcceleration.HasValue
+                Return plant.StartingAcceleration.HasValue AndAlso plant.MaximumAcceleration.HasValue
             Case "engine-customization-load"
-                Return chassis.Body.GetValueOrDefault() > 0 AndAlso plant.Id <> "unpowered"
+                Return VehicleScale.RuleBody(chassis) > 0D AndAlso plant.Id <> "unpowered"
             Case "drive-by-wire", "drive-by-wire-speed-allocation", "drive-by-wire-acceleration-allocation", "drive-by-wire-load-allocation"
-                Return chassis.Body.HasValue AndAlso plant.StartingSpeed.HasValue AndAlso Not plant.StartingSecondarySpeed.HasValue AndAlso plant.Id <> "unpowered"
+                Return plant.StartingSpeed.HasValue AndAlso plant.Id <> "unpowered"
             Case "robotic-pilot", "robotic-reflexes", "improved-neural-network", "fuzzy-logic", "multi-object-manipulation"
                 Return plant.Id <> "unpowered"
             Case "hybrid-engine"
@@ -512,7 +518,7 @@ Public Module ModificationCatalog
             Case "improved-control-surfaces"
                 Return chassis.Category = "Boat" AndAlso chassis.Handling.HasValue
             Case "special-machinery", "weapon-gyro-stabilization"
-                Return chassis.Body.GetValueOrDefault() > 0
+                Return VehicleScale.RuleBody(chassis) > 0D
             Case "standard-tires", "performance-tires", "off-road-tires", "dual-purpose-tires", "runflat-upgrade", "improved-suspension", "off-road-suspension",
                  "spare-standard-tires", "spare-performance-tires", "spare-off-road-tires", "spare-dual-purpose-tires"
                 Return chassis.Body.GetValueOrDefault() > 0 AndAlso Not chassis.IsDrone AndAlso
@@ -578,7 +584,7 @@ Public Module ModificationCatalog
             End If
             validated.Add((rule, choice.Quantity))
             Select Case rule.Id
-            Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "aircraft-flotation", "autonav", "advanced-drone-pilot", "ecm", "eccm", "electronic-deception", "electronic-counter-deception", "dipping-sonar", "robotic-pilot", "robotic-reflexes"
+            Case "vehicle-armor", "concealed-armor", "bulwark", "sensors", "sonar", "towed-array-sonar", "amphibious-operation", "autonav", "advanced-drone-pilot", "ecm", "eccm", "electronic-deception", "electronic-counter-deception", "dipping-sonar", "robotic-pilot", "robotic-reflexes"
                     If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
                     ApplyRating(finalRatings, rule.Id, choice.Quantity, chassis, plant, upgrades)
             End Select
@@ -636,19 +642,6 @@ Public Module ModificationCatalog
             Throw New ArgumentException("Mechanical arm strength enhancement requires a mechanical arm.")
         End If
         If seen.Contains("mechanical-arm-strength") AndAlso chassis.FactoryArmStrength.HasValue AndAlso chassis.FactoryArmStrength.Value + validated.Single(Function(choice) choice.Rule.Id = "mechanical-arm-strength").Quantity > chassis.Body.GetValueOrDefault() * 10D Then Throw New ArgumentException("Factory arm Strength enhancement exceeds Body × 10.")
-        If seen.Contains("sidecar") Then
-            Dim size = validated.Single(Function(choice) choice.Rule.Id = "sidecar").Quantity
-            Dim handlingPenalty = If(size = 3, 2, 1)
-            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
-            finalRatings.Speed = Math.Max(0, If(upgrades?.Speed, plant.StartingSpeed).GetValueOrDefault() - 15)
-            Dim economy = If(upgrades?.Economy, If(plant.StartingEconomyKmPerLiter,
-                If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar)))
-            finalRatings.Economy = economy * 0.9D
-            finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) + handlingPenalty
-            finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) + handlingPenalty
-            finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) + handlingPenalty
-            design.CargoCapacity += If(size = 1, 6D, If(size = 2, 8D, 12D))
-        End If
         If seen.Contains("drive-by-wire") AndAlso (seen.Contains("off-road-suspension") OrElse seen.Contains("improved-control-surfaces")) Then
             Throw New ArgumentException("Drive-by-wire is incompatible with off-road suspension and improved control surfaces.")
         End If
@@ -668,6 +661,12 @@ Public Module ModificationCatalog
                     Dim value = starting + 2D * levels
                     If Not customization AndAlso value > maximum Then Throw New ArgumentException("Engine customization exceeds the increased Acceleration maximum.")
                     finalRatings.Acceleration = CInt(value)
+                Case "engine-customization-secondary-speed"
+                    Dim starting = If(upgrades?.SecondarySpeed, plant.StartingSecondarySpeed).GetValueOrDefault()
+                    Dim maximum = Math.Max(starting + 30D, Math.Ceiling(plant.MaximumSecondarySpeed.Value * 1.75D))
+                    Dim value = starting + 30D * levels
+                    If Not customization AndAlso value > maximum Then Throw New ArgumentException("Engine customization exceeds the increased secondary Speed maximum.")
+                    finalRatings.SecondarySpeed = CInt(value)
                 Case "engine-customization-load"
                     Dim increment = VehicleScale.RuleBody(chassis) * 50D
                     Dim maximum = Math.Max(design.LoadCapacityKg + increment, Math.Ceiling(plant.MaximumLoadKg * 1.75D))
@@ -676,6 +675,19 @@ Public Module ModificationCatalog
                     design.LoadCapacityKg = value
             End Select
         Next
+        If seen.Contains("sidecar") Then
+            Dim size = validated.Single(Function(choice) choice.Rule.Id = "sidecar").Quantity
+            Dim handlingPenalty = If(size = 3, 2, 1)
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            finalRatings.Speed = Math.Max(0, If(finalRatings.Speed, If(upgrades?.Speed, plant.StartingSpeed)).GetValueOrDefault() - 15)
+            Dim economy = If(finalRatings.Economy, If(upgrades?.Economy, If(plant.StartingEconomyKmPerLiter,
+                If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar))))
+            finalRatings.Economy = economy * 0.9D
+            finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) + handlingPenalty
+            finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) + handlingPenalty
+            finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) + handlingPenalty
+            design.CargoCapacity += If(size = 1, 6D, If(size = 2, 8D, 12D))
+        End If
         If seen.Contains("smart-materials") AndAlso seen.Contains("fin-drive") Then Throw New ArgumentException("Fin drive already uses smart materials and cannot add the smart-materials option.")
         If seen.Contains("stol-profile") AndAlso seen.Contains("vstol-profile") Then Throw New ArgumentException("Select one improved takeoff/landing profile.")
         If seen.Contains("removed-manual-controls") Then
@@ -751,6 +763,12 @@ Public Module ModificationCatalog
             Dim speed = baseSpeed + 15D * levels
             If Not customization AndAlso speed > maximum Then Throw New ArgumentException("Turbocharging exceeds the increased maximum Speed.")
             finalRatings.Speed = CInt(speed)
+            If plant.StartingSecondarySpeed.HasValue Then
+                Dim secondary = If(finalRatings.SecondarySpeed, If(upgrades?.SecondarySpeed, plant.StartingSecondarySpeed)).Value
+                Dim secondaryMaximum = Math.Max(secondary + 15D, plant.MaximumSecondarySpeed.Value * 1.25D)
+                If Not customization AndAlso secondary + 15D * levels > secondaryMaximum Then Throw New ArgumentException("Turbocharging exceeds the increased secondary Speed maximum.")
+                finalRatings.SecondarySpeed = CInt(secondary + 15D * levels)
+            End If
             finalRatings.Acceleration = CInt(If(finalRatings.Acceleration, If(upgrades?.Acceleration, plant.StartingAcceleration)).GetValueOrDefault() + CLng(levels))
             finalRatings.Signature = CInt(If(upgrades?.Signature, plant.Signature).GetValueOrDefault() - CLng(levels))
             Dim economy = If(finalRatings.Economy, If(upgrades?.Economy, If(plant.StartingEconomyKmPerLiter,
@@ -758,28 +776,13 @@ Public Module ModificationCatalog
             If levels >= 20 Then Throw New ArgumentException("Turbocharging must leave positive Economy.")
             finalRatings.Economy = economy * (1D - 0.05D * levels)
         End If
+        If seen.Contains("aircraft-flotation") Then
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            ApplyRating(finalRatings, "aircraft-flotation", 1, chassis, plant, upgrades)
+        End If
         Dim allocations = validated.Where(Function(choice) choice.Rule.Id.StartsWith("drive-by-wire-", StringComparison.Ordinal)).ToArray()
         If allocations.Length > 0 AndAlso Not seen.Contains("drive-by-wire") Then Throw New ArgumentException("Bonus allocation requires a drive-by-wire system.")
         If seen.Contains("drive-by-wire") AndAlso allocations.Sum(Function(choice) choice.Quantity) <> 10 Then Throw New ArgumentException("Allocate exactly ten percent of drive-by-wire bonus across Speed, Acceleration, and Load.")
-        If seen.Contains("drive-by-wire") Then
-            Dim level = validated.Single(Function(choice) choice.Rule.Id = "drive-by-wire").Quantity
-            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
-            finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) - level
-            Dim benefit = If(seen.Contains("standard-tires") OrElse (seen.Contains("off-road-tires") AndAlso Not seen.Contains("off-road-suspension")), level \ 2, level)
-            finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) - benefit
-            finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - benefit
-            For Each allocation In allocations
-                Dim multiplier = 1D + allocation.Quantity / 100D
-                Select Case allocation.Rule.Id
-                    Case "drive-by-wire-speed-allocation"
-                        finalRatings.Speed = CInt(Math.Floor(If(finalRatings.Speed, If(upgrades?.Speed, plant.StartingSpeed)).GetValueOrDefault() * multiplier))
-                    Case "drive-by-wire-acceleration-allocation"
-                        finalRatings.Acceleration = CInt(Math.Floor(If(finalRatings.Acceleration, If(upgrades?.Acceleration, plant.StartingAcceleration)).GetValueOrDefault() * multiplier))
-                    Case "drive-by-wire-load-allocation"
-                        design.LoadCapacityKg *= multiplier
-                End Select
-            Next
-        End If
         Dim deckLength = validated.Where(Function(choice) choice.Rule.Id = "flight-deck").Select(Function(choice) choice.Quantity).SingleOrDefault()
         If (seen.Contains("flight-deck-catapult") OrElse seen.Contains("flight-deck-angled")) AndAlso deckLength = 0 Then
             Throw New ArgumentException("Flight-deck accessories require a flight deck.")
@@ -861,7 +864,9 @@ Public Module ModificationCatalog
             If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
             finalRatings.FuelCapacity = If(upgrades?.FuelCapacity, plant.FuelLiters).GetValueOrDefault() + 2000D * pairs
             finalRatings.FuelUnit = "L"
-            finalRatings.Signature = CInt(If(finalRatings.Signature, If(upgrades?.Signature, plant.Signature)).GetValueOrDefault() - CLng(pairs))
+            finalRatings.SpeedWithoutDropTanks = If(finalRatings.Speed, If(upgrades?.Speed, plant.StartingSpeed))
+            finalRatings.HandlingWithoutDropTanks = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling))
+            finalRatings.Signature = If(finalRatings.Signature, If(upgrades?.Signature, plant.Signature)).GetValueOrDefault() - 1
             finalRatings.Speed = CInt(Math.Max(0D, If(finalRatings.Speed, If(upgrades?.Speed, plant.StartingSpeed)).GetValueOrDefault() - 15D * (pairs - 1D)))
             finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) + pairs \ 2
         End If
@@ -904,6 +909,28 @@ Public Module ModificationCatalog
             If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
             finalRatings.AblativeArmor = levels * 2
         End If
+        If seen.Contains("drive-by-wire") Then
+            Dim level = validated.Single(Function(choice) choice.Rule.Id = "drive-by-wire").Quantity
+            If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
+            finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) - level
+            If finalRatings.HandlingWithoutDropTanks.HasValue Then finalRatings.HandlingWithoutDropTanks -= level
+            Dim benefit = If(seen.Contains("standard-tires") OrElse (seen.Contains("off-road-tires") AndAlso Not seen.Contains("off-road-suspension")), level \ 2, level)
+            finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) - benefit
+            finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - benefit
+            For Each allocation In allocations
+                Dim multiplier = 1D + allocation.Quantity / 100D
+                Select Case allocation.Rule.Id
+                    Case "drive-by-wire-speed-allocation"
+                        finalRatings.Speed = CInt(Math.Floor(If(finalRatings.Speed, If(upgrades?.Speed, plant.StartingSpeed)).GetValueOrDefault() * multiplier))
+                        If finalRatings.SpeedWithoutDropTanks.HasValue Then finalRatings.SpeedWithoutDropTanks = CInt(Math.Floor(finalRatings.SpeedWithoutDropTanks.Value * multiplier))
+                        If plant.StartingSecondarySpeed.HasValue Then finalRatings.SecondarySpeed = CInt(Math.Floor(If(finalRatings.SecondarySpeed, If(upgrades?.SecondarySpeed, plant.StartingSecondarySpeed)).Value * multiplier))
+                    Case "drive-by-wire-acceleration-allocation"
+                        finalRatings.Acceleration = CInt(Math.Floor(If(finalRatings.Acceleration, If(upgrades?.Acceleration, plant.StartingAcceleration)).GetValueOrDefault() * multiplier))
+                    Case "drive-by-wire-load-allocation"
+                        ' Applied below after component weights have been priced.
+                End Select
+            Next
+        End If
         Dim result = validated.Select(Function(choice) Price(choice.Rule, choice.Quantity, chassis, plant, sensorRating, retransmissionUnits, armCount, pilot, adaptation, deckLength)).ToList()
         If seen.Contains("gunnery-recoil-adjusters") Then
             Dim index = validated.FindIndex(Function(choice) choice.Rule.Id = "gunnery-recoil-adjusters")
@@ -930,6 +957,11 @@ Public Module ModificationCatalog
                 result(index).LoadConsumedKg -= original.LoadConsumedKg
             End If
         Next
+        If seen.Contains("drive-by-wire") Then
+            Dim loadAllocation = allocations.Where(Function(item) item.Rule.Id = "drive-by-wire-load-allocation").Select(Function(item) item.Quantity).SingleOrDefault()
+            Dim permanentWeight = design.Additions.Where(Function(item) Not item.IsPayload).Sum(Function(item) item.LoadConsumedKg) + result.Sum(Function(item) item.LoadConsumedKg)
+            design.LoadCapacityKg += Math.Max(0D, design.LoadCapacityKg - permanentWeight) * loadAllocation / 100D
+        End If
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
     End Function
@@ -977,9 +1009,9 @@ Public Module ModificationCatalog
             Case "aircraft-flotation"
                 Dim isRotorCraft = chassis.Category = "Rotor Craft"
                 Dim speedFactor = If(isRotorCraft, 0.9D, 0.5D)
-                ratings.Speed = CInt(Math.Floor(If(upgrades?.Speed, plant.StartingSpeed).Value * speedFactor))
-                Dim economy = If(upgrades?.Economy, If(plant.StartingEconomyKmPerLiter,
-                    If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar)))
+                ratings.Speed = CInt(Math.Floor(If(ratings.Speed, If(upgrades?.Speed, plant.StartingSpeed)).Value * speedFactor))
+                Dim economy = If(ratings.Economy, If(upgrades?.Economy, If(plant.StartingEconomyKmPerLiter,
+                    If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar))))
                 ratings.Economy = If(isRotorCraft, economy, economy * 1.2D)
                 Return
             Case "amphibious-operation"
@@ -1238,7 +1270,7 @@ Public Module ModificationCatalog
             Case "dipping-sonar"
                 item.DesignPoints = 250D * quantity
                 item.LoadConsumedKg = 50D
-            Case "engine-customization-speed", "engine-customization-acceleration", "engine-customization-load"
+            Case "engine-customization-speed", "engine-customization-secondary-speed", "engine-customization-acceleration", "engine-customization-load"
                 item.DesignPoints = plant.DesignPoints * (0.25D + 0.5D * (quantity - 1D))
             Case "drive-by-wire"
                 item.DesignPoints = chassis.DesignPoints * 0.75D * quantity

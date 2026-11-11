@@ -19,7 +19,7 @@ Rigger 3 Revised supplies the rules and prices. Rigger 2 source records are conv
 | Turret storage | Per-turret CF and seating; stored cargo does not consume vehicle CF twice | 140 |
 | Electronics | Sensors, sonar, ECM/ECCM/ED/ECD, ports, amplifiers, encryption and relay units | 142–148 |
 | Accessories | Drop tanks, amphibious packages, security, crane/winch, drone racks, arms, clinics, seating, tires | 149–155 |
-| Retrofit quotes | 164 catalog entries; printed parts prices, Availability, SI and customization capacity; source and installation references | 122–155 |
+| Retrofit quotes | 165 catalog entries; printed parts prices, Availability, SI and customization capacity; source and installation references | 122–155 |
 | Individual equipment | Different arm strengths, mount-specific recoil and amplifiers; design and retrofit pricing | 137, 147, 152 |
 | Factory equipment | Printed included arms, seals, tubes, launch controls, amenities, decks and GridLink; no duplicate charges | 202–205 |
 | Old saves | All 128 standard source names are classified for revised conversion, removal or missing replacement specifications; original evidence retained | Conversion uses the revised entries above |

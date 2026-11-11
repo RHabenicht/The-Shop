@@ -4,7 +4,7 @@ Public Module ExtendedRetrofits
         "adjusted-controls", "secondary-controls", "contingency-maneuver-controls", "motorbike-gyro", "remote-control-interface", "drive-by-wire",
         "drive-by-wire-speed-allocation", "drive-by-wire-acceleration-allocation", "drive-by-wire-load-allocation", "improved-control-surfaces", "improved-suspension", "off-road-suspension",
         "passenger-protection", "cabin-overpressure", "smart-armor", "active-thermal-masking", "thermal-baffles", "radar-absorbent-materials", "noisemaker-dispenser", "chameleon-paint",
-        "engine-customization-speed", "engine-customization-acceleration", "engine-customization-load", "reinforced-bench-seat", "mechanical-arm", "mechanical-arm-strength",
+        "engine-customization-speed", "engine-customization-secondary-speed", "engine-customization-acceleration", "engine-customization-load", "reinforced-bench-seat", "mechanical-arm", "mechanical-arm-strength",
         "autosoft-interpretation", "towed-array-sonar", "power-amplifier", "remote-control-encryption", "retransmission-power-amplifier", "aircraft-flotation", "generator",
         "drone-rack-body-0", "drone-rack-body-1", "drone-rack-body-2", "drone-rack-body-3", "aircraft-drop-tanks", "amphibious-operation", "seat-armor", "magnetic-anomaly-detector", "over-the-horizon-sensors",
         "standard-tires", "performance-tires", "off-road-tires", "dual-purpose-tires", "runflat-upgrade", "spare-standard-tires", "spare-performance-tires", "spare-off-road-tires", "spare-dual-purpose-tires",
@@ -31,7 +31,7 @@ Public Module ExtendedRetrofits
                 result.StreetIndex = If(mad, 4.5D, 5D) : result.Availability = If(mad, "8 / 21 days", "10 / 60 days")
             Case "convertible-top"
                 result.PartsCostNuyen = listCost * 0.1D + 2500D : result.Availability = "4 / 72 hours"
-            Case "engine-customization-speed", "engine-customization-acceleration", "engine-customization-load"
+            Case "engine-customization-speed", "engine-customization-secondary-speed", "engine-customization-acceleration", "engine-customization-load"
                 result.PartsCostNuyen = listCost * 0.05D * q : result.StreetIndex = 2D : result.Availability = "8 / 14 days"
             Case "nitrous"
                 result.PartsCostNuyen = If(q <= 3, 3500D, 7000D) * q : result.CargoConsumed = 2D : result.LoadConsumedKg = 15D : result.Availability = "4 / 48 hours"

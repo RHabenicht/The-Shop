@@ -72,6 +72,7 @@ Public NotInheritable Class VehicleDesign
 End Class
 
 Public NotInheritable Class DesignAddition
+    Friend Property IsPayload As Boolean
     Public Property Name As String
     Public Property DesignPoints As Decimal
     Public Property DirectCostNuyen As Decimal

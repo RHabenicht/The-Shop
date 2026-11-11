@@ -49,7 +49,7 @@ Public Module VehicleOperatingModes
         End If
         If DesignEnhancements.Has(selections, "weapon-gyro-stabilization") Then
             Dim rating = selections.Single(Function(item) String.Equals(item.Id, "weapon-gyro-stabilization", StringComparison.OrdinalIgnoreCase)).Quantity
-            Dim penalty = Math.Max(0, rating - chassis.Body.GetValueOrDefault())
+            Dim penalty = CInt(Math.Max(0D, rating - VehicleScale.RuleBody(chassis)))
             modes.Add(New VehicleOperatingMode With {
                 .Name = "Weapon gyro-stabilization active", .Speed = speed,
                 .Handling = If(modified?.Handling, If(upgrades?.Handling, chassis.Handling)) + penalty,
@@ -59,9 +59,9 @@ Public Module VehicleOperatingModes
         If DesignEnhancements.Has(selections, "aircraft-drop-tanks") Then
             Dim pairs = selections.Single(Function(item) String.Equals(item.Id, "aircraft-drop-tanks", StringComparison.OrdinalIgnoreCase)).Quantity
             modes.Add(New VehicleOperatingMode With {
-                .Name = "Drop tanks jettisoned", .Speed = speed + 15 * (pairs - 1),
-                .Handling = If(modified?.Handling, If(upgrades?.Handling, chassis.Handling)) - pairs \ 2,
-                .Signature = signature + pairs,
+                .Name = "Drop tanks jettisoned", .Speed = If(modified?.SpeedWithoutDropTanks, speed + 15 * (pairs - 1)),
+                .Handling = If(modified?.HandlingWithoutDropTanks, If(modified?.Handling, If(upgrades?.Handling, chassis.Handling)) - pairs \ 2),
+                .Signature = signature + 1,
                 .Notes = $"Fuel capacity drops by {2000D * pairs} L and fuel remaining in the tanks is lost."
             })
         End If

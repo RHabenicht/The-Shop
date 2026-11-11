@@ -307,6 +307,7 @@ Public NotInheritable Class DesignForm
             If modified.AdaptationPool.HasValue Then values.Add($"Adaptation Pool {modified.AdaptationPool}")
             If modified.RoboticReflexes.HasValue Then values.Add($"Robotic reflexes {modified.RoboticReflexes}")
             If modified.Pilot.HasValue Then values.Add($"Pilot {modified.Pilot}")
+            If modified.SecondarySpeed.HasValue Then values.Add($"Final secondary Speed {modified.SecondarySpeed}")
             If modified.DippingSonar.HasValue Then values.Add($"Dipping sonar {modified.DippingSonar}")
             If modified.ECM.HasValue Then values.Add($"ECM {modified.ECM}")
             If modified.ECCM.HasValue Then values.Add($"ECCM {modified.ECCM}")
@@ -405,7 +406,7 @@ Public NotInheritable Class DesignForm
             End Function
             Using dialog As New RetrofitQuoteDialog(DirectCast(chassisBox.SelectedItem, StockChassis),
                                                      DirectCast(powerPlantBox.SelectedItem, StockPowerPlant), totals, quoteContext,
-                                                     currentResult.EffectiveStreetIndex, currentResult.Availability, preview)
+                                                     currentResult.EffectiveStreetIndex, currentResult.Availability, preview, currentResult.OriginalCargoCapacity)
                 If dialog.ShowDialog(Me) = DialogResult.OK Then
                     Dim design = ReadDesign()
                     design.InstalledRetrofits = New List(Of ModificationSelection)(If(installedRetrofits, New List(Of ModificationSelection)))
@@ -424,7 +425,13 @@ Public NotInheritable Class DesignForm
         Try
             Dim chassis = DirectCast(chassisBox.SelectedItem, StockChassis)
             Dim plant = DirectCast(powerPlantBox.SelectedItem, StockPowerPlant)
-            Using dialog As New ModificationDialog(installedRetrofits, chassis, plant, RetrofitCatalog.Rules, "Installed retrofits", retrofits:=True)
+            Dim originalCargo As Decimal? = Nothing
+            Try
+                originalCargo = ReadDesign().Calculate(catalog).OriginalCargoCapacity
+            Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is OverflowException
+                ' Keep this editor available so an invalid installed quantity can be reduced or removed.
+            End Try
+            Using dialog As New ModificationDialog(installedRetrofits, chassis, plant, RetrofitCatalog.Rules, "Installed retrofits", retrofits:=True, originalCargoCapacity:=originalCargo)
                 If dialog.ShowDialog(Me) = DialogResult.OK Then
                     Dim design = ReadDesign()
                     design.InstalledRetrofits = dialog.ReadSelection()?.ToList()

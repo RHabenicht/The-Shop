@@ -38,6 +38,7 @@ Public NotInheritable Class StockDesign
 
     Public Function Calculate(catalog As IReadOnlyList(Of StockChassis)) As StockDesignResult
         If Additions Is Nothing Then Throw New ArgumentException("Additions must be an array.")
+        If Additions.Any(Function(item) item Is Nothing) Then Throw New ArgumentException("An addition cannot be null.")
         If LegacyImportNotes IsNot Nothing AndAlso LegacyImportNotes.Any(Function(note) note Is Nothing) Then Throw New ArgumentException("Import notes cannot contain null entries.")
         If Not [Enum].IsDefined(SpecialtyClass) Then Throw New ArgumentException("Unknown vehicle specialty class.")
         If AvailabilityClass.HasValue AndAlso Not [Enum].IsDefined(AvailabilityClass.Value) Then Throw New ArgumentException("Unknown Availability class.")
@@ -95,11 +96,13 @@ Public NotInheritable Class StockDesign
 
         Dim validationCargo = design.CargoCapacity
         Dim validationLoad = design.LoadCapacityKg
+        Dim priorAdditions = design.Additions.ToArray()
         Dim modifiedRatings As ModifiedRatings = Nothing
         Dim modifications = ModificationCatalog.Apply(designSelections, chassis, powerPlant, design, ratings, modifiedRatings)
         Dim totals = design.Calculate()
+        Dim originalCargo = totals.CargoRemaining + payloadAdditions.Take(If(Payload?.Count, 0)).Sum(Function(item) item.CargoConsumed)
         Dim retrofits = RetrofitCatalog.Apply(retrofitSelections, designSelections, chassis, powerPlant, ratings, totals, validationCargo, validationLoad, modifiedRatings,
-                                              design.StreetIndex, If(EffectiveClass().HasValue, VehicleAvailability.Calculate(EffectiveClass().Value, totals.BaseCostNuyen), Nothing))
+                                              design.StreetIndex, If(EffectiveClass().HasValue, VehicleAvailability.Calculate(EffectiveClass().Value, totals.BaseCostNuyen), Nothing), originalCargo, priorAdditions)
         Dim externalCargo = If(retrofits?.Sum(Function(item) item.Quote.ExternalCargoCapacity), 0D)
         Dim resolvedClass = EffectiveClass()
         Dim availability = If(resolvedClass.HasValue, VehicleAvailability.Calculate(resolvedClass.Value, totals.BaseCostNuyen), Nothing)
@@ -111,7 +114,7 @@ Public NotInheritable Class StockDesign
             .ChassisId = chassis.Id, .PowerPlantId = powerPlant.Id, .Totals = totals, .UpgradedRatings = ratings,
             .AppliedModifications = modifications, .ModifiedRatings = modifiedRatings, .InstalledRetrofits = retrofits, .AuxiliaryEngine = AuxiliaryEngine.Ratings(auxiliary),
             .ExternalCargoCapacity = externalCargo, .OperatingModes = VehicleOperatingModes.Build(RetrofitCatalog.CombinedSelections(CatalogModifications, InstalledRetrofits), powerPlant, chassis, ratings, modifiedRatings, externalCargo),
-            .Availability = availability, .EffectiveStreetIndex = design.StreetIndex, .ConfiguredRetrofitListCost = configuredListCost, .ConfiguredRetrofitStreetCost = configuredStreetCost, .EngineStress = EngineStress, .EffectiveAvailabilityClass = resolvedClass
+            .Availability = availability, .EffectiveStreetIndex = design.StreetIndex, .ConfiguredRetrofitListCost = configuredListCost, .ConfiguredRetrofitStreetCost = configuredStreetCost, .EngineStress = EngineStress, .EffectiveAvailabilityClass = resolvedClass, .OriginalCargoCapacity = originalCargo
         }
     End Function
 
@@ -294,6 +297,7 @@ Public NotInheritable Class StockPowerPlant
 End Class
 
 Public NotInheritable Class StockDesignResult
+    Public Property OriginalCargoCapacity As Decimal
     Public Property ChassisId As String
     Public Property PowerPlantId As String
     Public Property Totals As DesignTotals

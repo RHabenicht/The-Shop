@@ -9,7 +9,7 @@ Friend NotInheritable Class RetrofitQuoteDialog
 
     Public Sub New(chassis As StockChassis, plant As StockPowerPlant, totals As DesignTotals, Optional context As IReadOnlyList(Of ModificationSelection) = Nothing,
                    Optional vehicleStreetIndex As Decimal? = Nothing, Optional vehicleAvailability As VehicleAvailability = Nothing,
-                   Optional preview As Func(Of ModificationSelection, StockDesignResult) = Nothing)
+                   Optional preview As Func(Of ModificationSelection, StockDesignResult) = Nothing, Optional originalCargoCapacity As Decimal? = Nothing)
         Text = "Retrofit parts quote"
         StartPosition = FormStartPosition.CenterParent
         AutoSize = True
@@ -53,7 +53,7 @@ Friend NotInheritable Class RetrofitQuoteDialog
                                     End If
                                     Try
                                     Dim indexOverride = If(customIndex.Checked, CType(streetIndex.Value, Decimal?), Nothing)
-                                    Dim result = RetrofitCatalog.Quote(rule, CInt(quantity.Value), chassis, plant, indexOverride, totals.BaseCostNuyen, context, vehicleStreetIndex, vehicleAvailability)
+                                    Dim result = RetrofitCatalog.Quote(rule, CInt(quantity.Value), chassis, plant, indexOverride, totals.BaseCostNuyen, context, vehicleStreetIndex, vehicleAvailability, originalCargoCapacity:=originalCargoCapacity)
                                     Dim cargo = totals.CargoRemaining - result.CargoConsumed
                                     Dim load = totals.LoadRemainingKg - result.LoadConsumedKg
                                     If preview IsNot Nothing Then
@@ -99,7 +99,7 @@ Friend NotInheritable Class RetrofitQuoteDialog
                     updating = True
                     Try
                         quantity.Minimum = 1D
-                        quantity.Maximum = RetrofitCatalog.MaximumQuantity(rule, chassis)
+                        quantity.Maximum = RetrofitCatalog.MaximumQuantity(rule, chassis, originalCargoCapacity)
                         quantity.Minimum = If(rule.Id = "improved-anti-theft-security", 3D, If(rule.Id = "advanced-drone-pilot", 2D, 1D))
                         quantity.Enabled = quantity.Maximum > quantity.Minimum
                         quantityLabel.Text = If(rule.QuantityLabel.Length = 0, "Quantity", rule.QuantityLabel)
@@ -109,7 +109,7 @@ Friend NotInheritable Class RetrofitQuoteDialog
                 End If
                 refresh()
             End Sub
-        options.DataSource = RetrofitCatalog.AvailableRules(chassis, plant).ToArray()
+        options.DataSource = RetrofitCatalog.AvailableRules(chassis, plant, originalCargoCapacity).ToArray()
         refresh()
     End Sub
 End Class

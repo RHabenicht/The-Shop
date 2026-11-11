@@ -8,7 +8,7 @@ Public Module InstallationRules
         Dim pilot = Math.Max(chassis.Pilot.GetValueOrDefault(), choices.Where(Function(item) item.Id = "advanced-drone-pilot" OrElse item.Id = "robotic-pilot").Select(Function(item) item.Quantity).DefaultIfEmpty(0).Max())
         If DesignEnhancements.Has(choices, "remote-control-interface") Then pilot = Math.Max(1, pilot)
         Select Case rule.Id
-            Case "engine-customization-speed", "engine-customization-acceleration", "engine-customization-load"
+            Case "engine-customization-speed", "engine-customization-secondary-speed", "engine-customization-acceleration", "engine-customization-load"
                 result.SourcePage = 125 : result.InstallationBaseHours = 40D * q
                 result.InstallationTest = $"Appropriate Vehicle B/R ({quantity + If(chassis.Category.Contains("Aircraft") OrElse chassis.Category = "Rotor Craft", 5, If(chassis.IsDrone OrElse chassis.Category = "Hovercraft", 4, 3))}); GM resolves the separate secret reliability test"
             Case "gridlink"

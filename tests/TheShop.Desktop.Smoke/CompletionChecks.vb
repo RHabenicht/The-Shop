@@ -139,6 +139,24 @@ Friend Module CompletionChecks
             Check(FindControl(Of Button)(dialog, "installRetrofit").Enabled, "A valid selection must recover after a rejected quote.")
             dialog.Close()
         End Using
+        Dim validate As Action(Of List(Of VehiclePayloadItem), List(Of EquipmentSetting)) = Sub(items, settings)
+            Dim proposed = JsonSerializer.Deserialize(Of StockDesign)(JsonSerializer.Serialize(mounted))
+            proposed.Payload = items : proposed.EquipmentSettings = settings
+            proposed.Calculate(catalog)
+        End Sub
+        Using dialog As New PayloadDialog(mounted.Payload, Nothing, mounted.CatalogModifications, validate)
+            dialog.Show()
+            Application.DoEvents()
+            Dim grid = FindControl(Of DataGridView)(dialog, "payloadGrid")
+            grid.Rows(0).Cells("Quantity").Value = 2
+            FindControl(Of Button)(dialog, "applyPayload").PerformClick()
+            Check(dialog.DialogResult <> DialogResult.OK AndAlso dialog.Payload.Single().Quantity = 2 AndAlso mounted.Payload.Single().Quantity = 1 AndAlso
+                  FindControl(Of Label)(dialog, "payloadValidation").Text.Length > 0, "A rejected payload must remain editable without changing the original design.")
+            grid.Rows(0).Cells("Quantity").Value = 1
+            FindControl(Of Button)(dialog, "applyPayload").PerformClick()
+            Check(dialog.DialogResult = DialogResult.OK, "Correcting a rejected payload must permit applying it.")
+            dialog.Close()
+        End Using
     End Sub
     Private Function FindControl(Of T As Control)(parent As Control, name As String) As T
         Return DirectCast(parent.Controls.Find(name, True).Single(), T)

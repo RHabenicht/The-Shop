@@ -47,7 +47,7 @@ Public Module VehicleSheet
         Dim speed = If(modified?.Speed, If(up?.Speed, plant.StartingSpeed))
         Dim speedText = Number(speed)
         If plant.StartingStallSpeed.HasValue Then speedText = Number(plant.StartingStallSpeed) & " / " & speedText & " (stall / flight)"
-        If plant.StartingSecondarySpeed.HasValue Then speedText &= " / " & Number(If(up?.SecondarySpeed, plant.StartingSecondarySpeed)) & " (paired operating ratings)"
+        If plant.StartingSecondarySpeed.HasValue Then speedText &= " / " & Number(If(modified?.SecondarySpeed, If(up?.SecondarySpeed, plant.StartingSecondarySpeed))) & " (paired operating ratings)"
         Row(page, "Speed", speedText)
         If modified?.WaterSpeed.HasValue Then Row(page, "Water Speed rating", Number(modified.WaterSpeed))
         If modified?.WaterSpeedMetersPerTurn.HasValue Then Row(page, "Water speed", Number(modified.WaterSpeedMetersPerTurn) & " m/turn")

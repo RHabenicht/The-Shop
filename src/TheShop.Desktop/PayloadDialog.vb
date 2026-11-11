@@ -13,6 +13,7 @@ Friend NotInheritable Class PayloadDialog
     Private ReadOnly mountChoices As New List(Of MountChoice)
     Private ReadOnly payloadRows As BindingList(Of VehiclePayloadItem)
     Private ReadOnly settingRows As BindingList(Of EquipmentSetting)
+    Private ReadOnly validationMessage As New Label With {.Name = "payloadValidation", .AutoSize = True, .ForeColor = Color.DarkRed, .MaximumSize = New Size(900, 0)}
     Public ReadOnly Property Payload As List(Of VehiclePayloadItem)
         Get
             Return If(payloadRows.Count = 0, Nothing, payloadRows.ToList())
@@ -55,17 +56,17 @@ Friend NotInheritable Class PayloadDialog
         settingsPage.Controls.Add(instructions)
         frame.Controls.Add(tabs, 0, 1)
         Dim actions As New FlowLayoutPanel With {.Dock = DockStyle.Fill, .AutoSize = True}
-        Dim applyButton As New Button With {.Text = "Apply", .AutoSize = True}
+        Dim applyButton As New Button With {.Name = "applyPayload", .Text = "Apply", .AutoSize = True, .CausesValidation = False}
         AddHandler applyButton.Click, Sub(sender, e)
-                                          payloadGrid.EndEdit()
-                                          settingGrid.EndEdit()
+                                          If Not payloadGrid.EndEdit() OrElse Not settingGrid.EndEdit() Then Return
                                           BindingContext(payloadRows).EndCurrentEdit()
                                           BindingContext(settingRows).EndCurrentEdit()
                                           DialogResult = DialogResult.OK
                                       End Sub
-        Dim cancelButton As New Button With {.Text = "Cancel", .DialogResult = DialogResult.Cancel, .AutoSize = True}
+        Dim cancelButton As New Button With {.Text = "Cancel", .DialogResult = DialogResult.Cancel, .AutoSize = True, .CausesValidation = False}
         actions.Controls.Add(applyButton)
         actions.Controls.Add(cancelButton)
+        actions.Controls.Add(validationMessage)
         frame.Controls.Add(actions, 0, 2)
         CancelButton = cancelButton
     End Sub
@@ -97,6 +98,12 @@ Friend NotInheritable Class PayloadDialog
             grid.Columns.Add(column)
         Next
         grid.DataSource = data
+        AddHandler grid.DataError, Sub(sender, e)
+                                      e.ThrowException = False
+                                      e.Cancel = True
+                                      validationMessage.Text = "Correct the invalid value before applying. Numeric fields require numbers."
+                                  End Sub
+        AddHandler grid.CellEndEdit, Sub(sender, e) validationMessage.Text = ""
         Return grid
     End Function
 End Class

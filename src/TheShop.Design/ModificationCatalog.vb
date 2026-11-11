@@ -88,7 +88,7 @@ Public Module ModificationCatalog
     Private ReadOnly edCargo As Integer() = {0, 1, 2, 4, 5, 6, 8}
     Private ReadOnly edLoad As Integer() = {0, 10, 20, 30, 45, 50, 75}
     Private ReadOnly ecdPoints As Integer() = {0, 100, 300, 500, 750, 1500, 3000}
-    Private ReadOnly ecdCargo As Integer() = {0, 1, 2, 3, 4, 5, 8}
+    Private ReadOnly ecdCargo As Integer() = {0, 1, 2, 3, 4, 6, 8}
     Private ReadOnly ecdLoad As Integer() = {0, 25, 30, 35, 45, 60, 75}
     Private ReadOnly pilotPoints As Integer() = {0, 0, 50, 250, 1250, 5000}
     Private ReadOnly autonavPoints As Integer() = {0, 5, 10, 50, 150}
@@ -130,6 +130,7 @@ Public Module ModificationCatalog
         New ModificationRule("personal-armor", "Personal ballistic vehicle armor", "points", Integer.MaxValue),
         New ModificationRule("ablative-armor", "Ablative armor (retrofit only)", "levels", 3),
         New ModificationRule("standard-tires", "Standard tires", "tires", Integer.MaxValue),
+        New ModificationRule("convertible-top", "Convertible top", "", 1),
         New ModificationRule("power-amplifier", "Power amplifier", "added Flux", 10),
         New ModificationRule("ring-mount-door-gun", "Aircraft door gun ring mount", "mounts", Integer.MaxValue, 17D, 10D, 25D, 2),
         New ModificationRule("vehicle-armor", "Vehicle armor", "added points", Integer.MaxValue),
@@ -346,12 +347,15 @@ Public Module ModificationCatalog
     Public Function IsCompatible(rule As ModificationRule, chassis As StockChassis, plant As StockPowerPlant) As Boolean
         If rule.Id = "ring-mount-door-gun" Then Return chassis.Category = "Rotor Craft" AndAlso Not chassis.IsDrone AndAlso VehicleScale.MountBudget(chassis) >= 2
         If rule.MountPoints > 0 Then
-            If VehicleScale.MountBudget(chassis) < rule.MountPoints OrElse chassis.Category = "Bike" Then Return False
+            If VehicleScale.MountBudget(chassis) < rule.MountPoints Then Return False
+            If chassis.Category = "Bike" Then Return rule.Id = "external-fixed-hardpoint" OrElse rule.Id = "internal-fixed-hardpoint"
             If rule.Id = "ring-mount" AndAlso (chassis.IsDrone OrElse chassis.Category = "Rotor Craft") Then Return False
             If rule.Id.StartsWith("crewed-", StringComparison.Ordinal) AndAlso chassis.IsDrone Then Return False
             Return True
         End If
         Select Case rule.Id
+            Case "convertible-top"
+                Return chassis.Category = "Car" AndAlso Not chassis.IsDrone AndAlso Not {"sand-buggy", "tracked-apc"}.Contains(chassis.Id) AndAlso Not chassis.Id.EndsWith("-caterpillar", StringComparison.Ordinal)
             Case "active-thermal-masking"
                 Return chassis.Category <> "Bike" AndAlso {"gasoline", "methane", "diesel", "jet-turbine"}.Contains(plant.Id)
             Case "external-cargo-mounts"
@@ -601,6 +605,8 @@ Public Module ModificationCatalog
         If seen.Contains("cabin-gas-seal") AndAlso seen.Contains("cabin-water-seal") Then
             Throw New ArgumentException("Select one cabin seal.")
         End If
+        If seen.Contains("convertible-top") AndAlso (seen.Contains("cabin-gas-seal") OrElse seen.Contains("cabin-water-seal")) Then Throw New ArgumentException("A convertible top cannot provide a sealed cabin.")
+        If seen.Contains("convertible-top") AndAlso seen.Contains("ring-mount") AndAlso Not seen.Contains("roll-bar") Then Throw New ArgumentException("A convertible requires roll bars for a ring mount.")
         If seen.Contains("cabin-overpressure") AndAlso Not hasCabinSeal Then
             Throw New ArgumentException("Cabin over-pressurization requires a cabin seal.")
         End If
@@ -714,7 +720,7 @@ Public Module ModificationCatalog
                 Dim roadBenefit = levels
                 Dim offRoadBenefit = levels
                 If choice.Rule.Id = "improved-suspension" Then
-                    If seen.Contains("off-road-tires") Then roadBenefit = 0
+                    If seen.Contains("off-road-tires") Then roadBenefit = levels \ 2
                     If Not (implicitDualPurpose OrElse seen.Contains("performance-tires") OrElse seen.Contains("dual-purpose-tires") OrElse seen.Contains("off-road-tires")) Then roadBenefit = levels \ 2
                     finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) - roadBenefit
                     If chassis.Category = "Bike" Then finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - roadBenefit
@@ -725,7 +731,7 @@ Public Module ModificationCatalog
                     finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - offRoadBenefit
                     Dim transport = chassis.Id.Contains("transport") OrElse chassis.Id.Contains("tractor")
                     Dim multiplier = If(chassis.Category = "Bike", 0.7D, If(transport, 0.6D, 0.85D))
-                    finalRatings.Speed = CInt(Math.Floor(If(finalRatings.Speed, If(upgrades?.Speed, plant.StartingSpeed)).GetValueOrDefault() * multiplier))
+                    finalRatings.Speed = Math.Max(0, If(finalRatings.Speed, If(upgrades?.Speed, plant.StartingSpeed)).GetValueOrDefault() - 15)
                     Dim economy = If(finalRatings.Economy, If(upgrades?.Economy, If(plant.StartingEconomyKmPerLiter,
                         If(plant.StartingEconomyKmPerPowerFactor, plant.StartingEconomyKmPerBar))))
                     finalRatings.Economy = economy * multiplier
@@ -774,6 +780,10 @@ Public Module ModificationCatalog
         End If
         If seen.Contains("ducted-waterjet") AndAlso seen.Contains("emd-drive") Then Throw New ArgumentException("Select one ducted waterjet drive.")
         Dim mountPoints = validated.Sum(Function(choice) CLng(choice.Rule.MountPoints) * choice.Quantity)
+        If chassis.Category = "Bike" AndAlso mountPoints > 0 Then
+            Dim sidecar = validated.Where(Function(choice) choice.Rule.Id = "sidecar").Select(Function(choice) choice.Quantity).SingleOrDefault()
+            If sidecar < 2 OrElse mountPoints <> 2 Then Throw New ArgumentException("A motorcycle requires a medium or large sidecar for its single forward-facing hardpoint.")
+        End If
         If mountPoints + validated.Where(Function(choice) choice.Rule.Id = "naval-weapons-control").Sum(Function(choice) CLng(choice.Quantity) * 2) > VehicleScale.MountBudget(chassis) Then Throw New ArgumentException("Weapon mounts exceed the vehicle's Body-based hardpoint and firmpoint limit.")
         Dim fixedAndTurretCount = validated.Where(Function(choice) choice.Rule.Id.Contains("fixed-") OrElse choice.Rule.Id.Contains("turret")).
             Sum(Function(choice) CLng(choice.Quantity))
@@ -793,7 +803,8 @@ Public Module ModificationCatalog
         If seen.Contains("seat-armor") Then
             Dim armor = validated.Single(Function(choice) choice.Rule.Id = "seat-armor").Quantity
             Dim seats = validated.Where(Function(choice) choice.Rule.QuantityLabel = "seats").Sum(Function(choice) CLng(choice.Quantity))
-            If armor > 2D * seats Then Throw New ArgumentException("Seat armor is limited to two points per added seat. Enter factory-seat armor manually.")
+            Dim hasBucket = validated.Any(Function(choice) choice.Rule.Id.Contains("bucket-seat"))
+            If seats > 0 AndAlso Not hasBucket AndAlso armor > 2D * seats Then Throw New ArgumentException("Bench-seat armor is limited to two points per seat.")
         End If
         If validated.Any(Function(choice) choice.Rule.Id.StartsWith("ammo-bin-", StringComparison.Ordinal)) AndAlso fixedAndTurretCount = 0 Then
             Throw New ArgumentException("Ammunition bins require a fixed mount or turret.")
@@ -1027,7 +1038,7 @@ Public Module ModificationCatalog
             Case "ablative-armor"
                 item.LoadConsumedKg = body * 100D
             Case "standard-tires"
-                item.DirectCostNuyen = body * 50D * quantity
+                ' Standard production tires are included at manufacture (p.155).
             Case "power-amplifier"
                 item.DesignPoints = 5D * quantity
                 item.CargoConsumed = Math.Floor(quantity * 0.25D)
@@ -1214,6 +1225,10 @@ Public Module ModificationCatalog
             Case "internal-heavy-missile-storage"
                 item.CargoConsumed = 8D + 50D * quantity
                 item.LoadConsumedKg = 500D
+            Case "torpedo-tube-manual", "torpedo-tube-autoloader"
+                Dim automatic = rule.Id = "torpedo-tube-autoloader"
+                item.CargoConsumed = 128D * quantity + If(automatic, 360D, 720D)
+                item.LoadConsumedKg = 500D * quantity + If(automatic, 50000D, 0D)
             Case "robotic-pilot"
                 Dim rating = CDec(quantity)
                 item.DesignPoints = rating * rating * rating * 50D

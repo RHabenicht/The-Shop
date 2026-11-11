@@ -385,10 +385,18 @@ Public NotInheritable Class DesignForm
     Private Sub ShowRetrofitQuote(sender As Object, e As EventArgs)
         Try
             Dim quoteDesign = ReadDesign()
-            Dim totals = quoteDesign.Calculate(catalog).Totals
-            Dim quoteContext = If(quoteDesign.CatalogModifications, New List(Of ModificationSelection)).Concat(If(quoteDesign.InstalledRetrofits, New List(Of ModificationSelection))).ToArray()
+            Dim currentResult = quoteDesign.Calculate(catalog)
+            Dim totals = currentResult.Totals
+            Dim quoteContext = RetrofitCatalog.CombinedSelections(quoteDesign.CatalogModifications, quoteDesign.InstalledRetrofits)
+            Dim preview As Func(Of ModificationSelection, StockDesignResult) = Function(selection)
+                Dim proposed = JsonSerializer.Deserialize(Of StockDesign)(JsonSerializer.Serialize(quoteDesign, jsonOptions), jsonOptions)
+                If proposed.InstalledRetrofits Is Nothing Then proposed.InstalledRetrofits = New List(Of ModificationSelection)
+                proposed.InstalledRetrofits.Add(selection)
+                Return proposed.Calculate(catalog)
+            End Function
             Using dialog As New RetrofitQuoteDialog(DirectCast(chassisBox.SelectedItem, StockChassis),
-                                                     DirectCast(powerPlantBox.SelectedItem, StockPowerPlant), totals, quoteContext)
+                                                     DirectCast(powerPlantBox.SelectedItem, StockPowerPlant), totals, quoteContext,
+                                                     currentResult.EffectiveStreetIndex, currentResult.Availability, preview)
                 If dialog.ShowDialog(Me) = DialogResult.OK Then
                     Dim design = ReadDesign()
                     design.InstalledRetrofits = New List(Of ModificationSelection)(If(installedRetrofits, New List(Of ModificationSelection)))

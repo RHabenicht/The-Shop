@@ -39,7 +39,7 @@ Public Module RetrofitCatalog
     Friend Function Apply(selections As IReadOnlyList(Of ModificationSelection), designSelections As IReadOnlyList(Of ModificationSelection),
                           chassis As StockChassis, plant As StockPowerPlant, upgrades As UpgradedRatings,
                           totals As DesignTotals, validationCargo As Decimal, validationLoad As Decimal,
-                          ByRef finalRatings As ModifiedRatings) As IReadOnlyList(Of InstalledRetrofit)
+                          ByRef finalRatings As ModifiedRatings, vehicleStreetIndex As Decimal, vehicleAvailability As VehicleAvailability) As IReadOnlyList(Of InstalledRetrofit)
         If selections Is Nothing OrElse selections.Count = 0 Then Return Nothing
         Dim entries As New List(Of InstalledRetrofit)
         Dim combined As New List(Of ModificationSelection)
@@ -51,15 +51,18 @@ Public Module RetrofitCatalog
             Dim rule = ModificationCatalog.Rules.SingleOrDefault(Function(candidate) String.Equals(candidate.Id, selection.Id, StringComparison.OrdinalIgnoreCase))
             If rule Is Nothing OrElse Not seen.Add(rule.Id) Then Throw New ArgumentException("An installed retrofit is unknown or repeated.")
             entries.Add(New InstalledRetrofit With {.Name = rule.Name, .Quantity = selection.Quantity,
-                .Quote = Quote(rule, selection.Quantity, chassis, plant, selection.StreetIndexOverride, totals.BaseCostNuyen, quoteContext)})
+                .Quote = Quote(rule, selection.Quantity, chassis, plant, selection.StreetIndexOverride, totals.BaseCostNuyen, quoteContext, vehicleStreetIndex, vehicleAvailability, True)})
             combined.Add(New ModificationSelection With {.Id = rule.Id, .Quantity = selection.Quantity})
         Next
+        If selections.Any(Function(item) item.Id = "cabin-overpressure") AndAlso selections.Any(Function(item) item.Id = "cabin-gas-seal" OrElse item.Id = "cabin-water-seal") Then
+            entries.Single(Function(item) item.Name = ModificationCatalog.Rules.Single(Function(rule) rule.Id = "cabin-overpressure").Name).Quote.CargoConsumed -= 1D
+        End If
         Dim groups = combined.GroupBy(Function(item) item.Id, StringComparer.OrdinalIgnoreCase).ToArray()
         For Each group In groups.Where(Function(items) items.Count() > 1)
             Dim rule = ModificationCatalog.Rules.Single(Function(candidate) String.Equals(candidate.Id, group.Key, StringComparison.OrdinalIgnoreCase))
             If IsReplacementRating(rule.Id) Then
                 If group.Last().Quantity <= group.First().Quantity Then Throw New ArgumentException($"Choose a higher replacement rating for '{rule.Name}'.")
-            ElseIf Not {"units", "seats", "ports", "sets", "racks", "mounts", "10 person-hour blocks", "added points", "points", "levels"}.Contains(rule.QuantityLabel) Then
+            ElseIf Not {"units", "seats", "ports", "sets", "racks", "mounts", "arms", "lights", "tires", "weapons", "10 person-hour blocks", "added points", "points", "levels"}.Contains(rule.QuantityLabel) Then
                 Throw New ArgumentException($"'{rule.Name}' is already present in the design.")
             End If
         Next
@@ -106,8 +109,14 @@ Public Module RetrofitCatalog
     End Function
 
     Public Function CombinedSelections(design As IReadOnlyList(Of ModificationSelection), installed As IReadOnlyList(Of ModificationSelection)) As IReadOnlyList(Of ModificationSelection)
-        Return If(design, Array.Empty(Of ModificationSelection)()).Concat(If(installed, Array.Empty(Of ModificationSelection)())).GroupBy(Function(item) item.Id, StringComparer.OrdinalIgnoreCase).
+        Return NormalizeSelections(design).Concat(NormalizeSelections(installed)).GroupBy(Function(item) item.Id, StringComparer.OrdinalIgnoreCase).
             Select(Function(group) New ModificationSelection With {.Id = group.Key, .Quantity = If(IsReplacementRating(group.Key), group.Last().Quantity, CInt(group.Sum(Function(item) CLng(item.Quantity))))}).ToArray()
+    End Function
+
+    Friend Function NormalizeSelections(selections As IReadOnlyList(Of ModificationSelection)) As IReadOnlyList(Of ModificationSelection)
+        If selections Is Nothing Then Return Array.Empty(Of ModificationSelection)()
+        If selections.Any(Function(item) item Is Nothing OrElse String.IsNullOrWhiteSpace(item.Id)) Then Throw New ArgumentException("A component selection requires an ID.")
+        Return selections.Select(Function(item) New ModificationSelection With {.Id = item.Id.ToLowerInvariant(), .Quantity = item.Quantity, .StreetIndexOverride = item.StreetIndexOverride}).ToArray()
     End Function
 
     Private Function IsReplacementRating(id As String) As Boolean
@@ -126,23 +135,37 @@ Public Module RetrofitCatalog
 
     Public Function Quote(rule As ModificationRule, quantity As Integer, chassis As StockChassis, plant As StockPowerPlant,
                           Optional streetIndexOverride As Decimal? = Nothing, Optional listCost As Decimal? = Nothing,
-                          Optional context As IReadOnlyList(Of ModificationSelection) = Nothing) As RetrofitQuote
-        Dim result = BaseQuote(rule, quantity, chassis, plant, If(listCost, (chassis.DesignPoints + plant.DesignPoints) * chassis.Markup * 100D), context)
-        If streetIndexOverride.HasValue Then
-            If streetIndexOverride.Value <= 0D Then Throw New ArgumentException("A retrofit Street Index must be positive.")
-            result.StreetIndex = streetIndexOverride.Value
+                          Optional context As IReadOnlyList(Of ModificationSelection) = Nothing,
+                          Optional vehicleStreetIndex As Decimal? = Nothing, Optional vehicleAvailability As VehicleAvailability = Nothing,
+                          Optional contextIncludesSelection As Boolean = False) As RetrofitQuote
+        context = NormalizeSelections(context)
+        context = CombinedSelections(context, If(contextIncludesSelection, Nothing, New ModificationSelection() {New ModificationSelection With {.Id = rule.Id, .Quantity = quantity}}))
+        If rule.Id = "battletac-fddm" OrElse rule.Id = "battletac-ivis" Then
+            Dim pilot = Math.Max(chassis.Pilot.GetValueOrDefault(), context.Where(Function(item) item.Id = "advanced-drone-pilot" OrElse item.Id = "robotic-pilot").Select(Function(item) item.Quantity).DefaultIfEmpty(0).Max())
+            If pilot < 1 AndAlso Not DesignEnhancements.Has(context, "remote-control-interface") Then Throw New ArgumentException("Drone electronics require a Pilot rating or remote-control interface.")
         End If
-        If Not streetIndexOverride.HasValue AndAlso (rule.Id = "anti-theft-electric-system" OrElse rule.Id = "proximity-alert") Then
+        Dim result = BaseQuote(rule, quantity, chassis, plant, If(listCost, (chassis.DesignPoints + plant.DesignPoints) * chassis.Markup * 100D), context)
+        If {"aircraft-drop-tanks", "sidecar", "runflat-upgrade", "standard-tires", "performance-tires", "off-road-tires", "dual-purpose-tires", "spare-standard-tires", "spare-performance-tires", "spare-off-road-tires", "spare-dual-purpose-tires"}.Contains(rule.Id) Then
+            result.StreetIndex = vehicleStreetIndex
+            result.Availability = If(vehicleAvailability Is Nothing, "Same as vehicle (R3 Revised p. 124)", $"{vehicleAvailability.Rating} / {vehicleAvailability.BaseDays} days")
+        End If
+        If result.Availability.StartsWith("Same as vehicle", StringComparison.Ordinal) AndAlso vehicleAvailability IsNot Nothing Then result.Availability = $"{vehicleAvailability.Rating} / {vehicleAvailability.BaseDays} days"
+        If rule.Id = "anti-theft-electric-system" OrElse rule.Id = "proximity-alert" Then
             Dim security = If(context, Array.Empty(Of ModificationSelection)()).LastOrDefault(Function(item) item.Id = "improved-anti-theft-security")
             If security IsNot Nothing Then
                 Dim systemQuote = BaseQuote(ModificationCatalog.Rules.Single(Function(item) item.Id = security.Id), security.Quantity, chassis, plant, If(listCost, 0D), context)
                 result.StreetIndex = systemQuote.StreetIndex
                 result.Availability = systemQuote.Availability
-            ElseIf Not streetIndexOverride.HasValue Then
-                result.StreetIndex = 1D
+            Else
+                result.StreetIndex = vehicleStreetIndex
+                result.Availability = If(vehicleAvailability Is Nothing, "Same as vehicle's security system", $"{vehicleAvailability.Rating} / {vehicleAvailability.BaseDays} days")
             End If
         End If
-        InstallationRules.Describe(result, rule, quantity, chassis)
+        If streetIndexOverride.HasValue Then
+            If streetIndexOverride.Value <= 0D Then Throw New ArgumentException("A retrofit Street Index must be positive.")
+            result.StreetIndex = streetIndexOverride.Value
+        End If
+        InstallationRules.Describe(result, rule, quantity, chassis, context)
         Return result
     End Function
 
@@ -214,7 +237,7 @@ Public Module RetrofitCatalog
             Case "ring-mount"
                 Return BuildQuote(3000D * quantity, 2D, "8 / 14 days", quantity, 25D * quantity)
             Case "smartlink-integration-1"
-                Return BuildQuote(650D * quantity, 1.5D, "4 / 48 hours", quantity, 0D)
+                Return BuildQuote(650D * quantity, 1D, "4 / 48 hours", quantity, 0D)
             Case "smartlink-integration-2"
                 Return BuildQuote(900D * quantity, 2D, "6 / 48 hours", quantity, 0D)
             Case "battletac-fddm"

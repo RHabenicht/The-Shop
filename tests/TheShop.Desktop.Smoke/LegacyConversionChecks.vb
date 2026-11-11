@@ -39,9 +39,9 @@ Friend Module LegacyConversionChecks
               obsoleteBudget.CatalogModifications.Count = 3 AndAlso obsoleteBudget.LegacyImportNotes.Any(Function(note) note.StartsWith("Removed from active design: Engine Customization", StringComparison.Ordinal)),
               "The superseded aggregate engine budget must not change prices or block independent revised customizations.")
         Dim obsoleteOnly = Convert(folder, catalog, "Van", "diesel", "Rigger2,99,Engine Customization", "Rigger2,0,Convertible Top", "Quality,3,Master Workmanship")
-        Check(obsoleteOnly.CatalogModifications Is Nothing AndAlso obsoleteOnly.Additions.Count = 0 AndAlso obsoleteOnly.Calculate(catalog).Totals.BaseCostNuyen = 9500D AndAlso
-              obsoleteOnly.LegacyImportNotes.All(Function(note) note.StartsWith("Removed from active design:", StringComparison.Ordinal)),
-              "Obsolete and unsupported options must not survive as active calculations or manual fallback additions.")
+        Check(obsoleteOnly.CatalogModifications.Single().Id = "convertible-top" AndAlso obsoleteOnly.Additions.Count = 0 AndAlso obsoleteOnly.Calculate(catalog).Totals.BaseCostNuyen = 9500D AndAlso
+              obsoleteOnly.LegacyImportNotes.Where(Function(note) note.StartsWith("Removed from active design:", StringComparison.Ordinal)).Count() = 2,
+              "Obsolete engine budgets and homebrew must be removed; the revised convertible option must survive at its printed zero manufacture cost.")
         Dim turret = Convert(folder, catalog, "Van", "diesel", "Rigger2,0,Turrets: Pop-Up (micro)", "Rigger2,1,""Turrets, Remote (micro)""", "Rigger2,0,Roll Bars")
         Check(turret.CatalogModifications.Any(Function(item) item.Id = "remote-micro-turret-pop-up") AndAlso
               Not turret.CatalogModifications.Any(Function(item) item.Id = "remote-micro-turret"),
@@ -67,8 +67,9 @@ Friend Module LegacyConversionChecks
         Dim matched = LegacyDesignConversion.FindComponents(componentReference, catalog)
         Check(matched.Chassis.Id = "subcompact" AndAlso matched.Plant.Id = "electric-battery", "Old component aliases must resolve to revised components instead of the editor's current selection.")
         Dim amplifier = Convert(folder, catalog, "Van", "diesel", "Rigger2,4,Power Amplifiers", "Rigger2,0,Convertible Top")
-        Check(amplifier.Additions.Count = 0 AndAlso amplifier.Calculate(catalog).AppliedModifications.Single().DesignPoints = 20D AndAlso amplifier.Calculate(catalog).AppliedModifications.Single().CargoConsumed = 1D AndAlso
-              amplifier.Calculate(catalog).AppliedModifications.Single().LoadConsumedKg = 4D, "Generic amplifiers must use the revised table without assuming a retransmission unit.")
+        Dim amplifierAddition = amplifier.Calculate(catalog).AppliedModifications.Single(Function(item) item.Name = "Power amplifier")
+        Check(amplifier.Additions.Count = 0 AndAlso amplifierAddition.DesignPoints = 20D AndAlso amplifierAddition.CargoConsumed = 1D AndAlso
+              amplifierAddition.LoadConsumedKg = 4D, "Generic amplifiers must use the revised table without assuming a retransmission unit.")
         Dim removedPricesPath = Path.Combine(folder, "obsolete-prices.shp")
         File.WriteAllLines(removedPricesPath, {"Shop v1.40", "Obsolete prices", "Rigger2,Van", "Rigger2,Diesel", "Bench", "Open", "0,0,0.5,0,4"})
         Dim removedPrices = LegacyDesignConversion.CreateDesign(LegacyVehicleReader.Read(removedPricesPath), "van", "diesel", catalog)

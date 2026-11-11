@@ -37,6 +37,12 @@ Public NotInheritable Class StockDesign
     Public Property EquipmentSettings As List(Of EquipmentSetting)
 
     Public Function Calculate(catalog As IReadOnlyList(Of StockChassis)) As StockDesignResult
+        If Additions Is Nothing Then Throw New ArgumentException("Additions must be an array.")
+        If LegacyImportNotes IsNot Nothing AndAlso LegacyImportNotes.Any(Function(note) note Is Nothing) Then Throw New ArgumentException("Import notes cannot contain null entries.")
+        If Not [Enum].IsDefined(SpecialtyClass) Then Throw New ArgumentException("Unknown vehicle specialty class.")
+        If AvailabilityClass.HasValue AndAlso Not [Enum].IsDefined(AvailabilityClass.Value) Then Throw New ArgumentException("Unknown Availability class.")
+        Dim designSelections = RetrofitCatalog.NormalizeSelections(CatalogModifications)
+        Dim retrofitSelections = RetrofitCatalog.NormalizeSelections(InstalledRetrofits)
         If EngineStress.HasValue AndAlso EngineStress.Value < 0 Then Throw New ArgumentException("Permanent engine Stress cannot be negative.")
         Dim chassis = StockCatalog.FindById(catalog, ChassisId)
         Dim powerPlant = chassis.PowerPlants.SingleOrDefault(
@@ -45,10 +51,10 @@ Public NotInheritable Class StockDesign
             Throw New ArgumentException($"Power plant '{PowerPlantId}' is unavailable for '{chassis.Id}' in this catalog.")
         End If
 
-        powerPlant = DesignEnhancements.PreparePlant(chassis, powerPlant, CatalogModifications)
+        powerPlant = DesignEnhancements.PreparePlant(chassis, powerPlant, designSelections)
         Dim auxiliary = AuxiliaryEngine.Resolve(AuxiliaryPowerPlantId, chassis)
         If auxiliary IsNot Nothing Then
-            Dim sharedEnhancements = CatalogModifications?.Where(Function(item) item IsNot Nothing AndAlso
+            Dim sharedEnhancements = designSelections.Where(Function(item) item IsNot Nothing AndAlso
                 Not String.Equals(item.Id, "hybrid-engine", StringComparison.OrdinalIgnoreCase)).ToArray()
             auxiliary = DesignEnhancements.PreparePlant(chassis, auxiliary, sharedEnhancements)
         End If
@@ -79,7 +85,7 @@ Public NotInheritable Class StockDesign
             }
         End If
         Dim ratings = If(Upgrades, New DesignUpgrades()).Apply(chassis, powerPlant, design, CargoCapacity, LoadCapacityKg,
-            DesignEnhancements.Has(CatalogModifications, "engine-water-seal") AndAlso (chassis.IsDrone OrElse DesignEnhancements.Has(CatalogModifications, "cabin-water-seal")))
+            DesignEnhancements.Has(designSelections, "engine-water-seal") AndAlso (chassis.IsDrone OrElse DesignEnhancements.Has(designSelections, "cabin-water-seal")))
         If design.CargoCapacity > chassis.MaximumCargo Then
             Throw New ArgumentException($"Cargo capacity exceeds the catalog maximum of {chassis.MaximumCargo} CF.")
         End If
@@ -90,15 +96,15 @@ Public NotInheritable Class StockDesign
         Dim validationCargo = design.CargoCapacity
         Dim validationLoad = design.LoadCapacityKg
         Dim modifiedRatings As ModifiedRatings = Nothing
-        Dim modifications = ModificationCatalog.Apply(CatalogModifications, chassis, powerPlant, design, ratings, modifiedRatings)
+        Dim modifications = ModificationCatalog.Apply(designSelections, chassis, powerPlant, design, ratings, modifiedRatings)
         Dim totals = design.Calculate()
-        Dim retrofits = RetrofitCatalog.Apply(InstalledRetrofits, CatalogModifications, chassis, powerPlant, ratings, totals, validationCargo, validationLoad, modifiedRatings)
+        Dim retrofits = RetrofitCatalog.Apply(retrofitSelections, designSelections, chassis, powerPlant, ratings, totals, validationCargo, validationLoad, modifiedRatings,
+                                              design.StreetIndex, If(EffectiveClass().HasValue, VehicleAvailability.Calculate(EffectiveClass().Value, totals.BaseCostNuyen), Nothing))
         Dim externalCargo = If(retrofits?.Sum(Function(item) item.Quote.ExternalCargoCapacity), 0D)
         Dim resolvedClass = EffectiveClass()
         Dim availability = If(resolvedClass.HasValue, VehicleAvailability.Calculate(resolvedClass.Value, totals.BaseCostNuyen), Nothing)
         If availability IsNot Nothing AndAlso DesignEnhancements.Has(CatalogModifications, "fin-drive") Then
             availability.Rating += 4D
-            availability.BaseDays += 4D
             availability.PlayerAccessible = availability.Rating <= 30D
         End If
         Return New StockDesignResult With {
@@ -138,7 +144,7 @@ Public NotInheritable Class StockDesign
             Case Else
                 Throw New ArgumentException("Unknown vehicle specialty class.")
         End Select
-        If DesignEnhancements.Has(CatalogModifications, "smart-materials") Then index += 1D
+        If DesignEnhancements.Has(CatalogModifications, "smart-materials") OrElse DesignEnhancements.Has(CatalogModifications, "fin-drive") Then index += 1D
         Return index
     End Function
 End Class

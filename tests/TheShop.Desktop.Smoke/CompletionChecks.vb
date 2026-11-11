@@ -88,13 +88,17 @@ Friend Module CompletionChecks
                 stock.Calculate(catalog)
                 For Each rule In RetrofitCatalog.AvailableRules(chassis, plant)
                     Dim quantity = If(rule.Id = "improved-anti-theft-security", 3, If(rule.Id = "advanced-drone-pilot", 2, 1))
-                    RetrofitCatalog.Quote(rule, quantity, chassis, plant)
-                    quotedCount += 1
+                    Try
+                        RetrofitCatalog.Quote(rule, quantity, chassis, plant)
+                        quotedCount += 1
+                    Catch ex As ArgumentException When {"mechanical-arm-strength", "retransmission-power-amplifier", "autosoft-interpretation", "gunnery-recoil-adjusters", "weapon-gyro-stabilization", "active-thermal-masking", "ammo-bin-small-arms", "ammo-bin-machine-gun", "ammo-bin-heavy", "battletac-fddm", "battletac-ivis", "magnetic-anomaly-detector", "over-the-horizon-sensors"}.Contains(rule.Id)
+                        ' These quotes intentionally reject vehicles without their required target.
+                    End Try
                 Next
             Next
         Next
-        Console.WriteLine($"Completion coverage: {catalog.Count} chassis; {catalog.Sum(Function(item) item.PowerPlants.Count)} power plant combinations; {quotedCount} compatible retrofit quotes.")
-        Check(quotedCount > 10000, "Every compatible catalog retrofit should have an executable quote.")
+        Console.WriteLine($"Catalog execution sweep (not a numerical correctness test): {catalog.Count} chassis; {catalog.Sum(Function(item) item.PowerPlants.Count)} power plant combinations; {quotedCount} quotes without missing prerequisites.")
+        Check(quotedCount > 10000, "The compatible catalog quote sweep must execute.")
         mounted.EngineStress = 2
         Dim path = IO.Path.Combine(folder, "completion-design.json")
         File.WriteAllText(path, JsonSerializer.Serialize(mounted))
@@ -109,7 +113,36 @@ Friend Module CompletionChecks
             Check(dialog.Payload.Single().Name = "Test LMG" AndAlso dialog.Settings.Single().Rating = 4, "The payload editor must bind existing entries without discarding configuration.")
             dialog.Close()
         End Using
+        Using dialog As New PayloadDialog(mounted.Payload, Nothing)
+            dialog.Show()
+            Application.DoEvents()
+            Dim grid = FindControl(Of DataGridView)(dialog, "payloadGrid")
+            grid.CurrentCell = grid.Rows(0).Cells("Quantity")
+            grid.BeginEdit(True)
+            DirectCast(grid.EditingControl, TextBox).Text = "invalid number"
+            FindControl(Of Button)(dialog, "applyPayload").PerformClick()
+            Application.DoEvents()
+            Check(dialog.DialogResult <> DialogResult.OK AndAlso dialog.Payload.Single().Quantity = 1 AndAlso
+                  FindControl(Of Label)(dialog, "payloadValidation").Text.Contains("invalid"), "Invalid grid edits must keep the payload editor open without silently saving the old value.")
+            DirectCast(grid.EditingControl, TextBox).Text = "2"
+            FindControl(Of Button)(dialog, "applyPayload").PerformClick()
+            Check(dialog.DialogResult = DialogResult.OK AndAlso dialog.Payload.Single().Quantity = 2, "A corrected numeric edit must commit successfully.")
+            dialog.Close()
+        End Using
+        Using dialog As New RetrofitQuoteDialog(van, diesel, baseline.Totals)
+            dialog.Show()
+            Application.DoEvents()
+            Dim choicesBox = FindControl(Of ComboBox)(dialog, "retrofitOptions")
+            choicesBox.SelectedItem = choicesBox.Items.Cast(Of ModificationRule)().Single(Function(rule) rule.Id = "mechanical-arm-strength")
+            Check(Not FindControl(Of Button)(dialog, "installRetrofit").Enabled AndAlso FindControl(Of Label)(dialog, "retrofitOutput").Text.Contains("requires"), "A missing target must disable installation and show the prerequisite without crashing the quote dialog.")
+            choicesBox.SelectedItem = choicesBox.Items.Cast(Of ModificationRule)().Single(Function(rule) rule.Id = "mechanical-arm")
+            Check(FindControl(Of Button)(dialog, "installRetrofit").Enabled, "A valid selection must recover after a rejected quote.")
+            dialog.Close()
+        End Using
     End Sub
+    Private Function FindControl(Of T As Control)(parent As Control, name As String) As T
+        Return DirectCast(parent.Controls.Find(name, True).Single(), T)
+    End Function
     Private Function MakeVan() As StockDesign
         Return New StockDesign With {.ChassisId = "van", .PowerPlantId = "diesel"}
     End Function

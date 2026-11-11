@@ -32,7 +32,7 @@ Public Module VehicleOperatingModes
             modes.Add(New VehicleOperatingMode With {
                 .Name = "Hydrofoil engaged", .Speed = Scale(speed, 1.25D), .Acceleration = Scale(accel, 1.25D),
                 .Handling = If(modified?.Handling, If(upgrades?.Handling, chassis.Handling)) + 2,
-                .Signature = signature - 1
+                .Signature = signature + 1
             })
         End If
         If DesignEnhancements.Has(selections, "ducted-waterjet") Then

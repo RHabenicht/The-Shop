@@ -114,8 +114,8 @@ Public Module LegacyDesignConversion
         Dim result = CopyDesign(baseDesign)
         Try
             For Each group In groups.Values
-                For Each apply In group.Apply
-                    apply(result)
+                For Each operation As Action(Of StockDesign) In group.Apply
+                    operation(result)
                 Next
             Next
             result.Calculate(catalog)
@@ -131,8 +131,8 @@ Public Module LegacyDesignConversion
                 For Each group In pending.ToArray()
                     Dim attempt = CopyDesign(result)
                     Try
-                        For Each apply In group.Apply
-                            apply(attempt)
+                        For Each operation As Action(Of StockDesign) In group.Apply
+                            operation(attempt)
                         Next
                         attempt.Calculate(catalog)
                         result = attempt
@@ -173,7 +173,7 @@ Public Module LegacyDesignConversion
         If id = "sensors" OrElse id = "remote-control-interface" OrElse id = "advanced-drone-pilot" OrElse id = "autonav" OrElse id = "motorbike-gyro" Then Return "remote-controls"
         If item.Mapping.Kind = "Arm" Then Return "arms"
         If item.Mapping.Kind = "SpareTires" OrElse item.Mapping.Kind = "StandardTires" OrElse id.EndsWith("-tires", StringComparison.Ordinal) OrElse id = "runflat-upgrade" Then Return "tires"
-        Return id
+        Return If(id = "", Key(item.Name), id)
     End Function
 
     Private Sub AddSelection(design As StockDesign, id As String, quantity As Integer)
@@ -235,6 +235,15 @@ Public Module LegacyDesignConversion
                 If item.Level > 0 Then design.Additions.Add(New DesignAddition With {
                     .Name = item.Name & $" — revised Strength {body * body + item.Level}",
                     .DesignPoints = If(item.Level <= 3, 60D, 75D) * body * item.Level, .LoadConsumedKg = 10D * item.Level})
+                Return
+            Case "PowerAmplifier"
+                If quantity < 1 OrElse quantity > 10 Then Throw New ArgumentException("Power amplifier Flux must be between 1 and 10.")
+                design.Additions.Add(New DesignAddition With {
+                    .Name = $"Power amplifier — Flux +{quantity} (source transmitter unspecified)", .DesignPoints = 5D * quantity,
+                    .CargoConsumed = Math.Floor(quantity * 0.25D), .LoadConsumedKg = quantity})
+                Return
+            Case "Description"
+                design.Additions.Add(New DesignAddition With {.Name = "Convertible top (appearance; no added ratings)"})
                 Return
             Case "StandardTires"
                 design.Additions.Add(New DesignAddition With {.Name = "Standard tires (revised purchase price)", .DirectCostNuyen = chassis.Body.GetValueOrDefault() * 50D * quantity})

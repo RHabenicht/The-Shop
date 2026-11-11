@@ -589,10 +589,9 @@
   },
   {
     "Name": "Power Amplifiers",
-    "Kind": "Unresolved",
+    "Kind": "PowerAmplifier",
     "Id": "",
-    "Flag": false,
-    "Reason": "The old record does not identify the amplified device. It cannot be assumed to be a retransmission unit."
+    "Flag": false
   },
   {
     "Name": "Sensors",
@@ -674,10 +673,9 @@
   },
   {
     "Name": "Convertible Top",
-    "Kind": "Unresolved",
+    "Kind": "Description",
     "Id": "",
-    "Flag": false,
-    "Reason": "The old record only tracks a convertible flag; no priced Rigger 3 Revised catalog equivalent is defined."
+    "Flag": false
   },
   {
     "Name": "Crane",

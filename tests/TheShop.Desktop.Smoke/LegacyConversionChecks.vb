@@ -44,13 +44,16 @@ Friend Module LegacyConversionChecks
         Check(mixed.CatalogModifications.Count = 1 AndAlso mixed.CatalogModifications.Single().Id = "nitrous" AndAlso
               mixed.LegacyImportNotes.Count(Function(note) note.StartsWith("Review", StringComparison.Ordinal)) = 2,
               "Invalid revised equipment and homebrew must be reported without losing independent valid options.")
-        Dim ambiguous = Convert(folder, catalog, "Van", "diesel", "Rigger2,2,Medical-Treatment Gear", "Rigger2,8,Drone Rack", "Rigger2,4,Power Amplifiers")
-        Check(ambiguous.CatalogModifications Is Nothing AndAlso ambiguous.LegacyImportNotes.Count = 3,
+        Dim ambiguous = Convert(folder, catalog, "Van", "diesel", "Rigger2,2,Medical-Treatment Gear", "Rigger2,8,Drone Rack")
+        Check(ambiguous.CatalogModifications Is Nothing AndAlso ambiguous.LegacyImportNotes.Count = 2,
               "Missing source specifications must never be replaced by invented clinic, drone or amplifier ratings.")
         Dim componentReference = JsonSerializer.SerializeToElement(New With {
             .Chassis = New With {.Name = "Commuter/Subcomp."}, .Engine = New With {.Name = "Electric"}})
         Dim matched = LegacyDesignConversion.FindComponents(componentReference, catalog)
         Check(matched.Chassis.Id = "subcompact" AndAlso matched.Plant.Id = "electric-battery", "Old component aliases must resolve to revised components instead of the editor's current selection.")
+        Dim amplifier = Convert(folder, catalog, "Van", "diesel", "Rigger2,4,Power Amplifiers", "Rigger2,0,Convertible Top")
+        Check(amplifier.Additions.Sum(Function(item) item.DesignPoints) = 20D AndAlso amplifier.Additions.Sum(Function(item) item.CargoConsumed) = 1D AndAlso
+              amplifier.Additions.Sum(Function(item) item.LoadConsumedKg) = 4D, "Generic amplifiers must use the revised table without assuming a retransmission unit.")
         Dim destination = Path.Combine(folder, "converted-round-trip.json")
         File.WriteAllText(destination, JsonSerializer.Serialize(engine))
         Dim reopened = JsonSerializer.Deserialize(Of StockDesign)(File.ReadAllText(destination))

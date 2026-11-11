@@ -60,6 +60,15 @@ Module Program
                 d.Payload = New List(Of VehiclePayloadItem) From {Weapon("Pistol", "external-fixed-hardpoint", 1D, 2)}
                 Reject(Sub() d.Calculate(catalog))
             End Sub)
+            Test("manufactured uniform recoil does not cover future retrofit mounts", Sub()
+                Dim d = Van(("external-fixed-firmpoint", 1), ("gunnery-recoil-adjusters", 3))
+                d.InstalledRetrofits = Choices(("external-fixed-firmpoint", 1))
+                d.EquipmentSettings = New List(Of EquipmentSetting) From {New EquipmentSetting With {.Component = "Recoil", .Target = "external-fixed-firmpoint", .Instance = 2, .Rating = 2}}
+                Dim r = d.Calculate(catalog)
+                Equal(r.ConfiguredRetrofitListCost, 1000D, "New mount's own adjusters")
+                Equal(r.Totals.DesignPoints, 140D, "Original manufacture price")
+                Equal(r.Totals.LoadRemainingKg, 304D, "Both mounts and new adjusters")
+            End Sub)
             Test("a fixed gun mount cannot store missiles", Sub()
                 Dim d = Van(("internal-fixed-firmpoint", 1))
                 d.Payload = New List(Of VehiclePayloadItem) From {Weapon("Missile", "internal-fixed-firmpoint", 1D)}
@@ -135,6 +144,11 @@ Module Program
             Test("standard factory tires are included, p.155", Sub()
                 Equal(Van(("standard-tires", 4)).Calculate(catalog).Totals.BaseCostNuyen, Van().Calculate(catalog).Totals.BaseCostNuyen, "Included tires")
             End Sub)
+            Test("explicit standard tires halve Handling benefits, p.155", Sub()
+                Dim d = Van(("standard-tires", 4), ("drive-by-wire", 1), ("drive-by-wire-load-allocation", 10))
+                d.Upgrades = New DesignUpgrades With {.OnRoadHandling = 2}
+                Equal(d.Calculate(catalog).ModifiedRatings.OnRoadHandling.Value, 3, "Halved functional improvement and rounded-down wire benefit")
+            End Sub)
             Test("convertible top uses revised pricing and mount dependency, p.150", Sub()
                 Dim d = Van(("convertible-top", 1))
                 Equal(d.Calculate(catalog).Totals.BaseCostNuyen, 10000D, "Manufacture price")
@@ -205,6 +219,77 @@ Module Program
                     Dim unlistedTime = rule.Id.Contains("tires") OrElse rule.Id = "runflat-upgrade" OrElse rule.Id = "torpedo-storage-rack" OrElse rule.Id.Contains("-allocation")
                     If Not unlistedTime AndAlso (Not q.InstallationBaseHours.HasValue OrElse q.InstallationBaseHours <= 0D) Then Throw New InvalidOperationException("Missing time: " & rule.Id)
                 Next
+            End Sub)
+            For Each chassis In catalog
+                For Each engine In chassis.PowerPlants
+                    Dim c = chassis, p = engine
+                    Test(c.Id & "/" & p.Id & " stock calculation and JSON round trip", Sub()
+                        Dim d As New StockDesign With {.ChassisId = c.Id, .PowerPlantId = p.Id}
+                        Dim result = d.Calculate(catalog)
+                        Equal(result.Totals.DesignPoints, c.DesignPoints + p.DesignPoints, "Stock points include factory equipment")
+                        Equal(result.Totals.BaseCostNuyen, (c.DesignPoints + p.DesignPoints) * c.Markup * 100D, "Stock price")
+                        Equal(result.Totals.CargoRemaining, c.StartingCargo, "Stock cargo")
+                        Equal(result.Totals.LoadRemainingKg, p.StartingLoadKg, "Stock Load")
+                        Dim reopened = JsonSerializer.Deserialize(Of StockDesign)(JsonSerializer.Serialize(d)).Calculate(catalog)
+                        Equal(reopened.Totals.BaseCostNuyen, result.Totals.BaseCostNuyen, "Round-trip price")
+                        Equal(reopened.Totals.CargoRemaining, result.Totals.CargoRemaining, "Round-trip cargo")
+                    End Sub)
+                Next
+            Next
+            Test("factory mechanical arms support individual enhancement, p.204", Sub()
+                Dim d As New StockDesign With {.ChassisId = "medium-anthroform", .PowerPlantId = "diesel",
+                    .EquipmentSettings = New List(Of EquipmentSetting) From {New EquipmentSetting With {.Component = "Arm strength", .Rating = 1}}}
+                Dim result = d.Calculate(catalog)
+                Equal(result.Totals.DesignPoints, 820D, "Only enhancement is priced")
+                Equal(result.Totals.LoadRemainingKg, 65D, "Only added Strength consumes Load")
+                d.EquipmentSettings(0).Rating = 15
+                Reject(Sub() d.Calculate(catalog))
+            End Sub)
+            Test("factory torpedo tubes accept payload without buying tubes again, p.205", Sub()
+                Dim d As New StockDesign With {.ChassisId = "attack-submarine", .PowerPlantId = "diesel",
+                    .Payload = New List(Of VehiclePayloadItem) From {Weapon("Torpedo", "factory-torpedo-tube", 2000D)}}
+                Dim result = d.Calculate(catalog)
+                Equal(result.Totals.BaseCostNuyen, 222000000D, "Factory price")
+                Equal(result.Totals.LoadRemainingKg, 748000D, "Ordnance mass")
+                d.Payload(0).MountNumber = 5
+                Reject(Sub() d.Calculate(catalog))
+            End Sub)
+            Test("factory cabin seal satisfies overpressure dependency, p.202", Sub()
+                Dim d As New StockDesign With {.ChassisId = "jet-fighter", .PowerPlantId = "jet-turbine", .CatalogModifications = Choices(("cabin-overpressure", 1))}
+                Equal(d.Calculate(catalog).Totals.CargoRemaining, 5D, "Factory gas seal consumes no additional cargo")
+            End Sub)
+            Test("included equipment appears on the proposed sheet", Sub()
+                Dim d As New StockDesign With {.ChassisId = "medium-anthroform", .PowerPlantId = "diesel"}
+                Dim html = VehicleSheet.Render(d, catalog)
+                If Not html.Contains("Mechanical arm (factory included)") OrElse Not html.Contains("Factory arm Strength") Then Throw New InvalidOperationException("Factory equipment is absent from export.")
+            End Sub)
+            Test("MAD retrofit uses actual sensor rating, p.146", Sub()
+                Dim d As New StockDesign With {.ChassisId = "airliner", .PowerPlantId = "jet-propeller", .InstalledRetrofits = Choices(("magnetic-anomaly-detector", 1))}
+                Dim result = d.Calculate(catalog)
+                Equal(result.RetrofitListPartsCostNuyen, 20000D, "MAD parts")
+                Equal(result.Totals.CargoRemaining, 484D, "MAD cargo")
+                Equal(result.Totals.LoadRemainingKg, 4950D, "MAD mass")
+            End Sub)
+            For Each id In {"rv", "tractor", "medium-transport", "heavy-transport", "light-caterpillar", "medium-caterpillar", "heavy-caterpillar", "tracked-apc", "wheeled-apc"}
+                Dim chassis = StockCatalog.FindById(catalog, id)
+                Test(id & " battery All Others formula, p.195", Sub()
+                    Dim p = chassis.PowerPlants.Single(Function(item) item.Id = "electric-battery")
+                    Dim body = chassis.Body.Value
+                    Equal(p.StartingLoadKg, 15D * body, "Starting Load")
+                    Equal(p.MaximumLoadKg, 100D * body, "Maximum Load")
+                    Equal(p.StartingAcceleration.Value, 6 - body, "Starting Acceleration")
+                    Equal(p.MaximumAcceleration.Value, 10 - body, "Maximum Acceleration")
+                    Equal(p.BatteryPowerFactors.Value, 30D * body, "Battery PF")
+                    Equal(p.DesignPoints, 5D + 5D * body, "Design points")
+                    If p.StartingAcceleration <= 0 AndAlso String.IsNullOrWhiteSpace(p.SourceNote) Then Throw New InvalidOperationException("The literal nonpositive formula result needs a source note.")
+                End Sub)
+            Next
+            Test("over-the-horizon retrofit uses ship sensors, p.146", Sub()
+                Dim d As New StockDesign With {.ChassisId = "corvette", .PowerPlantId = "diesel", .InstalledRetrofits = Choices(("over-the-horizon-sensors", 1))}
+                Dim result = d.Calculate(catalog)
+                Equal(result.RetrofitListPartsCostNuyen, 300000D, "OTHS parts")
+                Equal(result.Totals.CargoRemaining, 159D, "OTHS cargo")
+                Equal(result.Totals.LoadRemainingKg, 17500D, "OTHS mass")
             End Sub)
         Finally
             Directory.Delete(folder, True)

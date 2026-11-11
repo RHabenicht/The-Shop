@@ -85,7 +85,7 @@ Public NotInheritable Class StockDesign
             }
         End If
         Dim ratings = If(Upgrades, New DesignUpgrades()).Apply(chassis, powerPlant, design, CargoCapacity, LoadCapacityKg,
-            DesignEnhancements.Has(designSelections, "engine-water-seal") AndAlso (chassis.IsDrone OrElse DesignEnhancements.Has(designSelections, "cabin-water-seal")))
+            DesignEnhancements.Has(designSelections, "engine-water-seal") AndAlso (chassis.IsDrone OrElse DesignEnhancements.Has(designSelections, "cabin-water-seal")), designSelections)
         If design.CargoCapacity > chassis.MaximumCargo Then
             Throw New ArgumentException($"Cargo capacity exceeds the catalog maximum of {chassis.MaximumCargo} CF.")
         End If
@@ -150,6 +150,11 @@ Public NotInheritable Class StockDesign
 End Class
 
 Public Module StockCatalog
+    Public Function FactoryMountSelections(chassis As StockChassis) As IReadOnlyList(Of ModificationSelection)
+        Dim result = RetrofitCatalog.NormalizeSelections(chassis.FactoryEquipment).ToList()
+        If chassis.FactoryTorpedoTubes > 0 Then result.Add(New ModificationSelection With {.Id = "factory-torpedo-tube", .Quantity = chassis.FactoryTorpedoTubes})
+        Return result
+    End Function
     Public Function Read(options As JsonSerializerOptions) As IReadOnlyList(Of StockChassis)
         Using data = GetType(StockChassis).Assembly.GetManifestResourceStream("TheShop.Design.StockCatalog.json")
             Return JsonSerializer.Deserialize(Of StockChassis())(data, options)
@@ -211,9 +216,19 @@ Public NotInheritable Class StockChassis
     Public Property StartingCargo As Decimal
     Public Property MaximumCargo As Decimal
     Public Property PowerPlants As StockPowerPlant()
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property FactoryEquipment As List(Of ModificationSelection)
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property FactoryFeatures As List(Of String)
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property FactoryArmStrength As Integer?
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingDefault)>
+    Public Property FactoryTorpedoTubes As Integer
 End Class
 
 Public NotInheritable Class StockPowerPlant
+    <JsonIgnore(Condition:=JsonIgnoreCondition.WhenWritingNull)>
+    Public Property SourceNote As String
     Friend Function Copy() As StockPowerPlant
         Return DirectCast(MemberwiseClone(), StockPowerPlant)
     End Function

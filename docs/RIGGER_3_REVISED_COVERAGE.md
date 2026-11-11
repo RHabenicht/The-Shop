@@ -4,7 +4,7 @@ Rigger 3 Revised supplies the rules and prices. Rigger 2 source records are conv
 
 | Area | Implemented behavior | Printed reference |
 | --- | --- | --- |
-| Components | 117 chassis and 370 power plant combinations; original units retained | 194–205 |
+| Components | 117 chassis and 379 power plant combinations; original units retained | 194–205 |
 | Functional upgrades | Speed, acceleration, Handling, cargo, Load, depth, Economy, fuel storage and Signature; chassis and plant limits | 114–116 |
 | Underwater vehicles | Sealed non-submarine starting depth, drone multiplier, depth maximum and reinforcement weight | 115 |
 | Hull installations | General Hull Factor substitution; Hull load upgrades, Bulwark, naval stations and mount budgets | 114–116, 132, 138 |
@@ -19,8 +19,9 @@ Rigger 3 Revised supplies the rules and prices. Rigger 2 source records are conv
 | Turret storage | Per-turret CF and seating; stored cargo does not consume vehicle CF twice | 140 |
 | Electronics | Sensors, sonar, ECM/ECCM/ED/ECD, ports, amplifiers, encryption and relay units | 142–148 |
 | Accessories | Drop tanks, amphibious packages, security, crane/winch, drone racks, arms, clinics, seating, tires | 149–155 |
-| Retrofit quotes | 161 catalog entries; printed parts prices, Availability, SI and customization capacity; source and installation references | 122–155 |
+| Retrofit quotes | 164 catalog entries; printed parts prices, Availability, SI and customization capacity; source and installation references | 122–155 |
 | Individual equipment | Different arm strengths, mount-specific recoil and amplifiers; design and retrofit pricing | 137, 147, 152 |
+| Factory equipment | Printed included arms, seals, tubes, launch controls, amenities, decks and GridLink; no duplicate charges | 202–205 |
 | Old saves | All 128 standard source names are classified for revised conversion, removal or missing replacement specifications; original evidence retained | Conversion uses the revised entries above |
 | Sheet export | Ratings, price, operating modes, payload, mounting, retrofit totals, references, import report and GM review | 113, 121 |
 
@@ -32,12 +33,14 @@ A dash in a parts Street Index table remains unpriced on the street until a GM o
 
 Some engine tables and the fuel-enlargement table use incompatible units. Additional storage is retained in the enlargement table's units beside the original tank capacity. The program does not invent a liters/bars/PF conversion.
 
+The p. 195 Cars: All Others battery formula is retained for all remaining car chassis. A nonpositive starting Acceleration receives a source note; functional upgrades or another engine are needed before movement. No unprinted minimum rating is substituted.
+
 A named weapon, ammunition load, passenger, tool or electronic device requires its actual weight and purchase price. These are payload inputs; selecting a generic vehicle component does not identify a particular model. Physical mount/space costs already reserved by a catalog entry must not be entered a second time as payload cargo.
 
-The old medical-treatment record contains patient count but no revised clinic rating. The old drone-rack record contains storage space but no carried drone Body. Such incomplete records retain their original data and a conversion explanation. Revised components can be selected in the catalog once those actual specifications are known. Obsolete aggregate engine-budget checks, cosmetic flags and price modifiers are discarded. Homebrew or unknown options are removed from the active design. Arms, recoil, amplifiers and tires use the same current calculators as new designs; no copied pricing formula is retained in the importer. Source history never supplies executable rules or prices.
+The old medical-treatment record contains patient count but no revised clinic rating. The old drone-rack record contains storage space but no carried drone Body. Such incomplete records retain their original data and a conversion explanation. Revised components can be selected in the catalog once those actual specifications are known. Obsolete aggregate engine-budget checks and old price modifiers are discarded. Convertible tops retain their current revised p. 150 implementation. Homebrew or unknown options are removed from the active design. Arms, recoil, amplifiers and tires use the same current calculators as new designs; no copied pricing formula is retained in the importer. Source history never supplies executable rules or prices.
 
 ## Verification before packaging
 
-Windows CI publishes the self-contained application and runs the full desktop regression executable. Checks include all stock chassis/plant combinations and all compatible retrofit quotes, plus actual file round trips, conversion, payload/mount rejection, armor modes, individual equipment, Hull upgrades and HTML output.
+Windows CI publishes the self-contained application and runs the full desktop regression executable. The rules audit independently checks the electronics tables at every rating and turret specifications across all supported variants, plus targeted arithmetic, prerequisites, factory equipment and mixed manufacture/retrofit tests. Every stock combination is calculated and round-tripped through JSON. Catalog quote sweeps check execution and consistency, not numerical correctness of every combination. Desktop tests include invalid grid edits, missing quote prerequisites, file overwrite/reopen, conversion and HTML output.
 
-Installer creation, installer startup/uninstall verification and installer upload are gated behind the manual `package_installer` workflow input. Packaging is the final remaining delivery operation after the source checks pass.
+Installer creation, installer startup/uninstall verification and installer upload are gated behind the manual `package_installer` workflow input. Packaging remains a separate final delivery operation after the source checks pass. Run the rules audit locally with `dotnet run --project tests/TheShop.Rules.Audit -c Release`; Windows CI also runs it before the desktop checks.

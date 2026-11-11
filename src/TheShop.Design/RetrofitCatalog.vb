@@ -44,7 +44,7 @@ Public Module RetrofitCatalog
         Dim entries As New List(Of InstalledRetrofit)
         Dim combined As New List(Of ModificationSelection)
         If designSelections IsNot Nothing Then combined.AddRange(designSelections)
-        Dim quoteContext = combined.Concat(selections).ToArray()
+        Dim quoteContext = If(chassis.FactoryEquipment, New List(Of ModificationSelection)).Concat(combined).Concat(selections).ToArray()
         Dim seen As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
         For Each selection In selections
             If selection Is Nothing Then Throw New ArgumentException("An installed retrofit cannot be null.")
@@ -69,6 +69,11 @@ Public Module RetrofitCatalog
         Dim merged = groups.Where(Function(group) Not String.Equals(group.Key, "external-cargo-mounts", StringComparison.OrdinalIgnoreCase)).Select(Function(group) New ModificationSelection With {
                 .Id = group.Key, .Quantity = If(IsReplacementRating(group.Key), group.Last().Quantity, CInt(group.Sum(Function(item) CLng(item.Quantity))))
             }).ToList()
+        If DesignEnhancements.Has(designSelections, "gunnery-recoil-adjusters") AndAlso Not DesignEnhancements.Has(selections, "gunnery-recoil-adjusters") Then
+            If DesignEnhancements.Has(selections, "weapon-gyro-stabilization") Then Throw New ArgumentException("Gunnery recoil adjusters and gyro-stabilization are incompatible.")
+            ' Manufacture-time uniform adjusters cover the original mounts, not new retrofit mounts.
+            merged.RemoveAll(Function(item) item.Id = "gunnery-recoil-adjusters")
+        End If
         Dim validationRatings As ModifiedRatings = Nothing
         Dim baseline As New VehicleDesign With {.Additions = New List(Of DesignAddition), .CargoCapacity = validationCargo, .LoadCapacityKg = validationLoad}
         Dim baselineRatings As ModifiedRatings = Nothing
@@ -138,7 +143,7 @@ Public Module RetrofitCatalog
                           Optional context As IReadOnlyList(Of ModificationSelection) = Nothing,
                           Optional vehicleStreetIndex As Decimal? = Nothing, Optional vehicleAvailability As VehicleAvailability = Nothing,
                           Optional contextIncludesSelection As Boolean = False) As RetrofitQuote
-        context = NormalizeSelections(context)
+        context = NormalizeSelections(If(context, chassis.FactoryEquipment))
         context = CombinedSelections(context, If(contextIncludesSelection, Nothing, New ModificationSelection() {New ModificationSelection With {.Id = rule.Id, .Quantity = quantity}}))
         If rule.Id = "battletac-fddm" OrElse rule.Id = "battletac-ivis" Then
             Dim pilot = Math.Max(chassis.Pilot.GetValueOrDefault(), context.Where(Function(item) item.Id = "advanced-drone-pilot" OrElse item.Id = "robotic-pilot").Select(Function(item) item.Quantity).DefaultIfEmpty(0).Max())

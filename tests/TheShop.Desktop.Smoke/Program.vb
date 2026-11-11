@@ -668,7 +668,7 @@ Module Program
                 Dim finResult = finBoat.Calculate(sheetCatalog)
                 Require(finResult.ModifiedRatings.Speed.GetValueOrDefault() = 56 AndAlso
                         finResult.Totals.CargoRemaining = 4D AndAlso finResult.Totals.LoadRemainingKg = 150D AndAlso
-                        finResult.Availability.Rating = 11D AndAlso finResult.Availability.BaseDays = 11D,
+                        finResult.Availability.Rating = 11D AndAlso finResult.Availability.BaseDays = 7D,
                         "Fin drives should adjust starting performance, capacities, and Availability.")
                 editor.ClientSize = New System.Drawing.Size(780, 550)
                 Application.DoEvents()

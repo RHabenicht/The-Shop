@@ -526,7 +526,10 @@ Public Module ModificationCatalog
     Friend Function Apply(selections As IReadOnlyList(Of ModificationSelection), chassis As StockChassis, plant As StockPowerPlant,
                           design As VehicleDesign, upgrades As UpgradedRatings,
                           ByRef finalRatings As ModifiedRatings, Optional customization As Boolean = False) As IReadOnlyList(Of DesignAddition)
-        If selections Is Nothing OrElse selections.Count = 0 Then Return Nothing
+        Dim requested = RetrofitCatalog.NormalizeSelections(selections)
+        Dim included = RetrofitCatalog.NormalizeSelections(chassis.FactoryEquipment)
+        If requested.Count = 0 AndAlso included.Count = 0 Then Return Nothing
+        selections = RetrofitCatalog.CombinedSelections(included, requested)
         If design.Additions Is Nothing Then Throw New ArgumentException("Additions must be an array.")
         If DesignEnhancements.Has(selections, "hybrid-engine") OrElse DesignEnhancements.Has(selections, "fin-drive") OrElse DesignEnhancements.Has(selections, "smart-materials") Then
             finalRatings = New ModifiedRatings With {
@@ -544,7 +547,7 @@ Public Module ModificationCatalog
             Dim rule = Rules.SingleOrDefault(Function(item) String.Equals(item.Id, choice.Id, StringComparison.OrdinalIgnoreCase))
             If rule Is Nothing Then Throw New ArgumentException($"Unknown catalog modification '{choice.Id}'.")
             If Not seen.Add(rule.Id) Then Throw New ArgumentException($"'{rule.Name}' was selected more than once.")
-            If Not IsCompatible(rule, chassis, plant) Then
+            If Not IsCompatible(rule, chassis, plant) AndAlso Not (included.Any(Function(item) item.Id = rule.Id) AndAlso Not requested.Any(Function(item) item.Id = rule.Id)) Then
                 Throw New ArgumentException($"'{rule.Name}' is unavailable for this chassis or power plant.")
             End If
             Dim maximum = MaximumQuantity(rule, chassis)
@@ -632,6 +635,7 @@ Public Module ModificationCatalog
         If seen.Contains("mechanical-arm-strength") AndAlso armCount = 0 Then
             Throw New ArgumentException("Mechanical arm strength enhancement requires a mechanical arm.")
         End If
+        If seen.Contains("mechanical-arm-strength") AndAlso chassis.FactoryArmStrength.HasValue AndAlso chassis.FactoryArmStrength.Value + validated.Single(Function(choice) choice.Rule.Id = "mechanical-arm-strength").Quantity > chassis.Body.GetValueOrDefault() * 10D Then Throw New ArgumentException("Factory arm Strength enhancement exceeds Body × 10.")
         If seen.Contains("sidecar") Then
             Dim size = validated.Single(Function(choice) choice.Rule.Id = "sidecar").Quantity
             Dim handlingPenalty = If(size = 3, 2, 1)
@@ -675,7 +679,7 @@ Public Module ModificationCatalog
         If seen.Contains("smart-materials") AndAlso seen.Contains("fin-drive") Then Throw New ArgumentException("Fin drive already uses smart materials and cannot add the smart-materials option.")
         If seen.Contains("stol-profile") AndAlso seen.Contains("vstol-profile") Then Throw New ArgumentException("Select one improved takeoff/landing profile.")
         If seen.Contains("removed-manual-controls") Then
-            If Not (seen.Contains("datajack-port") OrElse seen.Contains("rigger-adaptation") OrElse seen.Contains("valkyrie-module")) Then
+            If Not (seen.Contains("datajack-port") OrElse seen.Contains("rigger-adaptation")) Then
                 Throw New ArgumentException("Removed manual controls require a datajack port or rigger adaptation.")
             End If
             design.CargoCapacity += 2D
@@ -705,8 +709,9 @@ Public Module ModificationCatalog
         End If
         If seen.Contains("smart-materials") Then
             finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) - 1
-            finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) - 1
-            finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - 1
+            Dim benefit = If(seen.Contains("standard-tires") OrElse (seen.Contains("off-road-tires") AndAlso Not seen.Contains("off-road-suspension")), 0, 1)
+            finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) - benefit
+            finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - benefit
         End If
         Dim implicitDualPurpose = Not seen.Any(Function(id) id.EndsWith("-tires", StringComparison.Ordinal) AndAlso Not id.StartsWith("spare-", StringComparison.Ordinal)) AndAlso
             (seen.Contains("improved-suspension") OrElse seen.Contains("drive-by-wire"))
@@ -760,8 +765,9 @@ Public Module ModificationCatalog
             Dim level = validated.Single(Function(choice) choice.Rule.Id = "drive-by-wire").Quantity
             If finalRatings Is Nothing Then finalRatings = New ModifiedRatings()
             finalRatings.Handling = If(finalRatings.Handling, If(upgrades?.Handling, chassis.Handling)) - level
-            finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) - level
-            finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - level
+            Dim benefit = If(seen.Contains("standard-tires") OrElse (seen.Contains("off-road-tires") AndAlso Not seen.Contains("off-road-suspension")), level \ 2, level)
+            finalRatings.OnRoadHandling = If(finalRatings.OnRoadHandling, If(upgrades?.OnRoadHandling, chassis.OnRoadHandling)) - benefit
+            finalRatings.OffRoadHandling = If(finalRatings.OffRoadHandling, If(upgrades?.OffRoadHandling, chassis.OffRoadHandling)) - benefit
             For Each allocation In allocations
                 Dim multiplier = 1D + allocation.Quantity / 100D
                 Select Case allocation.Rule.Id
@@ -908,6 +914,22 @@ Public Module ModificationCatalog
             Dim engineCost = result.Where(Function(item) item.Name.StartsWith("Engine customization", StringComparison.Ordinal)).Sum(Function(item) item.DesignPoints)
             result.Single(Function(item) item.Name = "Active thermal masking").DesignPoints = engineCost * (2D + 0.25D * (masking - 1D))
         End If
+        For index As Integer = result.Count - 1 To 0 Step -1
+            Dim id = validated(index).Rule.Id
+            Dim factory = included.SingleOrDefault(Function(item) item.Id = id)
+            If factory Is Nothing Then Continue For
+            If Not requested.Any(Function(item) item.Id = id) Then
+                result.RemoveAt(index)
+            Else
+                Dim factoryArms = included.Where(Function(item) item.Id = "mechanical-arm").Sum(Function(item) item.Quantity)
+                Dim originalDeck = included.Where(Function(item) item.Id = "flight-deck").Select(Function(item) item.Quantity).SingleOrDefault()
+                Dim original = Price(validated(index).Rule, factory.Quantity, chassis, plant, sensorRating, retransmissionUnits, factoryArms, pilot, adaptation, originalDeck)
+                result(index).DesignPoints -= original.DesignPoints
+                result(index).DirectCostNuyen -= original.DirectCostNuyen
+                result(index).CargoConsumed -= original.CargoConsumed
+                result(index).LoadConsumedKg -= original.LoadConsumedKg
+            End If
+        Next
         design.Additions = design.Additions.Concat(result).ToList()
         Return result
     End Function

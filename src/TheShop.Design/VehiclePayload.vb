@@ -36,7 +36,7 @@ Public Module VehiclePayload
 
     Public Function Additions(design As StockDesign, chassis As StockChassis, ByRef configuredListCost As Decimal, ByRef configuredStreetCost As Decimal) As IReadOnlyList(Of DesignAddition)
         Dim result As New List(Of DesignAddition)
-        Dim manufactured = RetrofitCatalog.NormalizeSelections(design.CatalogModifications)
+        Dim manufactured = StockCatalog.FactoryMountSelections(chassis).Concat(RetrofitCatalog.NormalizeSelections(design.CatalogModifications)).ToArray()
         Dim installed = RetrofitCatalog.NormalizeSelections(design.InstalledRetrofits)
         Dim mounts = manufactured.Concat(installed).ToArray()
         Dim usedStorage As New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase)
@@ -63,7 +63,7 @@ Public Module VehiclePayload
                     Dim mount = mounts.Where(Function(choice) String.Equals(choice.Id, item.MountId, StringComparison.OrdinalIgnoreCase)).ToArray()
                     Dim count = mount.Sum(Function(choice) CLng(choice.Quantity))
                     If item.MountNumber < 1 OrElse item.MountNumber > count Then Throw New ArgumentException($"Payload '{item.Name}' has no matching mount instance.")
-                    If mountId.StartsWith("torpedo-", StringComparison.Ordinal) AndAlso Not {"Forward", "Rear"}.Contains(item.Direction, StringComparer.OrdinalIgnoreCase) Then Throw New ArgumentException("Torpedo installations must face Forward or Rear.")
+                    If (mountId.StartsWith("torpedo-", StringComparison.Ordinal) OrElse mountId = "factory-torpedo-tube") AndAlso Not {"Forward", "Rear"}.Contains(item.Direction, StringComparer.OrdinalIgnoreCase) Then Throw New ArgumentException("Torpedo installations must face Forward or Rear.")
                     If chassis.Category = "Bike" AndAlso Not String.Equals(item.Direction, "Forward", StringComparison.OrdinalIgnoreCase) Then Throw New ArgumentException("A motorcycle sidecar weapon must fire forwards.")
                     Dim ordnance = value = 0D
                     Dim capacity As Decimal
@@ -125,7 +125,9 @@ Public Module VehiclePayload
                 Select Case id
                     Case "Arm strength"
                         If DesignEnhancements.Has(mounts, "mechanical-arm-strength") Then Throw New ArgumentException("Use either uniform arm enhancement or individual arm settings.")
-                        If body * body + setting.Rating > body * 10D Then Throw New ArgumentException("Arm Strength exceeds Body × 10.")
+                        Dim factoryArms = If(chassis.FactoryEquipment, New List(Of ModificationSelection)).Where(Function(item) item.Id = "mechanical-arm").Sum(Function(item) item.Quantity)
+                        Dim initialStrength = If(setting.Instance <= factoryArms, chassis.FactoryArmStrength.GetValueOrDefault(CInt(body * body)), body * body)
+                        If initialStrength + setting.Rating > body * 10D Then Throw New ArgumentException("Arm Strength exceeds Body × 10.")
                         If retrofit Then
                             addition.DirectCostNuyen = If(setting.Rating <= 3, 5000D, 6000D) * body * setting.Rating
                         Else
@@ -133,7 +135,9 @@ Public Module VehiclePayload
                         End If
                         addition.LoadConsumedKg = 10D * setting.Rating
                     Case "Recoil"
-                        If DesignEnhancements.Has(mounts, "gunnery-recoil-adjusters") OrElse DesignEnhancements.Has(mounts, "weapon-gyro-stabilization") Then Throw New ArgumentException("Individual recoil settings cannot be combined with uniform recoil or gyro-stabilization.")
+                        If DesignEnhancements.Has(installed, "gunnery-recoil-adjusters") OrElse
+                            (DesignEnhancements.Has(manufactured, "gunnery-recoil-adjusters") AndAlso setting.Instance <= factoryCount) OrElse
+                            DesignEnhancements.Has(mounts, "weapon-gyro-stabilization") Then Throw New ArgumentException("This mount already has uniform recoil adjustment or incompatible gyro-stabilization.")
                         Dim capacity = RecoilCapacity(target)
                         If setting.Rating > capacity Then Throw New ArgumentException("Recoil setting exceeds the mount's limit.")
                         If retrofit Then
@@ -207,7 +211,7 @@ Public Module VehiclePayload
                 If kind <> "heavy missile" AndAlso Not (kind = "torpedo" AndAlso chassis.Category = "Ship") Then Throw New ArgumentException("Heavy internal storage accepts heavy missiles or surface-ship torpedoes.")
             Case "torpedo-storage-rack"
                 If kind <> "torpedo" Then Throw New ArgumentException("A torpedo storage rack accepts torpedoes.")
-            Case "torpedo-tube-manual", "torpedo-tube-autoloader"
+            Case "torpedo-tube-manual", "torpedo-tube-autoloader", "factory-torpedo-tube"
                 ' The GM identifies the specific tube-launched missile, mine or torpedo.
             Case "external-missile-mounts", "external-missile-mounts-reinforced"
                 If kind = "mine" Then Throw New ArgumentException("Sea mines require an appropriate torpedo installation.")
@@ -218,7 +222,8 @@ Public Module VehiclePayload
     End Sub
 
     Public Function Arc(id As String) As String
-        If id.StartsWith("torpedo-", StringComparison.Ordinal) Then Return "Fore or aft tube/storage group; separate torpedo stores"
+        id = If(id, "").ToLowerInvariant()
+        If id.StartsWith("torpedo-", StringComparison.Ordinal) OrElse id = "factory-torpedo-tube" Then Return "Fore or aft tube/storage group; separate torpedo stores"
         If id.Contains("missile") Then Return "Ordnance launch mount"
         If id.Contains("turret") Then Return If(id.Contains("anti-aircraft"), "360°; −10° to +75° elevation", "360°; −10° to +45° elevation")
         If id.StartsWith("ring-mount", StringComparison.Ordinal) Then Return "360°; ±30° elevation; manual gunner"

@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: windows-2025
@@ -47,6 +51,7 @@ jobs:
       - name: Upload tested installer
         uses: actions/upload-artifact@v4
         with:
+          retention-days: ${{ github.event_name == 'pull_request' && 3 || 14 }}
           name: The-Shop-Windows-x64
           path: |
             installer-output/The-Shop-Setup-x64.exe
@@ -58,6 +63,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
+          retention-days: ${{ github.event_name == 'pull_request' && 3 || 14 }}
           name: The-Shop-Installer-Diagnostics
           path: installer-output/*.log
           if-no-files-found: ignore

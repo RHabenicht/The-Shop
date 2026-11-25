@@ -19,15 +19,26 @@ function Invoke-CheckedProcess([string]$Path, [string[]]$Arguments) {
 
 function Assert-ApplicationStarts([string]$Path, [string]$WorkingDirectory) {
     $process = Start-Process -FilePath $Path -WorkingDirectory $WorkingDirectory -PassThru
+    $splashSeen = $false
+    $splashClock = [Diagnostics.Stopwatch]::new()
     try {
         $deadline = (Get-Date).AddSeconds(30)
         do {
             $process.Refresh()
             if ($process.HasExited) { throw "The installed app exited with code $($process.ExitCode)." }
+            if ($process.MainWindowTitle -eq 'The Shop | Starting' -and -not $splashSeen) {
+                $splashSeen = $true
+                $splashClock.Start()
+            }
             if ($process.MainWindowTitle -eq 'The Shop | Rigger 3 Revised') { break }
-            Start-Sleep -Milliseconds 250
+            Start-Sleep -Milliseconds 50
         } while ((Get-Date) -lt $deadline)
+        $splashClock.Stop()
         if ($process.MainWindowTitle -ne 'The Shop | Rigger 3 Revised') { throw 'The installed app did not open its main window.' }
+        if (-not $splashSeen) { throw 'The installed application did not show its startup splash.' }
+        if ($splashClock.Elapsed.TotalSeconds -lt 5.7 -or $splashClock.Elapsed.TotalSeconds -gt 10) {
+            throw "The startup splash lasted $($splashClock.Elapsed.TotalSeconds) observed seconds; expected six seconds."
+        }
     } finally {
         if (-not $process.HasExited) {
             [void]$process.CloseMainWindow()
@@ -37,6 +48,31 @@ function Assert-ApplicationStarts([string]$Path, [string]$WorkingDirectory) {
                 throw 'The installed app did not close cleanly.'
             }
             if ($process.ExitCode -ne 0) { throw "The installed app closed with code $($process.ExitCode)." }
+        }
+        $process.Dispose()
+    }
+    return $splashClock.Elapsed.TotalSeconds
+}
+
+function Assert-SplashCanClose([string]$Path, [string]$WorkingDirectory) {
+    $process = Start-Process -FilePath $Path -WorkingDirectory $WorkingDirectory -PassThru
+    try {
+        $deadline = (Get-Date).AddSeconds(15)
+        do {
+            $process.Refresh()
+            if ($process.HasExited) { throw 'The application exited before its startup splash was observed.' }
+            if ($process.MainWindowTitle -eq 'The Shop | Starting') { break }
+            if ($process.MainWindowTitle -eq 'The Shop | Rigger 3 Revised') { throw 'The splash was skipped during the cancellation test.' }
+            Start-Sleep -Milliseconds 50
+        } while ((Get-Date) -lt $deadline)
+        if ($process.MainWindowTitle -ne 'The Shop | Starting') { throw 'The splash did not appear for the cancellation test.' }
+        if (-not $process.CloseMainWindow()) { throw 'The startup splash did not accept a normal close request.' }
+        if (-not $process.WaitForExit(3000)) { throw 'Closing the startup splash left the application running.' }
+        if ($process.ExitCode -ne 0) { throw "Closing the startup splash returned code $($process.ExitCode)." }
+    } finally {
+        if (-not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force
+            [void]$process.WaitForExit(10000)
         }
         $process.Dispose()
     }
@@ -88,8 +124,10 @@ try {
     $shell = New-Object -ComObject WScript.Shell
     if ($shell.CreateShortcut($shortcut).TargetPath -ne $app) { throw 'The Start menu shortcut points to the wrong executable.' }
     $checks.Add('PASS: Start menu shortcut points to the installed application.')
-    Assert-ApplicationStarts $app $testRoot
-    $checks.Add('PASS: installed application opened its main window from a separate working directory and closed cleanly.')
+    $startupSeconds = Assert-ApplicationStarts $app $testRoot
+    $checks.Add(("PASS: credited startup splash shown for six seconds (observed {0:0.000}s), followed by the editor; normal application shutdown." -f $startupSeconds))
+    Assert-SplashCanClose $app $testRoot
+    $checks.Add('PASS: closing the startup splash exited cleanly without leaving a hidden application running.')
 
     $installedFiles = @(Get-ChildItem $target -File -Recurse | Select-Object -ExpandProperty FullName)
     [void][IO.Directory]::CreateDirectory((Split-Path $internalDesign))
@@ -104,8 +142,8 @@ try {
     }
     $registrations = @(Get-ChildItem (Split-Path $uninstallKey) | Where-Object { $_.PSChildName -eq 'TheShop.RHabenicht_is1' })
     if ($registrations.Count -ne 1) { throw 'Reinstall created duplicate uninstall registration.' }
-    Assert-ApplicationStarts $app $testRoot
-    $checks.Add('PASS: reinstall restored a deleted application library, retained saved vehicles, kept one uninstall entry, and reopened the application.')
+    $repairStartupSeconds = Assert-ApplicationStarts $app $testRoot
+    $checks.Add(("PASS: reinstall restored a deleted library, preserved saved vehicles and one uninstall entry, and repeated the six-second splash (observed {0:0.000}s)." -f $repairStartupSeconds))
 } finally {
     if (Test-Path $uninstaller) {
         Invoke-CheckedProcess $uninstaller @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=`"$(Join-Path $outputDirectory 'uninstall.log')`"")

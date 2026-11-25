@@ -12,6 +12,8 @@ Module Program
         Application.EnableVisualStyles()
         Application.SetCompatibleTextRenderingDefault(False)
 
+        StartupSplashChecks.Run()
+
         Dim folder = Directory.CreateTempSubdirectory("the-shop-smoke-")
         Try
             Dim destination = Path.Combine(folder.FullName, "design.json")

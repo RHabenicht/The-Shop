@@ -6,6 +6,8 @@ The port can read legacy `.shp` vehicle saves and calculate Rigger 3 Revised sto
 
 ## Windows desktop
 
+At startup, the credited workshop splash screen remains visible for six seconds, then opens the editor. The artwork credits the update to NightLife and the original program to James Ojaste. The image is embedded, so it is available offline after installation.
+
 The editor lets you select a chassis and compatible power plant, enter options or modifications, and calculate the design cost and remaining capacity. Open and save use the same stock design JSON format as the command-line calculator. The editor imports legacy `.shp` vehicles and converts their supported selections to revised rules.
 
 For Windows 10/11 x64, download the installer package from the [Windows desktop workflow](../../actions/workflows/windows.yml), extract it and run `The-Shop-Setup-x64.exe`. It includes the .NET desktop runtime and installs for the current account without administrator rights. Use the Start menu entry to open The Shop. See [installation instructions](installer/INSTALL.txt) for saved designs, updates and removal.

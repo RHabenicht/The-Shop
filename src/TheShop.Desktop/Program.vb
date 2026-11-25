@@ -6,6 +6,8 @@ Module Program
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2)
         Application.EnableVisualStyles()
         Application.SetCompatibleTextRenderingDefault(False)
-        Application.Run(New DesignForm())
+        Using startup As New StartupContext()
+            Application.Run(startup)
+        End Using
     End Sub
 End Module

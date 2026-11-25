@@ -1,0 +1,50 @@
+name: Import approved splash artwork
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_url:
+        description: Temporary download URL for the approved credited PNG
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: splash-0.2.17
+      - name: Copy and verify the approved artwork
+        shell: python
+        run: |
+          import hashlib, json, os, pathlib, urllib.parse, urllib.request
+          with open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8") as event_file:
+              source = json.load(event_file)["inputs"]["source_url"]
+          print("::add-mask::" + source, flush=True)
+          parsed = urllib.parse.urlsplit(source)
+          host = (parsed.hostname or "").lower()
+          if parsed.scheme != "https" or not (host.startswith("sdmntpr") and host.endswith(".oaiusercontent.com")):
+              raise SystemExit("The artwork URL is not from the approved file host.")
+          with urllib.request.urlopen(source, timeout=60) as response:
+              data = response.read(3000000)
+          expected = "8e6046dfaa23c799d44203608c91aa47bcba3e8b4fa9fdc720457d40bbf15cb8"
+          if len(data) != 2255394 or hashlib.sha256(data).hexdigest() != expected:
+              raise SystemExit("The downloaded artwork does not match the approved credited PNG.")
+          destination = pathlib.Path("src/TheShop.Desktop/Assets/splash.png")
+          destination.parent.mkdir(parents=True, exist_ok=True)
+          destination.write_bytes(data)
+          print("Verified approved PNG: 2255394 bytes; SHA-256 " + expected)
+      - name: Save the approved asset on the update branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/TheShop.Desktop/Assets/splash.png
+          git commit -m "Embed the approved The Shop splash artwork with both credits"
+          git push origin HEAD:splash-0.2.17

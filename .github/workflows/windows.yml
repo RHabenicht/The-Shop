@@ -20,6 +20,8 @@ jobs:
   build:
     runs-on: windows-2025
     timeout-minutes: 18
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-dotnet@v4
@@ -48,7 +50,38 @@ jobs:
           Copy-Item installer/INSTALL.txt installer-output/INSTALL.txt
           $hash = (Get-FileHash installer-output/The-Shop-Setup-x64.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           Set-Content installer-output/SHA256SUMS.txt "$hash  The-Shop-Setup-x64.exe" -Encoding ascii
+      - name: Publish versioned installer download
+        if: github.event_name != 'pull_request' || startsWith(github.head_ref, 'release/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          $version = ([xml](Get-Content src/TheShop.Desktop/TheShop.Desktop.vbproj -Raw)).Project.PropertyGroup.Version
+          $tag = "v$version"
+          $archive = "installer-output/The-Shop-$version-Windows-x64-Installer.zip"
+          Compress-Archive -Path installer-output/The-Shop-Setup-x64.exe,installer-output/INSTALL.txt,installer-output/Installer-Test-Report.txt,installer-output/SHA256SUMS.txt -DestinationPath $archive
+          gh release view $tag --json url --jq .url 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "The versioned release already exists; its installer was not replaced."
+            exit 0
+          }
+          @"
+          The Shop $version displays the credited workshop splash for six seconds before opening the editor.
+
+          Updated by NightLife. Original program by James Ojaste.
+
+          Windows 10/11 x64. The desktop runtime is included. Extract the ZIP and run The-Shop-Setup-x64.exe.
+
+          Verified on native Windows: 530 rules audit cases, embedded artwork identity, editor and file tests, installation, six-second startup and editor transition, early close, repair, saved-file preservation, and uninstall.
+          "@ | Set-Content installer-output/Release-Notes.txt -Encoding utf8NoBOM
+          gh release create $tag installer-output/The-Shop-Setup-x64.exe $archive --target $env:RELEASE_COMMIT --title "The Shop $version" --notes-file installer-output/Release-Notes.txt
+          if ($LASTEXITCODE -ne 0) { throw "GitHub release publishing failed with code $LASTEXITCODE." }
+          gh release view $tag --json url,assets
+          if ($LASTEXITCODE -ne 0) { throw "The published release could not be verified." }
       - name: Upload tested installer
+        if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release/')
         uses: actions/upload-artifact@v4
         with:
           retention-days: ${{ github.event_name == 'pull_request' && 3 || 14 }}

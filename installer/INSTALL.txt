@@ -1,4 +1,4 @@
-THE SHOP 0.2.16
+THE SHOP 0.2.17
 Shadowrun Third Edition vehicle builder - Rigger 3 Revised
 
 INSTALL
@@ -9,6 +9,8 @@ development tools are required.
 The default location is %LOCALAPPDATA%\Programs\The Shop. Installation is
 for the current Windows account and does not require administrator rights.
 Start The Shop from its Start menu entry or the final installer screen.
+The credited splash screen appears for six seconds, then the editor opens.
+Updated by NightLife. Original program by James Ojaste.
 
 UPDATES AND SAVED VEHICLES
 Install a newer package over the existing installation. The installer keeps

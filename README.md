@@ -10,7 +10,7 @@ At startup, the credited workshop splash screen remains visible for six seconds,
 
 The editor lets you select a chassis and compatible power plant, enter options or modifications, and calculate the design cost and remaining capacity. Open and save use the same stock design JSON format as the command-line calculator. The editor imports legacy `.shp` vehicles and converts their supported selections to revised rules.
 
-For Windows 10/11 x64, download the installer package from the [Windows desktop workflow](../../actions/workflows/windows.yml), extract it and run `The-Shop-Setup-x64.exe`. It includes the .NET desktop runtime and installs for the current account without administrator rights. Use the Start menu entry to open The Shop. See [installation instructions](installer/INSTALL.txt) for saved designs, updates and removal.
+For Windows 10/11 x64, download the installer package from [GitHub Releases](../../releases/latest), extract it and run `The-Shop-Setup-x64.exe`. It includes the .NET desktop runtime and installs for the current account without administrator rights. Use the Start menu entry to open The Shop. See [installation instructions](installer/INSTALL.txt) for saved designs, updates and removal.
 
 To run the editor from source on Windows, use the .NET 10 SDK:
 
@@ -18,7 +18,7 @@ To run the editor from source on Windows, use the .NET 10 SDK:
 dotnet run --project src/TheShop.Desktop
 ```
 
-The [Windows desktop workflow](../../actions/workflows/windows.yml) publishes a self-contained Windows executable, runs the rules and native editor tests, builds the installer and tests installation, shortcut creation, installed startup, repair, saved-file preservation and uninstall. Successful runs upload `The-Shop-Windows-x64`, containing the installer, instructions, test report and SHA-256 checksum. The workflow runs on source/installer pushes and pull requests and can also be started manually.
+The [Windows desktop workflow](../../actions/workflows/windows.yml) publishes a self-contained Windows executable, runs the rules and native editor tests, builds the installer and tests installation, shortcut creation, installed startup, repair, saved-file preservation and uninstall. Main-branch and release-branch builds publish a versioned GitHub release containing the installer and a ZIP with instructions, the test report and a SHA-256 checksum. Existing versioned releases are retained. Other pull requests upload a temporary `The-Shop-Windows-x64` development artifact. Release downloads do not consume GitHub Actions artifact storage. The workflow runs on source/installer pushes and pull requests and can also be started manually.
 
 ## Apply design upgrades
 
